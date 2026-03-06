@@ -1,0 +1,22 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Claude Code (local tooling, não faz parte do projeto)
+.claude/
+.agents/
+
+# Logs
+*.log
+logs/
