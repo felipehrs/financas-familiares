@@ -12,3 +12,4 @@ frontend/.env.local
 # General
 .DS_Store
 *.env.local
+.ai-jail
