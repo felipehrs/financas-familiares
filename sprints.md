@@ -39,7 +39,7 @@
 
 | Status | ID | Descrição |
 |--------|-----|-----------|
-| 🔲 | US-02 | Cadastrar/editar/inativar membros da família (backend + frontend) |
+| ✅ | US-02 | Cadastrar/editar/inativar membros da família (backend + frontend) |
 | ✅ | US-03 | Gerenciar categorias com sugestões padrão (backend + frontend) |
 | 🔲 | US-04 | Cadastrar/editar/inativar cartões de crédito (backend + frontend) |
 
