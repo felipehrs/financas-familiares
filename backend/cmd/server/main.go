@@ -44,14 +44,17 @@ func main() {
 	// Inicializar repositórios
 	authRepo := repository.NewAuthRepository(db)
 	membroRepo := repository.NewMembroRepository(db)
+	categoriaRepo := repository.NewCategoriaRepository(db)
 
 	// Inicializar serviços
 	authService := service.NewAuthService(authRepo, cfg.JWT.Secret)
 	membroSvc := service.NewMembroService(membroRepo)
+	categoriaSvc := service.NewCategoriaService(categoriaRepo)
 
 	// Inicializar handlers
 	authHandler := handler.NewAuthHandler(authService)
 	membroHandler := handler.NewMembroHandler(membroSvc)
+	categoriaHandler := handler.NewCategoriaHandler(categoriaSvc)
 
 	// Configurar rotas
 	r := gin.Default()
@@ -79,6 +82,12 @@ func main() {
 			protected.GET("/membros/:id", membroHandler.BuscarPorID)
 			protected.PUT("/membros/:id", membroHandler.Atualizar)
 			protected.PATCH("/membros/:id/inativar", membroHandler.Inativar)
+
+			// Categorias
+			protected.GET("/categorias", categoriaHandler.Listar)
+			protected.POST("/categorias", categoriaHandler.Criar)
+			protected.PUT("/categorias/:id", categoriaHandler.Atualizar)
+			protected.DELETE("/categorias/:id", categoriaHandler.Excluir)
 		}
 	}
 
