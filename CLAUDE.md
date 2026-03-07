@@ -48,6 +48,12 @@ Investment returns that are **not distributed** (`valor_distribuido = 0`) are in
 - Section 8: dashboard wireframe showing exact layout and calculations
 - Section 10: phased roadmap (MVP → Core → Analytics → Extras)
 
+**For current sprint, what is in progress, and what to implement next → read `sprints.md`:**
+- Each sprint has a clear objective, list of items (US/TT), and a done criterion
+- Update item status (🔲 → 🔄 → ✅) as work progresses
+- Always work items in sprint order; do not start a sprint before the previous one is done
+- Register blockers in the sprint section when they occur
+
 **For implementation order, user stories, and acceptance criteria → read `stories.md`:**
 - US-01 to US-07: Phase 1 MVP stories (auth, members, categories, credit cards, fixed income, basic dashboard)
 - US-08 to US-18: Phase 2 Core stories (installments, subscriptions, fixed bills, general expenses, full income types, complete dashboard)
