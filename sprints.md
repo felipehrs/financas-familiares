@@ -22,10 +22,10 @@
 
 | Status | ID | Descrição |
 |--------|-----|-----------|
-| 🔲 | TT-01 | Setup do projeto: monorepo, frontend (React + Vite + TS + Tailwind + shadcn/ui), backend (Go + Gin), linters, Makefile |
-| 🔲 | TT-02 | Banco de dados: Docker Compose + PostgreSQL + golang-migrate + migrações de todas as entidades |
-| 🔲 | TT-03 | Autenticação JWT: `POST /auth/login`, `POST /auth/refresh`, middleware, bcrypt, seed de 2 usuários |
-| 🔲 | US-01 | Login no sistema (frontend): tela de login, integração com JWT, refresh automático de token |
+| ✅ | TT-01 | Setup do projeto: monorepo, frontend (React + Vite + TS + Tailwind + shadcn/ui), backend (Go + Gin), linters, Makefile |
+| ✅ | TT-02 | Banco de dados: Docker Compose + PostgreSQL + golang-migrate + migrações de todas as entidades |
+| ✅ | TT-03 | Autenticação JWT: `POST /auth/login`, `POST /auth/refresh`, middleware, bcrypt, seed de 2 usuários |
+| ✅ | US-01 | Login no sistema (frontend): tela de login, integração com JWT, refresh automático de token |
 
 **Critério de conclusão:** É possível subir o ambiente com `docker compose up`, rodar `make test` no backend (verde), rodar `pnpm test:run` no frontend (verde) e fazer login com os dois usuários seed.
 
