@@ -185,6 +185,79 @@ deleted_at  TIMESTAMPTZ (soft delete, para sync de exclusões)
 
 ---
 
+## 11. Estratégia de Testes (TDD)
+
+O desenvolvimento adota **Test-Driven Development (TDD)** como prática central. Todo código de produção deve ser precedido por testes que falham, seguindo o ciclo clássico: **Red → Green → Refactor**.
+
+### Princípios
+
+- Escrever o teste antes da implementação (Red)
+- Implementar o mínimo necessário para o teste passar (Green)
+- Refatorar mantendo os testes verdes (Refactor)
+- Cobertura mínima de 80% nas camadas de domínio e serviço
+- Testes de integração para endpoints HTTP críticos
+
+### Backend (Go)
+
+| Camada | Tipo de Teste | Ferramenta |
+|---|---|---|
+| Domain / Regras de negócio | Unitário | `testing` stdlib + `testify` |
+| Service (casos de uso) | Unitário com mocks | `testify/mock` |
+| Repository | Integração (banco real) | `testcontainers-go` + PostgreSQL |
+| Handler HTTP | Integração | `net/http/httptest` + `testify` |
+
+**Foco prioritário para TDD:**
+- `CalcularFatura(dataCompra, diaFechamento)` → RN01
+- `DistribuirParcelas(compra, faturaInicial)` → RN03
+- `CalcularSaldoMensal(rendas, despesas)` → RN06
+- `GerarProjecao(meses, rendasFixas, despesasRecorrentes)` → RN07
+
+**Convenção de arquivos:**
+```
+internal/domain/cartao_test.go   # testa cartao.go
+internal/service/saldo_test.go   # testa saldo.go
+```
+
+### Frontend (React + TypeScript)
+
+| Camada | Tipo de Teste | Ferramenta |
+|---|---|---|
+| Funções de domínio puras | Unitário | Vitest |
+| Componentes React | Componente | Vitest + React Testing Library |
+| Fluxos de usuário | E2E (Fase 2+) | Playwright |
+
+**Foco prioritário para TDD:**
+- Funções de cálculo de fatura e parcelas (duplicadas no frontend para feedback imediato)
+- Validações de formulário (Zod schemas)
+- Lógica de formatação monetária e de datas
+
+### Cobertura Mínima por Camada
+
+| Camada | Cobertura Mínima |
+|---|---|
+| Domain (Go) | 90% |
+| Service (Go) | 80% |
+| Handler HTTP | 70% |
+| Funções puras (TS) | 90% |
+| Componentes React | 60% |
+
+### Execução dos Testes
+
+```bash
+# Backend
+make test              # todos os testes
+make test-unit         # apenas unitários
+make test-integration  # apenas integração (requer Docker)
+make test-coverage     # relatório de cobertura
+
+# Frontend
+pnpm test              # todos os testes (watch mode)
+pnpm test:run          # todos os testes (CI mode)
+pnpm test:coverage     # relatório de cobertura
+```
+
+---
+
 ## 9. Considerações sobre a Escolha do Stack
 
 ### Por que Go no backend?

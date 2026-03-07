@@ -38,22 +38,30 @@ Investment returns that are **not distributed** (`valor_distribuido = 0`) are in
 
 **Future projections (RN07, RN09):** Only `RendaFixa` (active) is projected forward. Variable income, extras, and investment returns are excluded from projections because they are unpredictable.
 
-## Specification Reference
+## Reference Documents
 
-Full requirements are in `spec.md`:
+**For functional requirements and business rules → read `spec.md`:**
 - RF01–RF18: functional requirements (members, categories, credit cards, subscriptions, fixed bills, general expenses, income types)
 - RF19–RF22: dashboard (monthly summary, category breakdown, monthly trend chart, 3-month projection)
 - RN01–RN09: business rules
 - Section 7: conceptual data model with all entity fields
 - Section 8: dashboard wireframe showing exact layout and calculations
-- Section 9: suggested tech stack (React/Vue frontend, Node/Python backend, PostgreSQL/SQLite)
 - Section 10: phased roadmap (MVP → Core → Analytics → Extras)
 
-## Tech Stack Decisions (to be made)
+**For technical decisions, stack, architecture, and testing strategy → read `tech-spec.md`:**
+- Sections 1–4: architecture, frontend stack, backend stack (Go + Gin), database (PostgreSQL)
+- Section 5: authentication (JWT + bcrypt)
+- Section 6: offline sync strategy (IndexedDB queue, last-write-wins)
+- Section 7: infrastructure and deploy options
+- Section 8: development tooling (pnpm, ESLint, golangci-lint, GitHub Actions)
+- Section 9: rationale for tech choices
+- Section 11: TDD strategy, test tools, coverage targets, and test conventions
 
-When implementation begins, the recommended starting point per the spec is:
-- **Frontend:** React.js or Vue.js (PWA, mobile-first, 320px–1920px)
-- **Storage:** SQLite (offline-first) or IndexedDB, with optional cloud sync
-- **Backend (optional):** Node.js/Express or Python/FastAPI + PostgreSQL
+## Tech Stack (decided — see tech-spec.md for details)
+
+- **Frontend:** React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui
+- **Backend:** Go + Gin framework
+- **Database:** PostgreSQL (prod) / Docker Compose (local dev)
+- **Testing:** TDD — Vitest + React Testing Library (frontend), Go stdlib + testify (backend)
 
 The MVP (Fase 1) should implement: members, categories, credit cards, basic card expenses (no installments), fixed income, and a basic dashboard.
