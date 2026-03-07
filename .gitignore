@@ -1,22 +1,14 @@
-# OS
+# Go
+backend/bin/
+backend/server
+backend/coverage.out
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# General
 .DS_Store
-Thumbs.db
-
-# Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Environment
-.env
-.env.local
-.env.*.local
-
-# Claude Code (local tooling, não faz parte do projeto)
-.claude/
-.agents/
-
-# Logs
-*.log
-logs/
+*.env.local
