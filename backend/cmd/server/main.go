@@ -34,7 +34,6 @@ func main() {
 	log.Println("conexão com banco de dados estabelecida")
 
 	// Rodar seeds
-	authRepo := repository.NewAuthRepository(db)
 	if err := repository.SeedUsuarios(db, &cfg.Seed); err != nil {
 		log.Printf("aviso: erro no seed de usuários: %v", err)
 	}
@@ -42,11 +41,17 @@ func main() {
 		log.Printf("aviso: erro no seed de categorias: %v", err)
 	}
 
+	// Inicializar repositórios
+	authRepo := repository.NewAuthRepository(db)
+	membroRepo := repository.NewMembroRepository(db)
+
 	// Inicializar serviços
 	authService := service.NewAuthService(authRepo, cfg.JWT.Secret)
+	membroSvc := service.NewMembroService(membroRepo)
 
 	// Inicializar handlers
 	authHandler := handler.NewAuthHandler(authService)
+	membroHandler := handler.NewMembroHandler(membroSvc)
 
 	// Configurar rotas
 	r := gin.Default()
@@ -64,12 +69,16 @@ func main() {
 			authGroup.POST("/refresh", authHandler.Refresh)
 		}
 
-		// Rotas protegidas (vazias por enquanto — serão adicionadas nos próximos sprints)
+		// Rotas protegidas por JWT
 		protected := v1.Group("")
 		protected.Use(middleware.AuthMiddleware(authService))
 		{
-			// futuras rotas protegidas aqui
-			_ = protected
+			// Membros da família
+			protected.GET("/membros", membroHandler.Listar)
+			protected.POST("/membros", membroHandler.Criar)
+			protected.GET("/membros/:id", membroHandler.BuscarPorID)
+			protected.PUT("/membros/:id", membroHandler.Atualizar)
+			protected.PATCH("/membros/:id/inativar", membroHandler.Inativar)
 		}
 	}
 
