@@ -48,6 +48,12 @@ Investment returns that are **not distributed** (`valor_distribuido = 0`) are in
 - Section 8: dashboard wireframe showing exact layout and calculations
 - Section 10: phased roadmap (MVP → Core → Analytics → Extras)
 
+**For implementation order, user stories, and acceptance criteria → read `stories.md`:**
+- US-01 to US-07: Phase 1 MVP stories (auth, members, categories, credit cards, fixed income, basic dashboard)
+- US-08 to US-18: Phase 2 Core stories (installments, subscriptions, fixed bills, general expenses, full income types, complete dashboard)
+- US-19 to US-21: Phase 3 Analytics stories (charts, projections, income history)
+- TT-01 to TT-06: technical tasks (scaffolding, DB migrations, JWT auth, offline sync, PWA, CI/CD)
+
 **For technical decisions, stack, architecture, and testing strategy → read `tech-spec.md`:**
 - Sections 1–4: architecture, frontend stack, backend stack (Go + Gin), database (PostgreSQL)
 - Section 5: authentication (JWT + bcrypt)
