@@ -11,6 +11,9 @@ export function DashboardPage() {
         <Link to="/membros" className="text-blue-600 hover:underline">
           Membros da Família
         </Link>
+        <Link to="/categorias" className="text-blue-600 hover:underline">
+          Categorias
+        </Link>
       </nav>
       <button className="mt-4" onClick={logout}>Sair</button>
     </div>
