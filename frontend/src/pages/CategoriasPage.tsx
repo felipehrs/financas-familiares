@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import {
   listarCategorias,
@@ -130,6 +131,11 @@ export function CategoriasPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
+      <div className="mb-4">
+        <Link to="/" className="text-blue-600 hover:underline text-sm">
+          ← Voltar para o dashboard
+        </Link>
+      </div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Categorias</h1>
         {formMode === 'hidden' && (
