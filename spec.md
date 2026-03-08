@@ -118,15 +118,37 @@ Famílias que desejam ter controle detalhado e consolidado de suas finanças, co
   - Descrição (ex: Escola, Financiamento, Condomínio)
   - Membro responsável (FK para Membro)
   - Categoria
-  - Valor
+  - Valor base (referência inicial ou valor atual)
+  - Tipo de valor: **"fixo"** (valor constante) ou **"variável"** (valor muda todo mês — ex: luz, água, condomínio)
   - Dia do vencimento
   - Forma de pagamento
   - Status (ativa/inativa)
   - Observações (opcional)
 
+#### RF10a - Lançamento Mensal de Valor em Contas Variáveis
+- Contas fixas do tipo "variável" permitem o usuário lançar o valor real de cada mês
+- O lançamento contém:
+  - Mês/ano de referência
+  - Valor real cobrado no mês
+  - Data de vencimento efetiva (pode diferir do dia padrão)
+  - Observações (opcional)
+- O histórico de lançamentos é exibido dentro da tela da conta fixa
+- Se o usuário ainda não lançou o valor do mês corrente, o sistema usa o **valor estimado** (ver RN14)
+
+#### RF10b - Reajuste de Contas Fixas
+- Qualquer conta fixa (fixa ou variável) pode ter reajustes registrados
+- Um reajuste contém:
+  - Data de vigência (a partir de quando o novo valor entra em vigor)
+  - Novo valor base
+  - Motivo (opcional — ex: "Reajuste anual IGPM", "Novo contrato")
+- O sistema aplica automaticamente o valor correto em cada mês conforme a linha do tempo de reajustes
+- O histórico de reajustes é exibido dentro da tela da conta fixa
+- É possível registrar reajustes futuros (agendados)
+
 #### RF11 - Recorrência de Contas Fixas
-- Contas fixas ativas devem ser consideradas automaticamente nas projeções mensais
-- Deve permitir alterar o valor quando houver reajuste
+- Contas fixas ativas são consideradas automaticamente nas projeções mensais
+- Para contas do tipo **"fixo"**: usa o valor base vigente (respeitando reajustes — RN15)
+- Para contas do tipo **"variável"**: usa o valor estimado (RN14) quando o mês ainda não foi lançado; usa o valor real quando já lançado
 
 ### 2.6 Gestão de Despesas Gerais
 
@@ -380,6 +402,44 @@ Mês que é simultaneamente início e fim (data_inicio e data_fim no mesmo mês/
 - `data_inicio = 2026-03-08`, `data_fim = NULL` → MAR/26: valor × 24/31; ABR/26 em diante: valor cheio
 - `data_inicio = 2026-03-01`, `data_fim = 2026-03-15` → MAR/26: valor × 15/31; outros meses: não aparece
 
+### RN14 - Estimativa de Valor para Contas Variáveis
+```
+Para contas fixas do tipo "variavel", o valor usado em projeções e no dashboard
+quando o mês ainda não foi lançado:
+
+  1. Buscar os lançamentos reais dos últimos 3 meses anteriores ao mês de referência
+  2. Se houver 1 ou mais lançamentos: ESTIMATIVA = max(valores dos lançamentos encontrados)
+  3. Se não houver lançamentos anteriores: ESTIMATIVA = valor_base vigente (via RN15)
+
+Quando o usuário lança o valor real do mês:
+  - O valor real substitui a estimativa para aquele mês em todos os cálculos
+  - O dashboard do mês corrente é atualizado imediatamente
+```
+
+**Exemplos:**
+- Jan: R$ 180, Fev: R$ 210, Mar: não lançado → estimativa Mar = R$ 210
+- Jan: R$ 180, Fev: R$ 210, Mar: lançado R$ 195 → Mar = R$ 195 (real)
+- Conta nova sem histórico → estimativa = valor_base
+
+### RN15 - Valor Vigente com Reajuste de Conta Fixa
+```
+Para determinar o valor_base vigente em um mês/ano de referência:
+
+  1. Filtrar ContaFixaReajuste onde data_vigencia <= último dia do mês de referência
+  2. Ordenar por data_vigencia DESC, pegar o primeiro registro
+  3. Se existir: valor_vigente = ContaFixaReajuste.novo_valor
+  4. Se não existir (nenhum reajuste ainda vigente): valor_vigente = ContaFixa.valor_base
+
+Reajustes com data_vigencia futura são armazenados mas não aplicados até que o mês chegue.
+```
+
+**Exemplos:**
+- Conta valor_base = R$ 800; reajuste em 01/07/2026 para R$ 880
+  - Jan–Jun/26: valor = R$ 800
+  - Jul/26 em diante: valor = R$ 880
+- Dois reajustes: Jul/26 → R$ 880, Jan/27 → R$ 960
+  - Jun/26: R$ 800; Ago/26: R$ 880; Fev/27: R$ 960
+
 ### RN11 - Conversão de Moeda em Assinaturas Estrangeiras
 ```
 Se assinatura.moeda ≠ "BRL" e forma_pagamento = "cartão de crédito":
@@ -591,11 +651,31 @@ O botão "+ Nova Despesa" abre modal/formulário com seletor de tipo:
 - descricao
 - membro_id (FK)
 - categoria_id (FK)
-- valor
+- valor_base (valor inicial ou atual — referência para reajustes)
+- tipo_valor ("fixo" | "variavel")
 - dia_vencimento
 - forma_pagamento
 - status (ativa/inativa)
 - observacoes
+
+#### ContaFixaLancamento
+_(somente para contas do tipo "variavel")_
+- id
+- conta_fixa_id (FK)
+- mes (int)
+- ano (int)
+- valor_real (float — valor efetivamente cobrado no mês)
+- data_vencimento_efetiva (date, opcional — quando difere do dia padrão)
+- observacoes
+- (chave única: conta_fixa_id + mes + ano)
+
+#### ContaFixaReajuste
+- id
+- conta_fixa_id (FK)
+- data_vigencia (date — a partir de quando o novo valor é aplicado)
+- novo_valor (float)
+- motivo (text, opcional)
+- (ordenado por data_vigencia para determinar valor vigente em cada mês)
 
 #### DespesaGeral
 - id
@@ -796,6 +876,8 @@ O botão "+ Nova Despesa" abre modal/formulário com seletor de tipo:
 - App mobile
 
 ### Fase 5 - Melhorias de Usabilidade (pós-Sprint 8)
+- **Contas fixas variáveis:** tipo "variável" para contas como luz, água e condomínio; lançamento do valor real mês a mês; estimativa automática = máximo dos últimos 3 meses quando o mês não foi lançado (RF10a, RN14)
+- **Reajuste de contas fixas:** registro de novo valor com data de vigência; histórico de reajustes; aplicação automática do valor correto por período; suporte a reajustes futuros agendados (RF10b, RN15)
 - **Assinaturas em moeda estrangeira:** suporte a USD, EUR, GBP, ARS e outras; conversão automática via API de câmbio na data de fechamento da fatura; cotação manual pelo usuário prevalece (RF08a, RN11)
 - **Despesa geral no cartão:** quando forma de pagamento = "cartão de crédito", vincular ao cartão cadastrado e entrar na fatura via RN01 (RF12, RN12)
 - **Lista centralizada de despesas:** tela unificada abaixo do dashboard exibindo todos os tipos de despesa com badges; botão "+ Nova Despesa" com seletor de tipo e formulário dinâmico (RF12a, RN13)

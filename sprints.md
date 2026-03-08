@@ -164,7 +164,7 @@
 
 ## Sprint 9 — Melhorias de Usabilidade
 
-**Objetivo:** Implementar três melhorias de UX decididas após a conclusão das sprints 1–8: suporte a moeda estrangeira em assinaturas, vinculação de despesa geral a cartão de crédito, e tela centralizada de despesas com formulário dinâmico por tipo.
+**Objetivo:** Implementar melhorias de UX e de modelagem decididas após a conclusão das sprints 1–8: contas fixas com valor variável e reajustes, suporte a moeda estrangeira em assinaturas, vinculação de despesa geral a cartão de crédito, e tela centralizada de despesas com formulário dinâmico por tipo.
 
 **Itens:**
 
@@ -173,8 +173,10 @@
 | 🔲 | US-23 | Assinaturas em moeda estrangeira: campo `moeda`, busca de cotação via API de câmbio na data de fechamento, cotação manual pelo usuário (RF08a, RN11) |
 | 🔲 | US-24 | Despesa geral com cartão de crédito: campo `cartao_id` quando forma de pagamento = cartão; entrada na fatura via RN01 (RF12 revisado, RN12) |
 | 🔲 | US-25 | Tela centralizada de despesas: lista unificada com badges por tipo abaixo do dashboard; botão "+ Nova Despesa" com seletor de tipo e formulário dinâmico (RF12a, RN13) |
+| 🔲 | US-26 | Contas fixas com valor variável: campo `tipo_valor` (fixo/variável); lançamento mensal do valor real; estimativa automática = máximo dos últimos 3 meses (RF10a, RN14) |
+| 🔲 | US-27 | Reajuste de contas fixas: registro de novo valor com data de vigência; histórico de reajustes; valor correto aplicado automaticamente por mês (RF10b, RN15) |
 
-**Critério de conclusão:** As três melhorias funcionando integradas. Cotação automática buscada e sobrescrita manualmente pelo usuário. Lista centralizada exibindo todos os tipos com badges corretos. Formulário dinâmico carregando o form correto por tipo. Testes unitários cobrindo RN11, RN12 e RN13 ≥ 90%.
+**Critério de conclusão:** Todas as melhorias funcionando integradas. Estimativa de conta variável usando max dos últimos 3 meses; valor real substitui estimativa quando lançado. Reajuste aplicado corretamente na linha do tempo. Cotação de moeda estrangeira automática com override manual. Lista centralizada com badges e formulário dinâmico. Testes unitários ≥ 90% cobrindo RN11–RN15.
 
 **Pré-requisito:** Sprints 1–8 concluídas.
 
@@ -193,4 +195,4 @@
 | 6 | Dashboard completo e offline | US-17, US-18, TT-04, TT-05 |
 | 7 | Analytics e projeções | US-19, US-20, US-21 |
 | 8 | Qualidade e deploy | TT-06 + validações |
-| 9 | Melhorias de usabilidade (pós-deploy) | US-23, US-24, US-25 |
+| 9 | Melhorias de usabilidade (pós-deploy) | US-23, US-24, US-25, US-26, US-27 |
