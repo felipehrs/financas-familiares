@@ -1,10 +1,38 @@
-.PHONY: up down test test-unit test-integration test-coverage build run lint
+.PHONY: up down dev test test-unit test-integration test-coverage build run lint
 
 up:
 	docker compose up -d
 
 down:
 	docker compose down
+
+# Sobe o ambiente completo de desenvolvimento:
+# 1. Garante que o PostgreSQL está rodando
+# 2. Roda as migrations
+# 3. Sobe o backend (Go) em background
+# 4. Sobe o frontend (Vite dev server)
+dev:
+	@echo "→ Verificando PostgreSQL..."
+	@if ! docker compose ps postgres 2>/dev/null | grep -q "running\|Up"; then \
+		echo "→ Subindo PostgreSQL..."; \
+		docker compose up -d postgres; \
+		echo "→ Aguardando PostgreSQL ficar pronto..."; \
+		until docker compose exec postgres pg_isready -U postgres -q 2>/dev/null; do sleep 1; done; \
+	else \
+		echo "→ PostgreSQL já está rodando."; \
+	fi
+	@echo "→ Rodando migrations..."
+	@migrate -path backend/migrations -database "postgres://postgres:postgres@localhost:5432/financas_familiares?sslmode=disable" up 2>&1 | grep -v "no change" || true
+	@echo "→ Subindo backend em background (logs em /tmp/backend.log)..."
+	@pkill -f "go run ./cmd/server" 2>/dev/null || true
+	@cd backend && go run ./cmd/server > /tmp/backend.log 2>&1 &
+	@sleep 2
+	@if ! curl -sf http://localhost:8080/health > /dev/null; then \
+		echo "✗ Backend falhou ao iniciar. Veja /tmp/backend.log"; exit 1; \
+	fi
+	@echo "→ Backend rodando em http://localhost:8080"
+	@echo "→ Subindo frontend..."
+	cd frontend && npm run dev
 
 # Backend targets
 test:
