@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -308,6 +309,11 @@ export function CartoesPage() {
                     </span>
                   </div>
                   <div className="flex gap-2">
+                    <Link to={`/cartoes/${cartao.id}/despesas`}>
+                      <Button variant="outline" size="sm">
+                        Ver despesas
+                      </Button>
+                    </Link>
                     <Button
                       variant="outline"
                       size="sm"
