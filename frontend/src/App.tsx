@@ -14,6 +14,7 @@ import { RendasVariaveisPage } from '@/pages/RendasVariaveisPage'
 import { RendasExtrasPage } from '@/pages/RendasExtrasPage'
 import { RendimentosInvestimentoPage } from '@/pages/RendimentosInvestimentoPage'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { SyncQueueInitializer } from '@/components/SyncQueueInitializer'
 
 function App() {
   return (
@@ -23,18 +24,20 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/membros" element={<MembrosPage />} />
-            <Route path="/categorias" element={<CategoriasPage />} />
-            <Route path="/cartoes" element={<CartoesPage />} />
-            <Route path="/cartoes/:cartaoId/despesas" element={<DespesasCartaoPage />} />
-            <Route path="/rendas-fixas" element={<RendasFixasPage />} />
-            <Route path="/assinaturas" element={<AssinaturasPage />} />
-            <Route path="/contas-fixas" element={<ContasFixasPage />} />
-            <Route path="/despesas-gerais" element={<DespesasGeraisPage />} />
-            <Route path="/rendas-variaveis" element={<RendasVariaveisPage />} />
-            <Route path="/rendas-extras" element={<RendasExtrasPage />} />
-            <Route path="/rendimentos-investimento" element={<RendimentosInvestimentoPage />} />
+            <SyncQueueInitializer>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/membros" element={<MembrosPage />} />
+              <Route path="/categorias" element={<CategoriasPage />} />
+              <Route path="/cartoes" element={<CartoesPage />} />
+              <Route path="/cartoes/:cartaoId/despesas" element={<DespesasCartaoPage />} />
+              <Route path="/rendas-fixas" element={<RendasFixasPage />} />
+              <Route path="/assinaturas" element={<AssinaturasPage />} />
+              <Route path="/contas-fixas" element={<ContasFixasPage />} />
+              <Route path="/despesas-gerais" element={<DespesasGeraisPage />} />
+              <Route path="/rendas-variaveis" element={<RendasVariaveisPage />} />
+              <Route path="/rendas-extras" element={<RendasExtrasPage />} />
+              <Route path="/rendimentos-investimento" element={<RendimentosInvestimentoPage />} />
+            </SyncQueueInitializer>
           </Route>
         </Routes>
       </AuthProvider>

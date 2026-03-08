@@ -6,7 +6,7 @@ import { MembrosPage } from './MembrosPage'
 import type { Membro } from '@/types/membro'
 
 // Mock do módulo de API
-vi.mock('@/api/membros', () => ({
+vi.mock('@/offline/membros', () => ({
   listarMembros: vi.fn(),
   criarMembro: vi.fn(),
   atualizarMembro: vi.fn(),
@@ -23,7 +23,7 @@ import {
   criarMembro,
   inativarMembro,
   atualizarMembro,
-} from '@/api/membros'
+} from '@/offline/membros'
 
 const membrosFixture: Membro[] = [
   { id: '1', nome: 'Ana Silva', relacionamento: 'Cônjuge', ativo: true },

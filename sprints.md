@@ -122,7 +122,7 @@
 |--------|-----|-----------|
 | ✅ | US-17 | Dashboard completo: rendas operacionais + rendimentos de investimentos + despesas + saldo (RN06, RN08) |
 | ✅ | US-18 | Despesas por categoria: gráfico de pizza/barras com percentuais (RN04) |
-| 🔲 | TT-04 | Infraestrutura offline: Dexie.js + fila de sincronização + política last-write-wins |
+| ✅ | TT-04 | Infraestrutura offline: Dexie.js + fila de sincronização + política last-write-wins |
 | 🔲 | TT-05 | PWA: Service Worker + manifest.json + funcionamento offline completo |
 
 **Critério de conclusão:** Dashboard completo conforme wireframe da spec.md §8. App funciona offline e sincroniza ao reconectar.

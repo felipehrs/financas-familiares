@@ -7,7 +7,7 @@ import type { DespesaCartao } from '@/types/despesa_cartao'
 import type { CartaoCredito } from '@/types/cartao_credito'
 import type { Categoria } from '@/types/categoria'
 
-vi.mock('@/api/despesas_cartao', () => ({
+vi.mock('@/offline/despesas_cartao', () => ({
   listarDespesasPorCartao: vi.fn(),
   listarDespesasPorFatura: vi.fn(),
   criarDespesa: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({ accessToken: 'fake-token' })),
 }))
 
-import { listarDespesasPorCartao, listarDespesasPorFatura, criarDespesa, excluirDespesa } from '@/api/despesas_cartao'
+import { listarDespesasPorCartao, listarDespesasPorFatura, criarDespesa, excluirDespesa } from '@/offline/despesas_cartao'
 import { listarCategorias } from '@/api/categorias'
 import { listarCartoes } from '@/api/cartoes_credito'
 

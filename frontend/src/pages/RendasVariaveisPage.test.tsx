@@ -6,7 +6,7 @@ import { RendasVariaveisPage } from './RendasVariaveisPage'
 import type { RendaVariavel } from '@/types/renda_variavel'
 import type { Membro } from '@/types/membro'
 
-vi.mock('@/api/rendas_variaveis', () => ({
+vi.mock('@/offline/rendas_variaveis', () => ({
   listarRendasVariaveis: vi.fn(),
   criarRendaVariavel: vi.fn(),
   atualizarRendaVariavel: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ accessToken: 'token-fake' }),
 }))
 
-import { listarRendasVariaveis, criarRendaVariavel, excluirRendaVariavel } from '@/api/rendas_variaveis'
+import { listarRendasVariaveis, criarRendaVariavel, excluirRendaVariavel } from '@/offline/rendas_variaveis'
 import { listarMembros } from '@/api/membros'
 
 const rendasFixture: RendaVariavel[] = [

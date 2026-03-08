@@ -6,7 +6,7 @@ import { RendasFixasPage } from './RendasFixasPage'
 import type { RendaFixa } from '@/types/renda_fixa'
 import type { Membro } from '@/types/membro'
 
-vi.mock('@/api/rendas_fixas', () => ({
+vi.mock('@/offline/rendas_fixas', () => ({
   listarRendasFixas: vi.fn(),
   criarRendaFixa: vi.fn(),
   atualizarRendaFixa: vi.fn(),
@@ -17,7 +17,7 @@ vi.mock('@/api/membros', () => ({ listarMembros: vi.fn() }))
 
 vi.mock('@/hooks/useAuth', () => ({ useAuth: vi.fn(() => ({ accessToken: 'fake-token' })) }))
 
-import { listarRendasFixas, criarRendaFixa, inativarRendaFixa } from '@/api/rendas_fixas'
+import { listarRendasFixas, criarRendaFixa, inativarRendaFixa } from '@/offline/rendas_fixas'
 import { listarMembros } from '@/api/membros'
 
 const membrosFixture: Membro[] = [

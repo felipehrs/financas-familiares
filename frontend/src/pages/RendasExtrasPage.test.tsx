@@ -6,7 +6,7 @@ import { RendasExtrasPage } from './RendasExtrasPage'
 import type { RendaExtra } from '@/types/renda_extra'
 import type { Membro } from '@/types/membro'
 
-vi.mock('@/api/rendas_extras', () => ({
+vi.mock('@/offline/rendas_extras', () => ({
   listarRendasExtras: vi.fn(),
   criarRendaExtra: vi.fn(),
   atualizarRendaExtra: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ accessToken: 'token-fake' }),
 }))
 
-import { listarRendasExtras, criarRendaExtra, excluirRendaExtra } from '@/api/rendas_extras'
+import { listarRendasExtras, criarRendaExtra, excluirRendaExtra } from '@/offline/rendas_extras'
 import { listarMembros } from '@/api/membros'
 
 const rendasFixture: RendaExtra[] = [

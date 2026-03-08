@@ -6,7 +6,7 @@ import { RendimentosInvestimentoPage } from './RendimentosInvestimentoPage'
 import type { RendimentoInvestimento } from '@/types/rendimento_investimento'
 import type { Membro } from '@/types/membro'
 
-vi.mock('@/api/rendimentos_investimento', () => ({
+vi.mock('@/offline/rendimentos_investimento', () => ({
   listarRendimentos: vi.fn(),
   criarRendimento: vi.fn(),
   atualizarRendimento: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ accessToken: 'token-fake' }),
 }))
 
-import { listarRendimentos, criarRendimento, excluirRendimento } from '@/api/rendimentos_investimento'
+import { listarRendimentos, criarRendimento, excluirRendimento } from '@/offline/rendimentos_investimento'
 import { listarMembros } from '@/api/membros'
 
 const rendimentosFixture: RendimentoInvestimento[] = [

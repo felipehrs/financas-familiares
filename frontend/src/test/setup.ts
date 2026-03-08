@@ -1,3 +1,4 @@
+import 'fake-indexeddb/auto'
 import '@testing-library/jest-dom'
 
 // localStorage mock para o ambiente jsdom do vitest

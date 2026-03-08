@@ -6,7 +6,7 @@ import { CategoriasPage } from './CategoriasPage'
 import type { Categoria } from '@/types/categoria'
 
 // Mock do módulo de API
-vi.mock('@/api/categorias', () => ({
+vi.mock('@/offline/categorias', () => ({
   listarCategorias: vi.fn(),
   criarCategoria: vi.fn(),
   atualizarCategoria: vi.fn(),
@@ -23,7 +23,7 @@ import {
   criarCategoria,
   atualizarCategoria,
   excluirCategoria,
-} from '@/api/categorias'
+} from '@/offline/categorias'
 
 const categoriasFixture: Categoria[] = [
   { id: '1', nome: 'Alimentação' },

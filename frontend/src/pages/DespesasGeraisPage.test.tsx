@@ -6,7 +6,7 @@ import { DespesasGeraisPage } from './DespesasGeraisPage'
 import type { DespesaGeral } from '@/types/despesa_geral'
 import type { Membro } from '@/types/membro'
 
-vi.mock('@/api/despesas_gerais', () => ({
+vi.mock('@/offline/despesas_gerais', () => ({
   listarDespesasGerais: vi.fn(),
   criarDespesaGeral: vi.fn(),
   atualizarDespesaGeral: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ accessToken: 'token-fake' }),
 }))
 
-import { listarDespesasGerais, criarDespesaGeral, atualizarDespesaGeral, excluirDespesaGeral } from '@/api/despesas_gerais'
+import { listarDespesasGerais, criarDespesaGeral, atualizarDespesaGeral, excluirDespesaGeral } from '@/offline/despesas_gerais'
 import { listarMembros } from '@/api/membros'
 import { listarCategorias } from '@/api/categorias'
 

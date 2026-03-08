@@ -6,7 +6,7 @@ import { ContasFixasPage } from './ContasFixasPage'
 import type { ContaFixa } from '@/types/conta_fixa'
 import type { Membro } from '@/types/membro'
 
-vi.mock('@/api/contas_fixas', () => ({
+vi.mock('@/offline/contas_fixas', () => ({
   listarContasFixas: vi.fn(),
   criarContaFixa: vi.fn(),
   atualizarContaFixa: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({ accessToken: 'fake-token' })),
 }))
 
-import { listarContasFixas, criarContaFixa, alterarAtivoContaFixa } from '@/api/contas_fixas'
+import { listarContasFixas, criarContaFixa, alterarAtivoContaFixa } from '@/offline/contas_fixas'
 import { listarMembros } from '@/api/membros'
 import { listarCategorias } from '@/api/categorias'
 

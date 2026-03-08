@@ -9,7 +9,7 @@ import {
   criarCategoria,
   atualizarCategoria,
   excluirCategoria,
-} from '@/api/categorias'
+} from '@/offline/categorias'
 import type { Categoria } from '@/types/categoria'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'

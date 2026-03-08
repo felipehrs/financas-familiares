@@ -7,7 +7,7 @@ import type { Assinatura } from '@/types/assinatura'
 import type { Membro } from '@/types/membro'
 import type { Categoria } from '@/types/categoria'
 
-vi.mock('@/api/assinaturas', () => ({
+vi.mock('@/offline/assinaturas', () => ({
   listarAssinaturas: vi.fn(),
   criarAssinatura: vi.fn(),
   atualizarAssinatura: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({ accessToken: 'fake-token' })),
 }))
 
-import { listarAssinaturas, criarAssinatura, alterarStatusAssinatura } from '@/api/assinaturas'
+import { listarAssinaturas, criarAssinatura, alterarStatusAssinatura } from '@/offline/assinaturas'
 import { listarMembros } from '@/api/membros'
 import { listarCategorias } from '@/api/categorias'
 

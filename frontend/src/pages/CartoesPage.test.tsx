@@ -6,7 +6,7 @@ import { CartoesPage } from './CartoesPage'
 import type { CartaoCredito } from '@/types/cartao_credito'
 import type { Membro } from '@/types/membro'
 
-vi.mock('@/api/cartoes_credito', () => ({
+vi.mock('@/offline/cartoes_credito', () => ({
   listarCartoes: vi.fn(),
   criarCartao: vi.fn(),
   atualizarCartao: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({ accessToken: 'fake-token' })),
 }))
 
-import { listarCartoes, criarCartao, inativarCartao } from '@/api/cartoes_credito'
+import { listarCartoes, criarCartao, inativarCartao } from '@/offline/cartoes_credito'
 import { listarMembros } from '@/api/membros'
 
 const membrosFixture: Membro[] = [

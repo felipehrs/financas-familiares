@@ -9,7 +9,7 @@ import {
   criarMembro,
   atualizarMembro,
   inativarMembro,
-} from '@/api/membros'
+} from '@/offline/membros'
 import type { Membro, AtualizarMembroRequest } from '@/types/membro'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
