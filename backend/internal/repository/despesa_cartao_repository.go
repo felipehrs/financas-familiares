@@ -121,6 +121,27 @@ func (r *DespesaCartaoRepository) BuscarPorID(id string) (*domain.DespesaCartao,
 	return row.toDomain(), nil
 }
 
+// ListarPorFaturaGlobal retorna todas as despesas de todos os cartões filtradas por mês e ano de fatura.
+// Usado pelo DashboardService para calcular o total de despesas de cartão no mês.
+func (r *DespesaCartaoRepository) ListarPorFaturaGlobal(mes, ano int) ([]*domain.DespesaCartao, error) {
+	var rows []despesaCartaoRow
+	err := r.db.Select(&rows, `
+		SELECT id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, valor_parcela, fatura_mes, fatura_ano
+		FROM despesas_cartao
+		WHERE fatura_mes = $1 AND fatura_ano = $2 AND deleted_at IS NULL
+		ORDER BY data_compra DESC
+	`, mes, ano)
+	if err != nil {
+		return nil, err
+	}
+
+	despesas := make([]*domain.DespesaCartao, 0, len(rows))
+	for _, row := range rows {
+		despesas = append(despesas, row.toDomain())
+	}
+	return despesas, nil
+}
+
 // Excluir realiza soft delete de uma despesa setando deleted_at = NOW().
 func (r *DespesaCartaoRepository) Excluir(id string) error {
 	result, err := r.db.Exec(`

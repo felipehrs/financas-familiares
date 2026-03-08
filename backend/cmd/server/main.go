@@ -56,6 +56,7 @@ func main() {
 	cartaoSvc := service.NewCartaoCreditoService(cartaoRepo)
 	despesaSvc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 	rendaFixaSvc := service.NewRendaFixaService(rendaFixaRepo)
+	dashboardSvc := service.NewDashboardService(rendaFixaRepo, despesaRepo)
 
 	// Inicializar handlers
 	authHandler := handler.NewAuthHandler(authService)
@@ -64,6 +65,7 @@ func main() {
 	cartaoHandler := handler.NewCartaoCreditoHandler(cartaoSvc)
 	despesaHandler := handler.NewDespesaCartaoHandler(despesaSvc)
 	rendaFixaHandler := handler.NewRendaFixaHandler(rendaFixaSvc)
+	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)
 
 	// Configurar rotas
 	r := gin.Default()
@@ -117,6 +119,9 @@ func main() {
 			protected.GET("/rendas-fixas/:id", rendaFixaHandler.BuscarPorID)
 			protected.PUT("/rendas-fixas/:id", rendaFixaHandler.Atualizar)
 			protected.PATCH("/rendas-fixas/:id/inativar", rendaFixaHandler.Inativar)
+
+			// Dashboard
+			protected.GET("/dashboard/resumo", dashboardHandler.ResumoMensal)
 		}
 	}
 
