@@ -10,6 +10,7 @@ import { RendasFixasPage } from '@/pages/RendasFixasPage'
 import { AssinaturasPage } from '@/pages/AssinaturasPage'
 import { ContasFixasPage } from '@/pages/ContasFixasPage'
 import { DespesasGeraisPage } from '@/pages/DespesasGeraisPage'
+import { RendasVariaveisPage } from '@/pages/RendasVariaveisPage'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
             <Route path="/assinaturas" element={<AssinaturasPage />} />
             <Route path="/contas-fixas" element={<ContasFixasPage />} />
             <Route path="/despesas-gerais" element={<DespesasGeraisPage />} />
+            <Route path="/rendas-variaveis" element={<RendasVariaveisPage />} />
           </Route>
         </Routes>
       </AuthProvider>
