@@ -178,3 +178,6 @@ Todos os endpoints (exceto `/health` e `/api/v1/auth/*`) requerem `Authorization
 | 011 | `rendas_extras` |
 | 012 | `rendimentos_investimento` |
 | 013 | `refresh_tokens` |
+| 014 | unique constraint em `categorias.nome` |
+| 015 | campo `num_parcelas` em `despesas_cartao` |
+| 016 | campos `data_inicio` / `data_fim` em `rendas_fixas` |

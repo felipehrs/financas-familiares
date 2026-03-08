@@ -20,7 +20,9 @@
 | Roteamento | React Router v7 |
 | Formulários | React Hook Form + Zod |
 | Testes | Vitest + React Testing Library |
-| Gerenciador de pacotes | pnpm |
+| Gerenciador de pacotes | npm |
+| Offline / IndexedDB | Dexie.js |
+| PWA | vite-plugin-pwa (Workbox) |
 
 ---
 
@@ -28,14 +30,18 @@
 
 ```
 src/
-├── api/           # Clientes HTTP para cada recurso da API
+├── api/           # Clientes HTTP para cada recurso da API (chamadas diretas ao backend)
+├── offline/       # Wrappers offline: network-first com fallback Dexie + sync queue
+├── lib/           # db.ts (Dexie schema) e syncQueue.ts (fila de sincronização)
 ├── components/
 │   ├── ui/        # Componentes shadcn/ui (Button, Card, Input, Label, Form)
-│   └── ProtectedRoute.tsx
-├── hooks/         # Hooks customizados (useAuth)
+│   ├── GraficoCategoriaDespesas.tsx
+│   ├── ProtectedRoute.tsx
+│   └── SyncQueueInitializer.tsx
+├── hooks/         # Hooks customizados (useAuth, useTheme, useSyncQueue)
 ├── pages/         # Páginas da aplicação
 ├── store/         # Estado global (AuthContext)
-├── test/          # Setup do Vitest
+├── test/          # Setup do Vitest (fake-indexeddb/auto)
 └── types/         # Tipos TypeScript compartilhados
 ```
 
@@ -44,14 +50,13 @@ src/
 ## Pré-requisitos
 
 - Node.js 20+
-- pnpm 9+
 
 ---
 
 ## Instalação
 
 ```bash
-pnpm install
+npm install
 ```
 
 ---
@@ -74,28 +79,25 @@ cp .env.example .env.local
 
 ```bash
 # Desenvolvimento (hot reload)
-pnpm dev
+npm run dev
 
 # Build de produção
-pnpm build
+npm run build
 
-# Preview do build
-pnpm preview
+# Preview do build (PWA ativo)
+npm run preview
 
 # Testes (watch mode)
-pnpm test
+npm test
 
 # Testes (CI — sem watch)
-pnpm test:run
+npm run test:run
 
 # Cobertura de testes
-pnpm test:coverage
+npm run test:coverage
 
 # Lint
-pnpm lint
-
-# Formatação
-pnpm format
+npm run lint
 ```
 
 ---
@@ -105,13 +107,39 @@ pnpm format
 O projeto adota **TDD** — testes são escritos antes da implementação.
 
 ```bash
-pnpm test:run
+npm run test:run
 ```
 
 | Camada | Ferramenta | Cobertura mínima |
 |---|---|---|
 | Funções puras / hooks | Vitest | 90% |
 | Componentes React | Vitest + RTL | 60% |
+| Offline / sync queue | Vitest + fake-indexeddb | 90% |
+
+---
+
+## Offline
+
+As páginas importam de `@/offline/*` em vez de `@/api/*`. Cada wrapper:
+
+- **Leituras:** tenta a rede; em caso de falha, serve do cache Dexie (IndexedDB)
+- **Escritas online:** chama a API e atualiza o cache local
+- **Escritas offline:** salva localmente (UUID gerado no cliente) e enfileira na `sync_queue`
+- **Reconexão:** o evento `window.online` dispara `processarFila`, que envia as operações pendentes ao backend em ordem cronológica (política last-write-wins)
+
+---
+
+## PWA
+
+O app é instalável como PWA. O Service Worker (Workbox, modo `generateSW`) faz precache de todos os assets estáticos. Chamadas à API (`/api/*`) não são interceptadas pelo SW — tratadas pelo Dexie.
+
+Para verificar o PWA localmente:
+
+```bash
+npm run build && npm run preview
+```
+
+Abra `http://localhost:4173` no Chrome e use DevTools > Application.
 
 ---
 

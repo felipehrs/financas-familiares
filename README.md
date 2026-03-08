@@ -78,7 +78,7 @@ O sistema resolve a necessidade de visibilidade clara e consolidada das finança
 | **Sprint 4 — Cartões Avançados** | Compras parceladas (RN03), fatura por mês, assinaturas, contas fixas | ✅ Concluído |
 | **Sprint 4.5 — Vigência de Renda Fixa** | Data de início/fim na renda fixa; proporcionalidade por dia (RN10) | ✅ Concluído |
 | **Sprint 5 — Despesas e Rendas Completas** | Despesas gerais, filtros e CSV, renda variável, renda extra, rendimentos de investimento (RN09) | ✅ Concluído |
-| **Sprint 6 — Dashboard Completo e Offline** | Dashboard com todas as seções (RN06/RN08), gráfico de categorias, PWA, IndexedDB offline-first | 🔲 Planejado |
+| **Sprint 6 — Dashboard Completo e Offline** | Dashboard com todas as seções (RN06/RN08), gráfico de categorias, PWA, IndexedDB offline-first | ✅ Concluído |
 | **Sprint 7 — Analytics e Projeções** | Gráfico de evolução mensal (12 meses), projeção 3 meses (RN07), histórico de rendas | 🔲 Planejado |
 | **Sprint 8 — Qualidade e Deploy** | CI/CD GitHub Actions, cobertura validada, deploy (Vercel + Railway) | 🔲 Planejado |
 | **Sprint 9 — Melhorias de Usabilidade** | Contas fixas variáveis + reajustes, assinaturas em moeda estrangeira, lista centralizada de despesas | 🔲 Futuro |
