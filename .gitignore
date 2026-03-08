@@ -2,6 +2,7 @@
 backend/bin/
 backend/server
 backend/coverage.out
+backend/.env
 
 # Node
 frontend/node_modules/
