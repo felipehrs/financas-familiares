@@ -47,6 +47,7 @@ func main() {
 	categoriaRepo := repository.NewCategoriaRepository(db)
 	cartaoRepo := repository.NewCartaoCreditoRepository(db)
 	despesaRepo := repository.NewDespesaCartaoRepository(db)
+	rendaFixaRepo := repository.NewRendaFixaRepository(db)
 
 	// Inicializar serviços
 	authService := service.NewAuthService(authRepo, cfg.JWT.Secret)
@@ -54,6 +55,7 @@ func main() {
 	categoriaSvc := service.NewCategoriaService(categoriaRepo)
 	cartaoSvc := service.NewCartaoCreditoService(cartaoRepo)
 	despesaSvc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
+	rendaFixaSvc := service.NewRendaFixaService(rendaFixaRepo)
 
 	// Inicializar handlers
 	authHandler := handler.NewAuthHandler(authService)
@@ -61,6 +63,7 @@ func main() {
 	categoriaHandler := handler.NewCategoriaHandler(categoriaSvc)
 	cartaoHandler := handler.NewCartaoCreditoHandler(cartaoSvc)
 	despesaHandler := handler.NewDespesaCartaoHandler(despesaSvc)
+	rendaFixaHandler := handler.NewRendaFixaHandler(rendaFixaSvc)
 
 	// Configurar rotas
 	r := gin.Default()
@@ -107,6 +110,13 @@ func main() {
 			protected.GET("/cartoes/:id/despesas/fatura", despesaHandler.ListarPorFatura)
 			protected.POST("/cartoes/:id/despesas", despesaHandler.Criar)
 			protected.DELETE("/despesas/:id", despesaHandler.Excluir)
+
+			// Rendas fixas
+			protected.GET("/rendas-fixas", rendaFixaHandler.Listar)
+			protected.POST("/rendas-fixas", rendaFixaHandler.Criar)
+			protected.GET("/rendas-fixas/:id", rendaFixaHandler.BuscarPorID)
+			protected.PUT("/rendas-fixas/:id", rendaFixaHandler.Atualizar)
+			protected.PATCH("/rendas-fixas/:id/inativar", rendaFixaHandler.Inativar)
 		}
 	}
 
