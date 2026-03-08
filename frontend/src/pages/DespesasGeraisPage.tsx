@@ -81,6 +81,11 @@ export function DespesasGeraisPage() {
   const [filtroMes, setFiltroMes] = useState(hoje.getMonth() + 1)
   const [filtroAno, setFiltroAno] = useState(hoje.getFullYear())
 
+  // ─── Estado dos filtros adicionais ────────────────────────────────────────
+  const [filtroMembroId, setFiltroMembroId] = useState('')
+  const [filtroCategoriaId, setFiltroCategoriaId] = useState('')
+  const [filtroForma, setFiltroForma] = useState('')
+
   const {
     register,
     handleSubmit,
@@ -226,9 +231,58 @@ export function DespesasGeraisPage() {
     }
   }
 
+  // ─── Filtros adicionais (aplicados localmente) ────────────────────────────
+
+  function despesasFiltradas(): DespesaGeral[] {
+    return despesas.filter((d) => {
+      if (filtroMembroId && d.membro_id !== filtroMembroId) return false
+      if (filtroCategoriaId && d.categoria_id !== filtroCategoriaId) return false
+      if (filtroForma && d.forma_pagamento !== filtroForma) return false
+      return true
+    })
+  }
+
+  // ─── Exportação CSV ───────────────────────────────────────────────────────
+
+  function exportarCSV() {
+    const mes = String(filtroMes).padStart(2, '0')
+    const ano = String(filtroAno)
+    const nomeArquivo = `despesas-gerais-${mes}-${ano}.csv`
+
+    const cabecalho = ['Data', 'Descrição', 'Membro', 'Categoria', 'Valor', 'Forma de Pagamento', 'Observações']
+    const linhas = despesasFiltradas().map((d) => {
+      const nomeMem = membros.find((m) => m.id === d.membro_id)?.nome ?? d.membro_id
+      const nomeCat = d.categoria_id ? (categorias.find((c) => c.id === d.categoria_id)?.nome ?? '') : ''
+      return [
+        d.data,
+        d.descricao,
+        nomeMem,
+        nomeCat,
+        d.valor.toFixed(2),
+        d.forma_pagamento,
+        d.observacoes ?? '',
+      ]
+    })
+
+    const escapar = (v: string) => `"${v.replace(/"/g, '""')}"`
+    const conteudo = [cabecalho, ...linhas].map((row) => row.map(escapar).join(',')).join('\n')
+
+    const blob = new Blob(['\uFEFF' + conteudo], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', nomeArquivo)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   // ─── Render ──────────────────────────────────────────────────────────────────
 
-  const despesasOrdenadas = [...despesas].sort((a, b) => b.data.localeCompare(a.data))
+  const filtradas = despesasFiltradas()
+  const despesasOrdenadas = [...filtradas].sort((a, b) => b.data.localeCompare(a.data))
+  const totalFiltrado = filtradas.reduce((acc, d) => acc + d.valor, 0)
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -241,7 +295,10 @@ export function DespesasGeraisPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Despesas Gerais</h1>
         {formMode === 'hidden' && (
-          <Button onClick={abrirFormCriacao}>Nova despesa</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportarCSV}>Exportar CSV</Button>
+            <Button onClick={abrirFormCriacao}>Nova despesa</Button>
+          </div>
         )}
       </div>
 
@@ -285,7 +342,69 @@ export function DespesasGeraisPage() {
             className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 w-28"
           />
         </div>
+        <div>
+          <label htmlFor="filtro-membro" className="block text-sm font-medium mb-1">
+            Membro
+          </label>
+          <select
+            id="filtro-membro"
+            aria-label="Filtrar por membro"
+            value={filtroMembroId}
+            onChange={(e) => setFiltroMembroId(e.target.value)}
+            className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <option value="">Todos</option>
+            {membros.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="filtro-categoria" className="block text-sm font-medium mb-1">
+            Categoria
+          </label>
+          <select
+            id="filtro-categoria"
+            aria-label="Filtrar por categoria"
+            value={filtroCategoriaId}
+            onChange={(e) => setFiltroCategoriaId(e.target.value)}
+            className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <option value="">Todas</option>
+            {categorias.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="filtro-forma" className="block text-sm font-medium mb-1">
+            Forma de pagamento
+          </label>
+          <select
+            id="filtro-forma"
+            aria-label="Filtrar por forma de pagamento"
+            value={filtroForma}
+            onChange={(e) => setFiltroForma(e.target.value)}
+            className="mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <option value="">Todas</option>
+            {FORMAS_PAGAMENTO.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
+
+      {/* Total das despesas filtradas */}
+      <p className="mb-4 text-sm font-medium">
+        Total: {formatarMoeda(totalFiltrado)} ({filtradas.length} {filtradas.length === 1 ? 'despesa' : 'despesas'})
+      </p>
 
       {/* Formulário inline de criação / edição */}
       {formMode !== 'hidden' && (

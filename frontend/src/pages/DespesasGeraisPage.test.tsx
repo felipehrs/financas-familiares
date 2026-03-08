@@ -42,7 +42,31 @@ const despesasFixture: DespesaGeral[] = [
   },
 ]
 
+const despesasFixture2: DespesaGeral[] = [
+  {
+    id: '1',
+    membro_id: 'membro-1',
+    categoria_id: null,
+    descricao: 'Supermercado',
+    data: '2026-03-05',
+    valor: 350.00,
+    forma_pagamento: 'pix',
+    observacoes: null,
+  },
+  {
+    id: '2',
+    membro_id: 'membro-2',
+    categoria_id: null,
+    descricao: 'Farmácia',
+    data: '2026-03-10',
+    valor: 80.00,
+    forma_pagamento: 'dinheiro',
+    observacoes: null,
+  },
+]
+
 const membroFixture: Membro = { id: 'membro-1', nome: 'Felipe', relacionamento: 'titular', ativo: true }
+const membro2Fixture: Membro = { id: 'membro-2', nome: 'Ana', relacionamento: 'cônjuge', ativo: true }
 
 function renderPage() {
   return render(
@@ -77,7 +101,7 @@ describe('DespesasGeraisPage', () => {
       expect(screen.getByText('Supermercado')).toBeInTheDocument()
     })
     expect(screen.getAllByText('Felipe').length).toBeGreaterThan(0)
-    expect(screen.getByText(/pix/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/pix/i).length).toBeGreaterThan(0)
   })
 
   // ─── 3. Exibe "Nenhuma despesa cadastrada" quando lista vazia ─────────────
@@ -101,10 +125,11 @@ describe('DespesasGeraisPage', () => {
     await waitFor(() => screen.getByRole('button', { name: /nova despesa/i }))
     await user.click(screen.getByRole('button', { name: /nova despesa/i }))
 
-    expect(screen.getByLabelText(/data/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/membro responsável/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/descrição/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/forma de pagamento/i)).toBeInTheDocument()
+    const form = screen.getByRole('button', { name: /salvar/i }).closest('form')!
+    expect(within(form).getByLabelText(/data/i)).toBeInTheDocument()
+    expect(within(form).getByLabelText(/membro responsável/i)).toBeInTheDocument()
+    expect(within(form).getByLabelText(/descrição/i)).toBeInTheDocument()
+    expect(within(form).getByLabelText(/forma de pagamento/i)).toBeInTheDocument()
   })
 
   // ─── 5. Submete formulário e recarrega lista ──────────────────────────────
@@ -118,16 +143,17 @@ describe('DespesasGeraisPage', () => {
     await waitFor(() => screen.getByRole('button', { name: /nova despesa/i }))
     await user.click(screen.getByRole('button', { name: /nova despesa/i }))
 
-    await waitFor(() => screen.getByLabelText(/descrição/i))
+    await waitFor(() => screen.getByRole('button', { name: /salvar/i }))
+    const form = screen.getByRole('button', { name: /salvar/i }).closest('form')!
 
-    await user.type(screen.getByLabelText(/data/i), '2026-03-05')
-    await user.selectOptions(screen.getByLabelText(/membro responsável/i), 'membro-1')
-    await user.type(screen.getByLabelText(/descrição/i), 'Supermercado')
+    await user.type(within(form).getByLabelText(/data/i), '2026-03-05')
+    await user.selectOptions(within(form).getByLabelText(/membro responsável/i), 'membro-1')
+    await user.type(within(form).getByLabelText(/descrição/i), 'Supermercado')
 
-    await user.clear(screen.getByLabelText(/valor/i))
-    await user.type(screen.getByLabelText(/valor/i), '350')
+    await user.clear(within(form).getByLabelText(/valor/i))
+    await user.type(within(form).getByLabelText(/valor/i), '350')
 
-    await user.selectOptions(screen.getByLabelText(/forma de pagamento/i), 'pix')
+    await user.selectOptions(within(form).getByLabelText(/forma de pagamento/i), 'pix')
 
     await user.click(screen.getByRole('button', { name: /salvar/i }))
 
@@ -174,6 +200,75 @@ describe('DespesasGeraisPage', () => {
     })
   })
 
+  // ─── 9. Exibe total das despesas filtradas ────────────────────────────────
+  it('exibe total das despesas filtradas', async () => {
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Total:/i)).toBeInTheDocument()
+    })
+
+    const totalEl = screen.getByText(/Total:/i)
+    expect(totalEl.textContent).toMatch(/R\$\s*350/)
+  })
+
+  // ─── 10. Filtra por membro ────────────────────────────────────────────────
+  it('filtra por membro', async () => {
+    vi.mocked(listarDespesasGerais).mockResolvedValue(despesasFixture2)
+    vi.mocked(listarMembros).mockResolvedValue([membroFixture, membro2Fixture])
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('Supermercado')).toBeInTheDocument()
+      expect(screen.getByText('Farmácia')).toBeInTheDocument()
+    })
+
+    await user.selectOptions(screen.getByRole('combobox', { name: /filtrar por membro/i }), 'membro-1')
+
+    expect(screen.getByText('Supermercado')).toBeInTheDocument()
+    expect(screen.queryByText('Farmácia')).not.toBeInTheDocument()
+  })
+
+  // ─── 11. Filtra por forma de pagamento ───────────────────────────────────
+  it('filtra por forma de pagamento', async () => {
+    vi.mocked(listarDespesasGerais).mockResolvedValue(despesasFixture2)
+    vi.mocked(listarMembros).mockResolvedValue([membroFixture, membro2Fixture])
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('Supermercado')).toBeInTheDocument()
+      expect(screen.getByText('Farmácia')).toBeInTheDocument()
+    })
+
+    await user.selectOptions(screen.getByRole('combobox', { name: /filtrar por forma de pagamento/i }), 'dinheiro')
+
+    expect(screen.queryByText('Supermercado')).not.toBeInTheDocument()
+    expect(screen.getByText('Farmácia')).toBeInTheDocument()
+  })
+
+  // ─── 12. Exporta CSV ao clicar no botão ──────────────────────────────────
+  it('exporta CSV ao clicar no botão', async () => {
+    window.URL.createObjectURL = vi.fn().mockReturnValue('blob:fake-url')
+    window.URL.revokeObjectURL = vi.fn()
+
+    const appendChildSpy = vi.spyOn(document.body, 'appendChild')
+    const removeChildSpy = vi.spyOn(document.body, 'removeChild')
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByRole('button', { name: /exportar csv/i }))
+    await user.click(screen.getByRole('button', { name: /exportar csv/i }))
+
+    expect(window.URL.createObjectURL).toHaveBeenCalled()
+    appendChildSpy.mockRestore()
+    removeChildSpy.mockRestore()
+  })
+
   // ─── 8. Formulário de edição preenche campos com valores da despesa ───────
   it('abre formulário de edição preenchido ao clicar em Editar', async () => {
     vi.mocked(atualizarDespesaGeral).mockResolvedValue(despesasFixture[0])
@@ -192,10 +287,11 @@ describe('DespesasGeraisPage', () => {
       expect(descricaoInput.value).toBe('Supermercado')
     })
 
-    const valorInput = screen.getByLabelText(/valor/i) as HTMLInputElement
+    const form = screen.getByRole('button', { name: /salvar/i }).closest('form')!
+    const valorInput = within(form).getByLabelText(/valor/i) as HTMLInputElement
     expect(valorInput.value).toBe('350')
 
-    const formaPagamentoSelect = screen.getByLabelText(/forma de pagamento/i) as HTMLSelectElement
+    const formaPagamentoSelect = within(form).getByLabelText(/forma de pagamento/i) as HTMLSelectElement
     expect(formaPagamentoSelect.value).toBe('pix')
   })
 })
