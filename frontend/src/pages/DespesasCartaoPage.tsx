@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '@/hooks/useAuth'
-import { listarDespesasPorCartao, criarDespesa, excluirDespesa } from '@/api/despesas_cartao'
+import { listarDespesasPorCartao, listarDespesasPorFatura, criarDespesa, excluirDespesa } from '@/api/despesas_cartao'
 import { listarCartoes } from '@/api/cartoes_credito'
 import { listarCategorias } from '@/api/categorias'
 import type { DespesaCartao } from '@/types/despesa_cartao'
@@ -50,11 +50,30 @@ function agruparPorFatura(despesas: DespesaCartao[]): Map<string, DespesaCartao[
   return grupos
 }
 
+const MESES = [
+  { value: 1, label: 'Janeiro' },
+  { value: 2, label: 'Fevereiro' },
+  { value: 3, label: 'Março' },
+  { value: 4, label: 'Abril' },
+  { value: 5, label: 'Maio' },
+  { value: 6, label: 'Junho' },
+  { value: 7, label: 'Julho' },
+  { value: 8, label: 'Agosto' },
+  { value: 9, label: 'Setembro' },
+  { value: 10, label: 'Outubro' },
+  { value: 11, label: 'Novembro' },
+  { value: 12, label: 'Dezembro' },
+]
+
+const SELECT_CLASS = 'mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export function DespesasCartaoPage() {
   const { cartaoId } = useParams<{ cartaoId: string }>()
   const { accessToken } = useAuth()
+
+  const hoje = new Date()
 
   const [despesas, setDespesas] = useState<DespesaCartao[]>([])
   const [cartao, setCartao] = useState<CartaoCredito | null>(null)
@@ -62,6 +81,11 @@ export function DespesasCartaoPage() {
   const [loading, setLoading] = useState(true)
   const [apiError, setApiError] = useState<string | null>(null)
   const [mostrarForm, setMostrarForm] = useState(false)
+
+  // ─── Estado do filtro de fatura ──────────────────────────────────────────
+  const [faturaFiltroMes, setFaturaFiltroMes] = useState(hoje.getMonth() + 1)
+  const [faturaFiltroAno, setFaturaFiltroAno] = useState(hoje.getFullYear())
+  const [faturaFiltroAtivo, setFaturaFiltroAtivo] = useState(false)
 
   const {
     register,
@@ -81,11 +105,13 @@ export function DespesasCartaoPage() {
 
   // ─── Carrega dados ──────────────────────────────────────────────────────────
 
-  async function carregarDados() {
+  async function carregarDados(filtroAtivo = false) {
     if (!accessToken || !cartaoId) return
     try {
       const [listaDespesas, listaCartoes] = await Promise.all([
-        listarDespesasPorCartao(accessToken, cartaoId),
+        filtroAtivo
+          ? listarDespesasPorFatura(accessToken, cartaoId, faturaFiltroMes, faturaFiltroAno)
+          : listarDespesasPorCartao(accessToken, cartaoId),
         listarCartoes(accessToken),
       ])
       setDespesas(listaDespesas)
@@ -108,10 +134,26 @@ export function DespesasCartaoPage() {
   }
 
   useEffect(() => {
-    void carregarDados()
+    void carregarDados(false)
     void carregarCategorias()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // ─── Handlers de filtro ──────────────────────────────────────────────────
+
+  function handleFiltrar() {
+    setFaturaFiltroAtivo(true)
+    setLoading(true)
+    setApiError(null)
+    void carregarDados(true)
+  }
+
+  function handleLimparFiltro() {
+    setFaturaFiltroAtivo(false)
+    setLoading(true)
+    setApiError(null)
+    void carregarDados(false)
+  }
 
   // ─── Handlers de UI ─────────────────────────────────────────────────────────
 
@@ -143,7 +185,7 @@ export function DespesasCartaoPage() {
       })
       fecharForm()
       setLoading(true)
-      await carregarDados()
+      await carregarDados(faturaFiltroAtivo)
     } catch (err) {
       setApiError(err instanceof Error ? err.message : 'Erro desconhecido')
     }
@@ -155,11 +197,27 @@ export function DespesasCartaoPage() {
     try {
       await excluirDespesa(accessToken, id)
       setLoading(true)
-      await carregarDados()
+      await carregarDados(faturaFiltroAtivo)
     } catch (err) {
       setApiError(err instanceof Error ? err.message : 'Erro ao excluir despesa')
     }
   }
+
+  // ─── Valores derivados do filtro ─────────────────────────────────────────
+
+  const totalFatura = faturaFiltroAtivo
+    ? despesas.reduce((sum, d) => sum + d.valor_parcela, 0)
+    : null
+
+  const limiteDisponivel =
+    faturaFiltroAtivo && cartao?.limite != null ? cartao.limite - (totalFatura ?? 0) : null
+
+  const percentualUso =
+    faturaFiltroAtivo && cartao?.limite != null && cartao.limite > 0
+      ? ((totalFatura ?? 0) / cartao.limite) * 100
+      : null
+
+  const alertaLimite = percentualUso != null && percentualUso >= 80
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -186,6 +244,70 @@ export function DespesasCartaoPage() {
         <p className="mb-4 text-sm text-red-600" role="alert">
           {apiError}
         </p>
+      )}
+
+      {/* Filtro de fatura */}
+      <div className="mb-6 flex flex-wrap gap-3 items-end">
+        <div>
+          <label htmlFor="fatura-mes" className="block text-sm font-medium mb-1">
+            Mês da fatura
+          </label>
+          <select
+            id="fatura-mes"
+            aria-label="Mês da fatura"
+            value={faturaFiltroMes}
+            onChange={(e) => setFaturaFiltroMes(Number(e.target.value))}
+            className={SELECT_CLASS}
+          >
+            {MESES.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="fatura-ano" className="block text-sm font-medium mb-1">
+            Ano da fatura
+          </label>
+          <input
+            id="fatura-ano"
+            aria-label="Ano da fatura"
+            type="number"
+            value={faturaFiltroAno}
+            onChange={(e) => setFaturaFiltroAno(Number(e.target.value))}
+            className={`${SELECT_CLASS} w-28`}
+          />
+        </div>
+        <Button onClick={handleFiltrar}>Filtrar fatura</Button>
+        {faturaFiltroAtivo && (
+          <Button variant="outline" onClick={handleLimparFiltro}>
+            Limpar filtro
+          </Button>
+        )}
+      </div>
+
+      {/* Resumo da fatura filtrada */}
+      {faturaFiltroAtivo && !loading && totalFatura != null && (
+        <Card className={`mb-6 ${alertaLimite ? 'border-amber-500 bg-amber-50' : ''}`}>
+          <CardContent className="pt-4 space-y-1">
+            {alertaLimite && (
+              <p className="text-amber-700 font-semibold text-sm" role="alert">
+                Atenção: uso de {Math.round(percentualUso!)}% do limite
+              </p>
+            )}
+            <p className="text-sm">
+              <span className="text-muted-foreground">Total da fatura: </span>
+              <span className="font-semibold">{formatarMoeda(totalFatura)}</span>
+            </p>
+            {limiteDisponivel != null && (
+              <p className="text-sm">
+                <span className="text-muted-foreground">Saldo disponível: </span>
+                <span className="font-semibold">{formatarMoeda(limiteDisponivel)}</span>
+              </p>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Formulário inline de criação */}
@@ -255,7 +377,7 @@ export function DespesasCartaoPage() {
                 <select
                   id="categoria_id"
                   {...register('categoria_id')}
-                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className={`${SELECT_CLASS} w-full`}
                 >
                   <option value="">Sem categoria</option>
                   {categorias.map((categoria) => (

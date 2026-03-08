@@ -9,6 +9,7 @@ import type { Categoria } from '@/types/categoria'
 
 vi.mock('@/api/despesas_cartao', () => ({
   listarDespesasPorCartao: vi.fn(),
+  listarDespesasPorFatura: vi.fn(),
   criarDespesa: vi.fn(),
   excluirDespesa: vi.fn(),
 }))
@@ -25,12 +26,16 @@ vi.mock('@/hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({ accessToken: 'fake-token' })),
 }))
 
-import { listarDespesasPorCartao, criarDespesa, excluirDespesa } from '@/api/despesas_cartao'
+import { listarDespesasPorCartao, listarDespesasPorFatura, criarDespesa, excluirDespesa } from '@/api/despesas_cartao'
 import { listarCategorias } from '@/api/categorias'
 import { listarCartoes } from '@/api/cartoes_credito'
 
 const cartoesFixture: CartaoCredito[] = [
   { id: '1', nome: 'Nubank', membro_id: 'm-1', dia_fechamento: 10, dia_vencimento: 17, limite: 5000, ativo: true },
+]
+
+const cartaoSemLimiteFixture: CartaoCredito[] = [
+  { id: '1', nome: 'Nubank', membro_id: 'm-1', dia_fechamento: 10, dia_vencimento: 17, limite: null, ativo: true },
 ]
 
 const categoriasFixture: Categoria[] = [
@@ -56,6 +61,40 @@ const despesasFixture: DespesaCartao[] = [
   },
 ]
 
+// fixture para testes de total/saldo/alerta (100 + 200 = 300)
+const despesasFaturaFixture: DespesaCartao[] = [
+  {
+    id: 'd1',
+    compra_id: 'c1',
+    cartao_id: '1',
+    descricao: 'Supermercado',
+    valor_total: 100,
+    valor_parcela: 100,
+    numero_parcelas: 1,
+    parcela_numero: 1,
+    fatura_mes: 3,
+    fatura_ano: 2026,
+    fatura: 'MAR/26',
+    data_compra: '2026-03-10',
+    categoria_id: null,
+  },
+  {
+    id: 'd2',
+    compra_id: 'c2',
+    cartao_id: '1',
+    descricao: 'Farmácia',
+    valor_total: 200,
+    valor_parcela: 200,
+    numero_parcelas: 1,
+    parcela_numero: 1,
+    fatura_mes: 3,
+    fatura_ano: 2026,
+    fatura: 'MAR/26',
+    data_compra: '2026-03-08',
+    categoria_id: null,
+  },
+]
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/cartoes/1/despesas']}>
@@ -70,6 +109,7 @@ describe('DespesasCartaoPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(listarDespesasPorCartao).mockResolvedValue(despesasFixture)
+    vi.mocked(listarDespesasPorFatura).mockResolvedValue([])
     vi.mocked(listarCartoes).mockResolvedValue(cartoesFixture)
     vi.mocked(listarCategorias).mockResolvedValue(categoriasFixture)
   })
@@ -179,7 +219,6 @@ describe('DespesasCartaoPage', () => {
 
     renderPage()
 
-    // Aguarda o carregamento terminar (erro é exibido ou botão aparece)
     await waitFor(() => screen.getByRole('button', { name: /nova despesa/i }))
     await user.click(screen.getByRole('button', { name: /nova despesa/i }))
 
@@ -241,12 +280,140 @@ describe('DespesasCartaoPage', () => {
     await waitFor(() => screen.getByRole('button', { name: /nova despesa/i }))
     await user.click(screen.getByRole('button', { name: /nova despesa/i }))
 
-    // Apaga o valor padrão "1" e deixa em branco
     await user.clear(screen.getByLabelText(/número de parcelas/i))
     await user.click(screen.getByRole('button', { name: /salvar/i }))
 
     await waitFor(() => {
       expect(screen.getByText(/mínimo de 1 parcela/i)).toBeInTheDocument()
     })
+  })
+
+  // ─── 11. Seletor de mês/ano é renderizado ────────────────────────────────
+  it('renderiza seletor de mês e ano para filtro de fatura', async () => {
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/mês da fatura/i)).toBeInTheDocument()
+    })
+    expect(screen.getByLabelText(/ano da fatura/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /filtrar fatura/i })).toBeInTheDocument()
+  })
+
+  // ─── 12. Filtro chama listarDespesasPorFatura com mes/ano corretos ────────
+  it('chama listarDespesasPorFatura com mês e ano selecionados ao filtrar', async () => {
+    vi.mocked(listarDespesasPorFatura).mockResolvedValue(despesasFaturaFixture)
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByLabelText(/mês da fatura/i))
+    await user.selectOptions(screen.getByLabelText(/mês da fatura/i), '3')
+    await user.clear(screen.getByLabelText(/ano da fatura/i))
+    await user.type(screen.getByLabelText(/ano da fatura/i), '2026')
+    await user.click(screen.getByRole('button', { name: /filtrar fatura/i }))
+
+    await waitFor(() => {
+      expect(listarDespesasPorFatura).toHaveBeenCalledWith('fake-token', '1', 3, 2026)
+    })
+  })
+
+  // ─── 13. Total da fatura exibido quando filtro ativo ─────────────────────
+  it('exibe total da fatura quando filtro de fatura está ativo', async () => {
+    vi.mocked(listarDespesasPorFatura).mockResolvedValue(despesasFaturaFixture) // 100 + 200 = 300
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByRole('button', { name: /filtrar fatura/i }))
+    await user.click(screen.getByRole('button', { name: /filtrar fatura/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/total da fatura/i)).toBeInTheDocument()
+      expect(screen.getByText(/300,00/)).toBeInTheDocument()
+    })
+  })
+
+  // ─── 14. Saldo disponível exibido quando cartão tem limite ───────────────
+  it('exibe saldo disponível quando cartão tem limite configurado', async () => {
+    // cartoesFixture tem limite: 5000, total: 300 → saldo: 4.700
+    vi.mocked(listarDespesasPorFatura).mockResolvedValue(despesasFaturaFixture)
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByRole('button', { name: /filtrar fatura/i }))
+    await user.click(screen.getByRole('button', { name: /filtrar fatura/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/saldo disponível/i)).toBeInTheDocument()
+      expect(screen.getByText(/4\.700,00/)).toBeInTheDocument()
+    })
+  })
+
+  // ─── 15. Saldo disponível NÃO exibido quando cartão sem limite ───────────
+  it('não exibe saldo disponível quando cartão não tem limite', async () => {
+    vi.mocked(listarCartoes).mockResolvedValue(cartaoSemLimiteFixture)
+    vi.mocked(listarDespesasPorFatura).mockResolvedValue(despesasFaturaFixture)
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByRole('button', { name: /filtrar fatura/i }))
+    await user.click(screen.getByRole('button', { name: /filtrar fatura/i }))
+
+    await waitFor(() => screen.getByText(/total da fatura/i))
+    expect(screen.queryByText(/saldo disponível/i)).not.toBeInTheDocument()
+  })
+
+  // ─── 16. Alerta exibido quando uso >= 80% do limite ──────────────────────
+  it('exibe alerta quando uso da fatura ultrapassa 80% do limite', async () => {
+    // limite 1000, despesas 900 = 90%
+    const cartaoLimiteBaixo: CartaoCredito[] = [
+      { id: '1', nome: 'Nubank', membro_id: 'm-1', dia_fechamento: 10, dia_vencimento: 17, limite: 1000, ativo: true },
+    ]
+    const despesas900: DespesaCartao[] = [
+      { ...despesasFaturaFixture[0], valor_parcela: 900, valor_total: 900 },
+    ]
+    vi.mocked(listarCartoes).mockResolvedValue(cartaoLimiteBaixo)
+    vi.mocked(listarDespesasPorFatura).mockResolvedValue(despesas900)
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByRole('button', { name: /filtrar fatura/i }))
+    await user.click(screen.getByRole('button', { name: /filtrar fatura/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument()
+      expect(screen.getByText(/atenção/i)).toBeInTheDocument()
+    })
+  })
+
+  // ─── 17. Sem alerta quando uso < 80% ─────────────────────────────────────
+  it('não exibe alerta quando uso da fatura é menor que 80% do limite', async () => {
+    // limite 5000, despesas 300 = 6%
+    vi.mocked(listarDespesasPorFatura).mockResolvedValue(despesasFaturaFixture)
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByRole('button', { name: /filtrar fatura/i }))
+    await user.click(screen.getByRole('button', { name: /filtrar fatura/i }))
+
+    await waitFor(() => screen.getByText(/total da fatura/i))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  // ─── 18. "Limpar filtro" volta a chamar listarDespesasPorCartao ───────────
+  it('limpar filtro volta a exibir todas as despesas', async () => {
+    vi.mocked(listarDespesasPorFatura).mockResolvedValue(despesasFaturaFixture)
+    const user = userEvent.setup()
+    renderPage()
+
+    await waitFor(() => screen.getByRole('button', { name: /filtrar fatura/i }))
+    await user.click(screen.getByRole('button', { name: /filtrar fatura/i }))
+    await waitFor(() => screen.getByText(/total da fatura/i))
+
+    await user.click(screen.getByRole('button', { name: /limpar filtro/i }))
+
+    await waitFor(() => {
+      // listarDespesasPorCartao foi chamado na carga inicial + após limpar filtro
+      expect(listarDespesasPorCartao).toHaveBeenCalledTimes(2)
+    })
+    expect(screen.queryByText(/total da fatura/i)).not.toBeInTheDocument()
   })
 })

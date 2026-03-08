@@ -72,7 +72,7 @@
 | Status | ID | Descrição |
 |--------|-----|-----------|
 | ✅ | US-08 | Lançar compra parcelada no cartão com distribuição automática por mês (RN03) |
-| 🔲 | US-09 | Visualizar fatura de cartão por mês com saldo disponível e alerta de limite |
+| ✅ | US-09 | Visualizar fatura de cartão por mês com saldo disponível e alerta de limite |
 | 🔲 | US-10 | Cadastrar e gerenciar assinaturas recorrentes |
 | 🔲 | US-11 | Cadastrar e gerenciar contas fixas mensais |
 
