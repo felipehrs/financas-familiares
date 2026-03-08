@@ -38,11 +38,11 @@ type AssinaturaFormValues = z.infer<typeof assinaturaSchema>
 function badgeClasses(status: StatusAssinatura): string {
   switch (status) {
     case 'ativa':
-      return 'bg-green-100 text-green-700'
+      return 'bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400'
     case 'pausada':
-      return 'bg-amber-100 text-amber-700'
+      return 'bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400'
     case 'cancelada':
-      return 'bg-gray-100 text-gray-500'
+      return 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
   }
 }
 
@@ -220,7 +220,7 @@ export function AssinaturasPage() {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="mb-4">
-        <Link to="/" className="text-blue-600 hover:underline text-sm">
+        <Link to="/" className="text-blue-600 dark:text-blue-400 hover:underline text-sm">
           ← Voltar para o dashboard
         </Link>
       </div>
@@ -234,7 +234,7 @@ export function AssinaturasPage() {
 
       {/* Erro global de API */}
       {apiError && (
-        <p className="mb-4 text-sm text-red-600" role="alert">
+        <p className="mb-4 text-sm text-red-600 dark:text-red-400" role="alert">
           {apiError}
         </p>
       )}
@@ -253,7 +253,7 @@ export function AssinaturasPage() {
                   className="mt-1"
                 />
                 {errors.nome && (
-                  <p className="mt-1 text-sm text-red-600">{errors.nome.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.nome.message}</p>
                 )}
               </div>
 
@@ -272,7 +272,7 @@ export function AssinaturasPage() {
                   ))}
                 </select>
                 {errors.membro_id && (
-                  <p className="mt-1 text-sm text-red-600">{errors.membro_id.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.membro_id.message}</p>
                 )}
               </div>
 
@@ -305,7 +305,7 @@ export function AssinaturasPage() {
                     className="mt-1"
                   />
                   {errors.valor && (
-                    <p className="mt-1 text-sm text-red-600">{errors.valor.message}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.valor.message}</p>
                   )}
                 </div>
                 <div>
@@ -320,7 +320,7 @@ export function AssinaturasPage() {
                     className="mt-1"
                   />
                   {errors.dia_cobranca && (
-                    <p className="mt-1 text-sm text-red-600">{errors.dia_cobranca.message}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.dia_cobranca.message}</p>
                   )}
                 </div>
               </div>
@@ -340,7 +340,7 @@ export function AssinaturasPage() {
                   ))}
                 </select>
                 {errors.forma_pagamento && (
-                  <p className="mt-1 text-sm text-red-600">{errors.forma_pagamento.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.forma_pagamento.message}</p>
                 )}
               </div>
 

@@ -203,7 +203,7 @@ export function RendasExtrasPage() {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="mb-4">
-        <Link to="/" className="text-blue-600 hover:underline text-sm">
+        <Link to="/" className="text-blue-600 dark:text-blue-400 hover:underline text-sm">
           ← Voltar para o dashboard
         </Link>
       </div>
@@ -217,7 +217,7 @@ export function RendasExtrasPage() {
 
       {/* Erro global de API */}
       {apiError && (
-        <p className="mb-4 text-sm text-red-600" role="alert">
+        <p className="mb-4 text-sm text-red-600 dark:text-red-400" role="alert">
           {apiError}
         </p>
       )}
@@ -276,7 +276,7 @@ export function RendasExtrasPage() {
                   className="mt-1"
                 />
                 {errors.descricao && (
-                  <p className="mt-1 text-sm text-red-600">{errors.descricao.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.descricao.message}</p>
                 )}
               </div>
 
@@ -295,7 +295,7 @@ export function RendasExtrasPage() {
                   ))}
                 </select>
                 {errors.membro_id && (
-                  <p className="mt-1 text-sm text-red-600">{errors.membro_id.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.membro_id.message}</p>
                 )}
               </div>
 
@@ -308,7 +308,7 @@ export function RendasExtrasPage() {
                   className="mt-1"
                 />
                 {errors.data_recebimento && (
-                  <p className="mt-1 text-sm text-red-600">{errors.data_recebimento.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.data_recebimento.message}</p>
                 )}
               </div>
 
@@ -324,7 +324,7 @@ export function RendasExtrasPage() {
                   className="mt-1"
                 />
                 {errors.valor && (
-                  <p className="mt-1 text-sm text-red-600">{errors.valor.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.valor.message}</p>
                 )}
               </div>
 

@@ -139,7 +139,7 @@ export function MembrosPage() {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="mb-4">
-        <Link to="/" className="text-blue-600 hover:underline text-sm">
+        <Link to="/" className="text-blue-600 dark:text-blue-400 hover:underline text-sm">
           ← Voltar para o dashboard
         </Link>
       </div>
@@ -152,7 +152,7 @@ export function MembrosPage() {
 
       {/* Erro global de API */}
       {apiError && (
-        <p className="mb-4 text-sm text-red-600" role="alert">
+        <p className="mb-4 text-sm text-red-600 dark:text-red-400" role="alert">
           {apiError}
         </p>
       )}
@@ -171,7 +171,7 @@ export function MembrosPage() {
                   className="mt-1"
                 />
                 {errors.nome && (
-                  <p className="mt-1 text-sm text-red-600">{errors.nome.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.nome.message}</p>
                 )}
               </div>
 
@@ -217,8 +217,8 @@ export function MembrosPage() {
                     <span
                       className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
                         membro.ativo
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-500'
+                          ? 'bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
                       }`}
                     >
                       {membro.ativo ? 'Ativo' : 'Inativo'}

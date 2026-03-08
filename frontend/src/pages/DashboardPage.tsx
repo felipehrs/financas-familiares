@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { useTheme } from '@/hooks/useTheme'
 import { buscarResumoMensal, buscarCategoriasDespesas } from '@/api/dashboard'
 import type { ResumoMensal, ResumoCategorias } from '@/types/dashboard'
 import { Card, CardContent } from '@/components/ui/card'
 import { GraficoCategoriaDespesas } from '@/components/GraficoCategoriaDespesas'
 import {
   Users, Tag, CreditCard, TrendingUp, RefreshCcw, Building2,
-  ShoppingBag, BarChart2, Gift, PiggyBank,
+  ShoppingBag, BarChart2, Gift, PiggyBank, Moon, Sun,
 } from 'lucide-react'
 
 const formatarMoeda = (valor: number) =>
@@ -15,6 +16,7 @@ const formatarMoeda = (valor: number) =>
 
 export function DashboardPage() {
   const { accessToken, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
 
   const hoje = new Date()
   const [mes, setMes] = useState(hoje.getMonth() + 1)
@@ -80,19 +82,28 @@ export function DashboardPage() {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <button onClick={logout} className="text-sm text-red-600 hover:underline">
-          Sair
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleTheme}
+            aria-label="Alternar tema"
+            className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          <button onClick={logout} className="text-sm text-red-600 dark:text-red-400 hover:underline">
+            Sair
+          </button>
+        </div>
       </div>
 
       <nav className="mb-6">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Lançamentos</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
           {[
-            { to: '/cartoes', icon: CreditCard, label: 'Despesas Cartão', color: 'text-purple-600 bg-purple-50' },
-            { to: '/despesas-gerais', icon: ShoppingBag, label: 'Despesas Gerais', color: 'text-orange-600 bg-orange-50' },
-            { to: '/rendas-variaveis', icon: BarChart2, label: 'Rendas Variáveis', color: 'text-blue-600 bg-blue-50' },
-            { to: '/rendas-extras', icon: Gift, label: 'Rendas Extras', color: 'text-pink-600 bg-pink-50' },
+            { to: '/cartoes', icon: CreditCard, label: 'Despesas Cartão', color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30' },
+            { to: '/despesas-gerais', icon: ShoppingBag, label: 'Despesas Gerais', color: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30' },
+            { to: '/rendas-variaveis', icon: BarChart2, label: 'Rendas Variáveis', color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30' },
+            { to: '/rendas-extras', icon: Gift, label: 'Rendas Extras', color: 'text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/30' },
           ].map(({ to, icon: Icon, label, color }) => (
             <Link
               key={to}
@@ -163,7 +174,7 @@ export function DashboardPage() {
       {loading ? (
         <p className="text-muted-foreground">Carregando...</p>
       ) : erro ? (
-        <p className="text-red-600" role="alert">
+        <p className="text-red-600 dark:text-red-400" role="alert">
           {erro}
         </p>
       ) : resumo ? (
@@ -173,7 +184,7 @@ export function DashboardPage() {
             <Card>
               <CardContent className="pt-4">
                 <p className="text-sm font-medium mb-1">Rendas Operacionais</p>
-                <p className="text-xl font-semibold text-green-600 mb-3">
+                <p className="text-xl font-semibold text-green-600 dark:text-green-400 mb-3">
                   {formatarMoeda(resumo.total_rendas_operacionais)}
                 </p>
                 <div className="space-y-1 text-sm">
@@ -218,7 +229,7 @@ export function DashboardPage() {
             <Card>
               <CardContent className="pt-4">
                 <p className="text-sm font-medium mb-1">Despesas</p>
-                <p className="text-xl font-semibold text-red-600 mb-3">
+                <p className="text-xl font-semibold text-red-600 dark:text-red-400 mb-3">
                   {formatarMoeda(resumo.total_despesas)}
                 </p>
                 <div className="space-y-1 text-sm">
@@ -248,7 +259,7 @@ export function DashboardPage() {
             <CardContent className="pt-4">
               <p className="text-sm font-medium mb-1">Saldo do Mês</p>
               <p
-                className={`text-2xl font-semibold ${resumo.saldo >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                className={`text-2xl font-semibold ${resumo.saldo >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
               >
                 {formatarMoeda(resumo.saldo)}
               </p>
@@ -262,7 +273,7 @@ export function DashboardPage() {
               {loadingCategorias ? (
                 <p className="text-muted-foreground text-sm">Carregando...</p>
               ) : erroCategorias ? (
-                <p className="text-red-600 text-sm" role="alert">{erroCategorias}</p>
+                <p className="text-red-600 dark:text-red-400 text-sm" role="alert">{erroCategorias}</p>
               ) : resumoCategorias ? (
                 <GraficoCategoriaDespesas categorias={resumoCategorias.categorias} />
               ) : null}

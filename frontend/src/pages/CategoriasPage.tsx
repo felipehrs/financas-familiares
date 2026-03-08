@@ -132,7 +132,7 @@ export function CategoriasPage() {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="mb-4">
-        <Link to="/" className="text-blue-600 hover:underline text-sm">
+        <Link to="/" className="text-blue-600 dark:text-blue-400 hover:underline text-sm">
           ← Voltar para o dashboard
         </Link>
       </div>
@@ -145,7 +145,7 @@ export function CategoriasPage() {
 
       {/* Erro global de API */}
       {apiError && (
-        <p className="mb-4 text-sm text-red-600" role="alert">
+        <p className="mb-4 text-sm text-red-600 dark:text-red-400" role="alert">
           {apiError}
         </p>
       )}
@@ -164,7 +164,7 @@ export function CategoriasPage() {
                   className="mt-1"
                 />
                 {errors.nome && (
-                  <p className="mt-1 text-sm text-red-600">{errors.nome.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.nome.message}</p>
                 )}
               </div>
 

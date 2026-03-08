@@ -9,6 +9,7 @@ vi.mock('@/api/dashboard', () => ({
   buscarCategoriasDespesas: vi.fn(),
 }))
 vi.mock('@/hooks/useAuth', () => ({ useAuth: vi.fn(() => ({ accessToken: 'fake-token', logout: vi.fn() })) }))
+vi.mock('@/hooks/useTheme', () => ({ useTheme: vi.fn(() => ({ theme: 'light', toggleTheme: vi.fn() })) }))
 
 import { buscarResumoMensal, buscarCategoriasDespesas } from '@/api/dashboard'
 

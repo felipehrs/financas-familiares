@@ -241,7 +241,7 @@ export function DespesasCartaoPage() {
 
       {/* Erro global de API */}
       {apiError && (
-        <p className="mb-4 text-sm text-red-600" role="alert">
+        <p className="mb-4 text-sm text-red-600 dark:text-red-400" role="alert">
           {apiError}
         </p>
       )}
@@ -289,10 +289,10 @@ export function DespesasCartaoPage() {
 
       {/* Resumo da fatura filtrada */}
       {faturaFiltroAtivo && !loading && totalFatura != null && (
-        <Card className={`mb-6 ${alertaLimite ? 'border-amber-500 bg-amber-50' : ''}`}>
+        <Card className={`mb-6 ${alertaLimite ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30' : ''}`}>
           <CardContent className="pt-4 space-y-1">
             {alertaLimite && (
-              <p className="text-amber-700 font-semibold text-sm" role="alert">
+              <p className="text-amber-700 dark:text-amber-400 font-semibold text-sm" role="alert">
                 Atenção: uso de {Math.round(percentualUso!)}% do limite
               </p>
             )}
@@ -324,7 +324,7 @@ export function DespesasCartaoPage() {
                   className="mt-1"
                 />
                 {errors.descricao && (
-                  <p className="mt-1 text-sm text-red-600">{errors.descricao.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.descricao.message}</p>
                 )}
               </div>
 
@@ -337,7 +337,7 @@ export function DespesasCartaoPage() {
                   className="mt-1"
                 />
                 {errors.data_compra && (
-                  <p className="mt-1 text-sm text-red-600">{errors.data_compra.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.data_compra.message}</p>
                 )}
               </div>
 
@@ -353,7 +353,7 @@ export function DespesasCartaoPage() {
                   className="mt-1"
                 />
                 {errors.valor_total && (
-                  <p className="mt-1 text-sm text-red-600">{errors.valor_total.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.valor_total.message}</p>
                 )}
               </div>
 
@@ -368,7 +368,7 @@ export function DespesasCartaoPage() {
                   className="mt-1"
                 />
                 {errors.numero_parcelas && (
-                  <p className="mt-1 text-sm text-red-600">{errors.numero_parcelas.message}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.numero_parcelas.message}</p>
                 )}
               </div>
 
