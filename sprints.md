@@ -1,7 +1,7 @@
 # Sprints — Finanças Familiares
 
 **Referência:** stories.md | spec.md | tech-spec.md
-**Atualizado em:** 07/03/2026
+**Atualizado em:** 07/03/2026 (US-04 concluída)
 
 ---
 
@@ -41,7 +41,7 @@
 |--------|-----|-----------|
 | ✅ | US-02 | Cadastrar/editar/inativar membros da família (backend + frontend) |
 | ✅ | US-03 | Gerenciar categorias com sugestões padrão (backend + frontend) |
-| 🔲 | US-04 | Cadastrar/editar/inativar cartões de crédito (backend + frontend) |
+| ✅ | US-04 | Cadastrar/editar/inativar cartões de crédito (backend + frontend) |
 
 **Critério de conclusão:** CRUD completo de membros, categorias e cartões funcionando com testes passando. Categorias padrão criadas no seed.
 
