@@ -55,7 +55,7 @@
 
 | Status | ID | Descrição |
 |--------|-----|-----------|
-| 🔲 | US-05 | Lançar despesa no cartão (à vista) com cálculo automático de fatura (RN01, RN02) |
+| ✅ | US-05 | Lançar despesa no cartão (à vista) com cálculo automático de fatura (RN01, RN02) |
 | 🔲 | US-06 | Cadastrar renda fixa (salário) com inclusão automática nas projeções |
 | 🔲 | US-07 | Dashboard básico: total rendas fixas, fatura dos cartões, saldo do mês, visão por membro |
 
