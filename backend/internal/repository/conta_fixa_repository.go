@@ -117,6 +117,26 @@ func (r *ContaFixaRepository) Atualizar(c *domain.ContaFixa) (*domain.ContaFixa,
 	return row.toDomain(), nil
 }
 
+// ListarAtivas retorna todas as contas fixas com ativa = true e não excluídas.
+func (r *ContaFixaRepository) ListarAtivas() ([]*domain.ContaFixa, error) {
+	var rows []contaFixaRow
+	err := r.db.Select(&rows, `
+		SELECT id, descricao, membro_id, categoria_id, valor, dia_vencimento, forma_pagamento, ativa, created_at
+		FROM contas_fixas
+		WHERE deleted_at IS NULL
+		  AND ativa = true
+		ORDER BY descricao ASC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	contas := make([]*domain.ContaFixa, 0, len(rows))
+	for _, row := range rows {
+		contas = append(contas, row.toDomain())
+	}
+	return contas, nil
+}
+
 // AlterarAtivo atualiza apenas o estado ativa de uma conta fixa existente.
 // Retorna o registro atualizado ou ErrContaFixaNaoEncontrada se não existir.
 func (r *ContaFixaRepository) AlterarAtivo(id string, ativa bool) (*domain.ContaFixa, error) {

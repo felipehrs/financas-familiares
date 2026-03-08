@@ -133,30 +133,88 @@ export function DashboardPage() {
           {erro}
         </p>
       ) : resumo ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-sm text-muted-foreground mb-1">Total Rendas</p>
-              <p className="text-xl font-semibold text-green-600">
-                {formatarMoeda(resumo.total_rendas)}
-              </p>
-            </CardContent>
-          </Card>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Seção 1 — Rendas Operacionais */}
+            <Card>
+              <CardContent className="pt-4">
+                <p className="text-sm font-medium mb-1">Rendas Operacionais</p>
+                <p className="text-xl font-semibold text-green-600 mb-3">
+                  {formatarMoeda(resumo.total_rendas_operacionais)}
+                </p>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Renda Fixa</span>
+                    <span>{formatarMoeda(resumo.total_renda_fixa)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Renda Variável</span>
+                    <span>{formatarMoeda(resumo.total_renda_variavel)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Renda Extra</span>
+                    <span>{formatarMoeda(resumo.total_renda_extra)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Rendimento Distribuído</span>
+                    <span>{formatarMoeda(resumo.total_rendimento_distribuido)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-sm text-muted-foreground mb-1">Total Despesas</p>
-              <p className="text-xl font-semibold text-red-600">
-                {formatarMoeda(resumo.total_despesas)}
-              </p>
-            </CardContent>
-          </Card>
+            {/* Seção 2 — Rendimentos de Investimento */}
+            <Card>
+              <CardContent className="pt-4">
+                <p className="text-sm font-medium mb-0.5">Rendimentos de Investimento</p>
+                <p className="text-xs text-muted-foreground mb-1">(apenas informativo)</p>
+                <p className="text-xl font-semibold mb-3">
+                  {formatarMoeda(resumo.total_rendimento_investimento)}
+                </p>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Valor distribuído ao orçamento</span>
+                    <span>{formatarMoeda(resumo.total_rendimento_distribuido)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
+            {/* Seção 3 — Despesas */}
+            <Card>
+              <CardContent className="pt-4">
+                <p className="text-sm font-medium mb-1">Despesas</p>
+                <p className="text-xl font-semibold text-red-600 mb-3">
+                  {formatarMoeda(resumo.total_despesas)}
+                </p>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Fatura Cartões</span>
+                    <span>{formatarMoeda(resumo.total_fatura_cartoes)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Assinaturas</span>
+                    <span>{formatarMoeda(resumo.total_assinaturas)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Contas Fixas</span>
+                    <span>{formatarMoeda(resumo.total_contas_fixas)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Despesas Gerais</span>
+                    <span>{formatarMoeda(resumo.total_despesas_gerais)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Seção 4 — Saldo */}
           <Card>
             <CardContent className="pt-4">
-              <p className="text-sm text-muted-foreground mb-1">Saldo do Mês</p>
+              <p className="text-sm font-medium mb-1">Saldo do Mês</p>
               <p
-                className={`text-xl font-semibold ${resumo.saldo >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                className={`text-2xl font-semibold ${resumo.saldo >= 0 ? 'text-green-600' : 'text-red-600'}`}
               >
                 {formatarMoeda(resumo.saldo)}
               </p>

@@ -117,6 +117,26 @@ func (r *AssinaturaRepository) Atualizar(a *domain.Assinatura) (*domain.Assinatu
 	return row.toDomain(), nil
 }
 
+// ListarAtivas retorna todas as assinaturas com status "ativa" e não excluídas.
+func (r *AssinaturaRepository) ListarAtivas() ([]*domain.Assinatura, error) {
+	var rows []assinaturaRow
+	err := r.db.Select(&rows, `
+		SELECT id, nome, membro_id, categoria_id, valor, dia_cobranca, forma_pagamento, status, created_at
+		FROM assinaturas
+		WHERE deleted_at IS NULL
+		  AND status = 'ativa'
+		ORDER BY nome ASC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	assinaturas := make([]*domain.Assinatura, 0, len(rows))
+	for _, row := range rows {
+		assinaturas = append(assinaturas, row.toDomain())
+	}
+	return assinaturas, nil
+}
+
 // AlterarStatus atualiza apenas o status de uma assinatura existente.
 // Retorna o registro atualizado ou ErrAssinaturaNaoEncontrada se não existir.
 func (r *AssinaturaRepository) AlterarStatus(id, status string) (*domain.Assinatura, error) {

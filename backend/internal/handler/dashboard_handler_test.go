@@ -43,11 +43,11 @@ func TestResumoMensalHandler_SucessoComParamsExplicitos(t *testing.T) {
 			assert.Equal(t, 3, mes)
 			assert.Equal(t, 2026, ano)
 			return &service.ResumoMensal{
-				Mes:           mes,
-				Ano:           ano,
-				TotalRendas:   5000.00,
-				TotalDespesas: 1000.00,
-				Saldo:         4000.00,
+				Mes:                     mes,
+				Ano:                     ano,
+				TotalRendasOperacionais: 5000.00,
+				TotalDespesas:           1000.00,
+				Saldo:                   4000.00,
 			}, nil
 		},
 	}
@@ -64,7 +64,7 @@ func TestResumoMensalHandler_SucessoComParamsExplicitos(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, float64(3), resp["mes"])
 	assert.Equal(t, float64(2026), resp["ano"])
-	assert.Equal(t, 5000.00, resp["total_rendas"])
+	assert.Equal(t, 5000.00, resp["total_rendas_operacionais"])
 	assert.Equal(t, 1000.00, resp["total_despesas"])
 	assert.Equal(t, 4000.00, resp["saldo"])
 }
@@ -79,11 +79,11 @@ func TestResumoMensalHandler_SucessoSemParams(t *testing.T) {
 			assert.Equal(t, mesAtual, mes)
 			assert.Equal(t, anoAtual, ano)
 			return &service.ResumoMensal{
-				Mes:           mes,
-				Ano:           ano,
-				TotalRendas:   3000.00,
-				TotalDespesas: 500.00,
-				Saldo:         2500.00,
+				Mes:                     mes,
+				Ano:                     ano,
+				TotalRendasOperacionais: 3000.00,
+				TotalDespesas:           500.00,
+				Saldo:                   2500.00,
 			}, nil
 		},
 	}

@@ -18,26 +18,90 @@ type DespesaCartaoRepositoryForDashboard interface {
 	ListarPorFaturaGlobal(mes, ano int) ([]*domain.DespesaCartao, error)
 }
 
+// RendaVariavelRepositoryForDashboard define os métodos de renda variável usados pelo DashboardService.
+type RendaVariavelRepositoryForDashboard interface {
+	ListarPorMes(mes, ano int) ([]*domain.RendaVariavel, error)
+}
+
+// RendaExtraRepositoryForDashboard define os métodos de renda extra usados pelo DashboardService.
+type RendaExtraRepositoryForDashboard interface {
+	ListarPorMes(mes, ano int) ([]*domain.RendaExtra, error)
+}
+
+// RendimentoRepositoryForDashboard define os métodos de rendimento de investimento usados pelo DashboardService.
+type RendimentoRepositoryForDashboard interface {
+	ListarPorMes(mes, ano int) ([]*domain.RendimentoInvestimento, error)
+}
+
+// AssinaturaRepositoryForDashboard define os métodos de assinatura usados pelo DashboardService.
+type AssinaturaRepositoryForDashboard interface {
+	ListarAtivas() ([]*domain.Assinatura, error)
+}
+
+// ContaFixaRepositoryForDashboard define os métodos de conta fixa usados pelo DashboardService.
+type ContaFixaRepositoryForDashboard interface {
+	ListarAtivas() ([]*domain.ContaFixa, error)
+}
+
+// DespesaGeralRepositoryForDashboard define os métodos de despesa geral usados pelo DashboardService.
+type DespesaGeralRepositoryForDashboard interface {
+	ListarPorMes(mes, ano int) ([]*domain.DespesaGeral, error)
+}
+
 // ResumoMensal contém os totais calculados para um determinado mês/ano.
 type ResumoMensal struct {
-	Mes           int     `json:"mes"`
-	Ano           int     `json:"ano"`
-	TotalRendas   float64 `json:"total_rendas"`
-	TotalDespesas float64 `json:"total_despesas"`
-	Saldo         float64 `json:"saldo"`
+	Mes int `json:"mes"`
+	Ano int `json:"ano"`
+	// Rendas operacionais (entram no saldo — RN06)
+	TotalRendaFixa             float64 `json:"total_renda_fixa"`
+	TotalRendaVariavel         float64 `json:"total_renda_variavel"`
+	TotalRendaExtra            float64 `json:"total_renda_extra"`
+	TotalRendimentoDistribuido float64 `json:"total_rendimento_distribuido"`
+	TotalRendasOperacionais    float64 `json:"total_rendas_operacionais"`
+	// Rendimentos informativos (não entram no saldo — RN08)
+	TotalRendimentoInvestimento float64 `json:"total_rendimento_investimento"`
+	// Despesas
+	TotalFaturaCartoes  float64 `json:"total_fatura_cartoes"`
+	TotalAssinaturas    float64 `json:"total_assinaturas"`
+	TotalContasFixas    float64 `json:"total_contas_fixas"`
+	TotalDespesasGerais float64 `json:"total_despesas_gerais"`
+	TotalDespesas       float64 `json:"total_despesas"`
+	// Resultado
+	Saldo float64 `json:"saldo"`
 }
 
 // DashboardService implementa a lógica de negócio para o dashboard financeiro.
 type DashboardService struct {
-	rendaRepo   RendaFixaRepositoryForDashboard
-	despesaRepo DespesaCartaoRepositoryForDashboard
+	rendaRepo         RendaFixaRepositoryForDashboard
+	despesaRepo       DespesaCartaoRepositoryForDashboard
+	rendaVariavelRepo RendaVariavelRepositoryForDashboard
+	rendaExtraRepo    RendaExtraRepositoryForDashboard
+	rendimentoRepo    RendimentoRepositoryForDashboard
+	assinaturaRepo    AssinaturaRepositoryForDashboard
+	contaFixaRepo     ContaFixaRepositoryForDashboard
+	despesaGeralRepo  DespesaGeralRepositoryForDashboard
 }
 
 // NewDashboardService cria uma nova instância do DashboardService.
-func NewDashboardService(rendaRepo RendaFixaRepositoryForDashboard, despesaRepo DespesaCartaoRepositoryForDashboard) *DashboardService {
+func NewDashboardService(
+	rendaRepo RendaFixaRepositoryForDashboard,
+	despesaRepo DespesaCartaoRepositoryForDashboard,
+	rendaVariavelRepo RendaVariavelRepositoryForDashboard,
+	rendaExtraRepo RendaExtraRepositoryForDashboard,
+	rendimentoRepo RendimentoRepositoryForDashboard,
+	assinaturaRepo AssinaturaRepositoryForDashboard,
+	contaFixaRepo ContaFixaRepositoryForDashboard,
+	despesaGeralRepo DespesaGeralRepositoryForDashboard,
+) *DashboardService {
 	return &DashboardService{
-		rendaRepo:   rendaRepo,
-		despesaRepo: despesaRepo,
+		rendaRepo:         rendaRepo,
+		despesaRepo:       despesaRepo,
+		rendaVariavelRepo: rendaVariavelRepo,
+		rendaExtraRepo:    rendaExtraRepo,
+		rendimentoRepo:    rendimentoRepo,
+		assinaturaRepo:    assinaturaRepo,
+		contaFixaRepo:     contaFixaRepo,
+		despesaGeralRepo:  despesaGeralRepo,
 	}
 }
 
@@ -64,36 +128,113 @@ func ValorProporcionado(r *domain.RendaFixa, mes, ano int) float64 {
 	}
 }
 
-// ResumoMensal calcula o resumo financeiro do mês especificado aplicando a RN06 e RN10.
-// TOTAL_RENDAS = soma proporcional das rendas_fixas vigentes no mês/ano.
-// TOTAL_DESPESAS = soma(valor_parcela) das despesas_cartao da fatura do mês/ano.
-// SALDO = TOTAL_RENDAS − TOTAL_DESPESAS.
+// ResumoMensal calcula o resumo financeiro do mês especificado aplicando RN06 e RN08.
+// TotalRendasOperacionais = RendaFixa + RendaVariavel + RendaExtra + ValorDistribuido (RN06).
+// TotalRendimentoInvestimento = soma(Valor) dos rendimentos — informativo apenas (RN08).
+// TotalDespesas = FaturaCartoes + Assinaturas + ContasFixas + DespesasGerais.
+// Saldo = TotalRendasOperacionais − TotalDespesas.
 func (s *DashboardService) ResumoMensal(mes, ano int) (*ResumoMensal, error) {
+	// --- Renda Fixa ---
 	rendas, err := s.rendaRepo.ListarVigentesPorMes(mes, ano)
 	if err != nil {
 		return nil, err
 	}
-
-	var totalRendas float64
+	var totalRendaFixa float64
 	for _, r := range rendas {
-		totalRendas += ValorProporcionado(r, mes, ano)
+		totalRendaFixa += ValorProporcionado(r, mes, ano)
 	}
 
-	despesas, err := s.despesaRepo.ListarPorFaturaGlobal(mes, ano)
+	// --- Despesas de Cartão ---
+	despesasCartao, err := s.despesaRepo.ListarPorFaturaGlobal(mes, ano)
 	if err != nil {
 		return nil, err
 	}
-
-	var totalDespesas float64
-	for _, d := range despesas {
-		totalDespesas += d.ValorParcela
+	var totalFaturaCartoes float64
+	for _, d := range despesasCartao {
+		totalFaturaCartoes += d.ValorParcela
 	}
 
+	// --- Renda Variável ---
+	rendasVariaveis, err := s.rendaVariavelRepo.ListarPorMes(mes, ano)
+	if err != nil {
+		return nil, err
+	}
+	var totalRendaVariavel float64
+	for _, r := range rendasVariaveis {
+		totalRendaVariavel += r.Valor
+	}
+
+	// --- Renda Extra ---
+	rendasExtras, err := s.rendaExtraRepo.ListarPorMes(mes, ano)
+	if err != nil {
+		return nil, err
+	}
+	var totalRendaExtra float64
+	for _, r := range rendasExtras {
+		totalRendaExtra += r.Valor
+	}
+
+	// --- Rendimentos de Investimento ---
+	rendimentos, err := s.rendimentoRepo.ListarPorMes(mes, ano)
+	if err != nil {
+		return nil, err
+	}
+	var totalRendimentoInvestimento float64
+	var totalRendimentoDistribuido float64
+	for _, r := range rendimentos {
+		totalRendimentoInvestimento += r.Valor
+		totalRendimentoDistribuido += r.ValorDistribuido
+	}
+
+	// --- Assinaturas Ativas ---
+	assinaturas, err := s.assinaturaRepo.ListarAtivas()
+	if err != nil {
+		return nil, err
+	}
+	var totalAssinaturas float64
+	for _, a := range assinaturas {
+		totalAssinaturas += a.Valor
+	}
+
+	// --- Contas Fixas Ativas ---
+	contasFixas, err := s.contaFixaRepo.ListarAtivas()
+	if err != nil {
+		return nil, err
+	}
+	var totalContasFixas float64
+	for _, c := range contasFixas {
+		totalContasFixas += c.Valor
+	}
+
+	// --- Despesas Gerais ---
+	despesasGerais, err := s.despesaGeralRepo.ListarPorMes(mes, ano)
+	if err != nil {
+		return nil, err
+	}
+	var totalDespesasGerais float64
+	for _, d := range despesasGerais {
+		totalDespesasGerais += d.Valor
+	}
+
+	// --- Totalizadores ---
+	totalRendasOperacionais := totalRendaFixa + totalRendaVariavel + totalRendaExtra + totalRendimentoDistribuido
+	totalDespesas := totalFaturaCartoes + totalAssinaturas + totalContasFixas + totalDespesasGerais
+	saldo := totalRendasOperacionais - totalDespesas
+
 	return &ResumoMensal{
-		Mes:           mes,
-		Ano:           ano,
-		TotalRendas:   totalRendas,
-		TotalDespesas: totalDespesas,
-		Saldo:         totalRendas - totalDespesas,
+		Mes:                         mes,
+		Ano:                         ano,
+		TotalRendaFixa:              totalRendaFixa,
+		TotalRendaVariavel:          totalRendaVariavel,
+		TotalRendaExtra:             totalRendaExtra,
+		TotalRendimentoDistribuido:  totalRendimentoDistribuido,
+		TotalRendasOperacionais:     totalRendasOperacionais,
+		TotalRendimentoInvestimento: totalRendimentoInvestimento,
+		TotalFaturaCartoes:          totalFaturaCartoes,
+		TotalAssinaturas:            totalAssinaturas,
+		TotalContasFixas:            totalContasFixas,
+		TotalDespesasGerais:         totalDespesasGerais,
+		TotalDespesas:               totalDespesas,
+		Saldo:                       saldo,
 	}, nil
 }

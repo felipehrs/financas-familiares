@@ -12,9 +12,18 @@ import { buscarResumoMensal } from '@/api/dashboard'
 const resumoFixture: ResumoMensal = {
   mes: 3,
   ano: 2026,
-  total_rendas: 5000,
-  total_despesas: 1200,
-  saldo: 3800,
+  total_renda_fixa: 5000,
+  total_renda_variavel: 1500,
+  total_renda_extra: 500,
+  total_rendimento_distribuido: 200,
+  total_rendas_operacionais: 7200,
+  total_rendimento_investimento: 1000,
+  total_fatura_cartoes: 800,
+  total_assinaturas: 150,
+  total_contas_fixas: 300,
+  total_despesas_gerais: 450,
+  total_despesas: 1700,
+  saldo: 5500,
 }
 
 function renderPage() {
@@ -30,24 +39,71 @@ describe('DashboardPage', () => {
     vi.clearAllMocks()
   })
 
-  // ─── 1. Exibe os 3 cards com valores formatados após carregar ─────────────
-  it('exibe os 3 cards com valores formatados após carregar', async () => {
+  // ─── 1. Exibe os cards com valores formatados após carregar ───────────────
+  it('exibe os cards com valores formatados após carregar', async () => {
     vi.mocked(buscarResumoMensal).mockResolvedValue(resumoFixture)
 
     renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText('Total Rendas')).toBeInTheDocument()
-      expect(screen.getByText('Total Despesas')).toBeInTheDocument()
+      expect(screen.getByText('Rendas Operacionais')).toBeInTheDocument()
+      expect(screen.getByText('Despesas')).toBeInTheDocument()
       expect(screen.getByText('Saldo do Mês')).toBeInTheDocument()
     })
 
-    expect(screen.getByText(/5\.000,00/)).toBeInTheDocument()
-    expect(screen.getByText(/1\.200,00/)).toBeInTheDocument()
-    expect(screen.getByText(/3\.800,00/)).toBeInTheDocument()
+    expect(screen.getByText(/7\.200,00/)).toBeInTheDocument()
+    expect(screen.getByText(/1\.700,00/)).toBeInTheDocument()
+    expect(screen.getByText(/5\.500,00/)).toBeInTheDocument()
   })
 
-  // ─── 2. Saldo positivo tem classe/cor verde ───────────────────────────────
+  // ─── 2. Exibe subtotais de rendas operacionais ────────────────────────────
+  it('exibe subtotais de rendas operacionais', async () => {
+    vi.mocked(buscarResumoMensal).mockResolvedValue(resumoFixture)
+
+    renderPage()
+
+    await waitFor(() => screen.getByText('Rendas Operacionais'))
+
+    expect(screen.getByText('Renda Fixa')).toBeInTheDocument()
+    expect(screen.getByText('Renda Variável')).toBeInTheDocument()
+    expect(screen.getByText('Renda Extra')).toBeInTheDocument()
+    expect(screen.getByText('Rendimento Distribuído')).toBeInTheDocument()
+    expect(screen.getByText('R$ 5.000,00')).toBeInTheDocument()
+    expect(screen.getByText('R$ 1.500,00')).toBeInTheDocument()
+    expect(screen.getByText('R$ 500,00')).toBeInTheDocument()
+  })
+
+  // ─── 3. Exibe seção de rendimentos de investimento ────────────────────────
+  it('exibe seção de rendimentos de investimento com texto informativo', async () => {
+    vi.mocked(buscarResumoMensal).mockResolvedValue(resumoFixture)
+
+    renderPage()
+
+    await waitFor(() => screen.getByText('Rendimentos de Investimento'))
+
+    expect(screen.getByText('(apenas informativo)')).toBeInTheDocument()
+    expect(screen.getByText(/1\.000,00/)).toBeInTheDocument()
+  })
+
+  // ─── 4. Exibe subtotais de despesas ───────────────────────────────────────
+  it('exibe subtotais de despesas', async () => {
+    vi.mocked(buscarResumoMensal).mockResolvedValue(resumoFixture)
+
+    renderPage()
+
+    await waitFor(() => screen.getByText('Despesas'))
+
+    expect(screen.getByText('Fatura Cartões')).toBeInTheDocument()
+    expect(screen.getAllByText('Assinaturas').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Contas Fixas').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Despesas Gerais').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('R$ 800,00')).toBeInTheDocument()
+    expect(screen.getByText('R$ 150,00')).toBeInTheDocument()
+    expect(screen.getByText('R$ 300,00')).toBeInTheDocument()
+    expect(screen.getByText('R$ 450,00')).toBeInTheDocument()
+  })
+
+  // ─── 5. Saldo positivo tem classe/cor verde ───────────────────────────────
   it('saldo positivo exibe valor com classe text-green-600', async () => {
     vi.mocked(buscarResumoMensal).mockResolvedValue(resumoFixture)
 
@@ -55,11 +111,11 @@ describe('DashboardPage', () => {
 
     await waitFor(() => screen.getByText('Saldo do Mês'))
 
-    const saldoValor = screen.getByText(/3\.800,00/)
+    const saldoValor = screen.getByText(/5\.500,00/)
     expect(saldoValor.className).toContain('text-green-600')
   })
 
-  // ─── 3. Saldo negativo tem classe/cor vermelha ────────────────────────────
+  // ─── 6. Saldo negativo tem classe/cor vermelha ────────────────────────────
   it('saldo negativo exibe valor com classe text-red-600', async () => {
     vi.mocked(buscarResumoMensal).mockResolvedValue({
       ...resumoFixture,
@@ -74,7 +130,7 @@ describe('DashboardPage', () => {
     expect(saldoValor.className).toContain('text-red-600')
   })
 
-  // ─── 4. Exibe "Carregando..." enquanto aguarda resposta ───────────────────
+  // ─── 7. Exibe "Carregando..." enquanto aguarda resposta ───────────────────
   it('exibe "Carregando..." enquanto aguarda resposta', () => {
     vi.mocked(buscarResumoMensal).mockReturnValue(new Promise(() => {}))
 
@@ -83,7 +139,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Carregando...')).toBeInTheDocument()
   })
 
-  // ─── 5. Exibe mensagem de erro quando API falha ───────────────────────────
+  // ─── 8. Exibe mensagem de erro quando API falha ───────────────────────────
   it('exibe mensagem de erro quando API falha', async () => {
     vi.mocked(buscarResumoMensal).mockRejectedValue(new Error('Falha na conexão'))
 

@@ -68,7 +68,16 @@ func main() {
 	rendaVariavelSvc := service.NewRendaVariavelService(rendaVariavelRepo)
 	rendaExtraSvc := service.NewRendaExtraService(rendaExtraRepo)
 	rendimentoSvc := service.NewRendimentoInvestimentoService(rendimentoRepo)
-	dashboardSvc := service.NewDashboardService(rendaFixaRepo, despesaRepo)
+	dashboardSvc := service.NewDashboardService(
+		rendaFixaRepo,
+		despesaRepo,
+		rendaVariavelRepo,
+		rendaExtraRepo,
+		rendimentoRepo,
+		assinaturaRepo,
+		contaFixaRepo,
+		despesaGeralRepo,
+	)
 
 	// Inicializar handlers
 	authHandler := handler.NewAuthHandler(authService)

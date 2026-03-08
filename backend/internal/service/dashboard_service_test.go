@@ -37,9 +37,105 @@ func (m *MockDespesaCartaoRepositoryForDashboard) ListarPorFaturaGlobal(mes, ano
 	return m.despesas, nil
 }
 
+// MockRendaVariavelRepositoryForDashboard implementa RendaVariavelRepositoryForDashboard para testes.
+type MockRendaVariavelRepositoryForDashboard struct {
+	rendas []*domain.RendaVariavel
+	err    error
+}
+
+func (m *MockRendaVariavelRepositoryForDashboard) ListarPorMes(mes, ano int) ([]*domain.RendaVariavel, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.rendas, nil
+}
+
+// MockRendaExtraRepositoryForDashboard implementa RendaExtraRepositoryForDashboard para testes.
+type MockRendaExtraRepositoryForDashboard struct {
+	rendas []*domain.RendaExtra
+	err    error
+}
+
+func (m *MockRendaExtraRepositoryForDashboard) ListarPorMes(mes, ano int) ([]*domain.RendaExtra, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.rendas, nil
+}
+
+// MockRendimentoRepositoryForDashboard implementa RendimentoRepositoryForDashboard para testes.
+type MockRendimentoRepositoryForDashboard struct {
+	rendimentos []*domain.RendimentoInvestimento
+	err         error
+}
+
+func (m *MockRendimentoRepositoryForDashboard) ListarPorMes(mes, ano int) ([]*domain.RendimentoInvestimento, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.rendimentos, nil
+}
+
+// MockAssinaturaRepositoryForDashboard implementa AssinaturaRepositoryForDashboard para testes.
+type MockAssinaturaRepositoryForDashboard struct {
+	assinaturas []*domain.Assinatura
+	err         error
+}
+
+func (m *MockAssinaturaRepositoryForDashboard) ListarAtivas() ([]*domain.Assinatura, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.assinaturas, nil
+}
+
+// MockContaFixaRepositoryForDashboard implementa ContaFixaRepositoryForDashboard para testes.
+type MockContaFixaRepositoryForDashboard struct {
+	contas []*domain.ContaFixa
+	err    error
+}
+
+func (m *MockContaFixaRepositoryForDashboard) ListarAtivas() ([]*domain.ContaFixa, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.contas, nil
+}
+
+// MockDespesaGeralRepositoryForDashboard implementa DespesaGeralRepositoryForDashboard para testes.
+type MockDespesaGeralRepositoryForDashboard struct {
+	despesas []*domain.DespesaGeral
+	err      error
+}
+
+func (m *MockDespesaGeralRepositoryForDashboard) ListarPorMes(mes, ano int) ([]*domain.DespesaGeral, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.despesas, nil
+}
+
 // dataInicioPadrao é uma data no passado para que os testes que não testam proporcionalidade
 // recebam o valor cheio (mês intermediário).
 var dataInicioPadrao = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+// newSvcSimples cria um DashboardService com mocks vazios para os 6 novos repositórios,
+// útil para testes que focam apenas em renda fixa e despesas de cartão.
+func newSvcSimples(
+	rendaRepo *MockRendaFixaRepositoryForDashboard,
+	despesaRepo *MockDespesaCartaoRepositoryForDashboard,
+) *service.DashboardService {
+	return service.NewDashboardService(
+		rendaRepo,
+		despesaRepo,
+		&MockRendaVariavelRepositoryForDashboard{},
+		&MockRendaExtraRepositoryForDashboard{},
+		&MockRendimentoRepositoryForDashboard{},
+		&MockAssinaturaRepositoryForDashboard{},
+		&MockContaFixaRepositoryForDashboard{},
+		&MockDespesaGeralRepositoryForDashboard{},
+	)
+}
 
 // ---- Testes de ResumoMensal ----
 
@@ -56,14 +152,16 @@ func TestResumoMensal_ComRendasEDespesas(t *testing.T) {
 			{ID: "d-2", ValorParcela: 200.00, FaturaMes: 3, FaturaAno: 2026},
 		},
 	}
-	svc := service.NewDashboardService(rendaRepo, despesaRepo)
+	svc := newSvcSimples(rendaRepo, despesaRepo)
 
 	resumo, err := svc.ResumoMensal(3, 2026)
 
 	require.NoError(t, err)
 	assert.Equal(t, 3, resumo.Mes)
 	assert.Equal(t, 2026, resumo.Ano)
-	assert.Equal(t, 6500.00, resumo.TotalRendas)
+	assert.Equal(t, 6500.00, resumo.TotalRendaFixa)
+	assert.Equal(t, 1000.00, resumo.TotalFaturaCartoes)
+	assert.Equal(t, 6500.00, resumo.TotalRendasOperacionais)
 	assert.Equal(t, 1000.00, resumo.TotalDespesas)
 	assert.Equal(t, 5500.00, resumo.Saldo)
 }
@@ -77,12 +175,12 @@ func TestResumoMensal_SemDespesas(t *testing.T) {
 	despesaRepo := &MockDespesaCartaoRepositoryForDashboard{
 		despesas: []*domain.DespesaCartao{},
 	}
-	svc := service.NewDashboardService(rendaRepo, despesaRepo)
+	svc := newSvcSimples(rendaRepo, despesaRepo)
 
 	resumo, err := svc.ResumoMensal(3, 2026)
 
 	require.NoError(t, err)
-	assert.Equal(t, 3000.00, resumo.TotalRendas)
+	assert.Equal(t, 3000.00, resumo.TotalRendaFixa)
 	assert.Equal(t, 0.0, resumo.TotalDespesas)
 	assert.Equal(t, 3000.00, resumo.Saldo)
 }
@@ -96,12 +194,12 @@ func TestResumoMensal_SemRendas(t *testing.T) {
 			{ID: "d-1", ValorParcela: 500.00, FaturaMes: 3, FaturaAno: 2026},
 		},
 	}
-	svc := service.NewDashboardService(rendaRepo, despesaRepo)
+	svc := newSvcSimples(rendaRepo, despesaRepo)
 
 	resumo, err := svc.ResumoMensal(3, 2026)
 
 	require.NoError(t, err)
-	assert.Equal(t, 0.0, resumo.TotalRendas)
+	assert.Equal(t, 0.0, resumo.TotalRendaFixa)
 	assert.Equal(t, 500.00, resumo.TotalDespesas)
 	assert.Equal(t, -500.00, resumo.Saldo)
 }
@@ -110,7 +208,7 @@ func TestResumoMensal_ErroNoRepoDeRendas(t *testing.T) {
 	erroEsperado := errors.New("falha no banco de dados")
 	rendaRepo := &MockRendaFixaRepositoryForDashboard{err: erroEsperado}
 	despesaRepo := &MockDespesaCartaoRepositoryForDashboard{}
-	svc := service.NewDashboardService(rendaRepo, despesaRepo)
+	svc := newSvcSimples(rendaRepo, despesaRepo)
 
 	resumo, err := svc.ResumoMensal(3, 2026)
 
@@ -126,7 +224,7 @@ func TestResumoMensal_ErroNoRepoDeDespesas(t *testing.T) {
 		},
 	}
 	despesaRepo := &MockDespesaCartaoRepositoryForDashboard{err: erroEsperado}
-	svc := service.NewDashboardService(rendaRepo, despesaRepo)
+	svc := newSvcSimples(rendaRepo, despesaRepo)
 
 	resumo, err := svc.ResumoMensal(3, 2026)
 
@@ -200,7 +298,7 @@ func TestValorProporcionado_MesIntermediario(t *testing.T) {
 }
 
 // TestResumoMensal_ComProporcionalidade — renda de R$ 15000 com data_inicio = 2026-03-08, MAR/2026
-// Dias restantes: 24. Esperado TotalRendas ≈ 15000 × 24/31
+// Dias restantes: 24. Esperado TotalRendaFixa ≈ 15000 × 24/31
 func TestResumoMensal_ComProporcionalidade(t *testing.T) {
 	dataInicio := time.Date(2026, 3, 8, 0, 0, 0, 0, time.UTC)
 	rendaRepo := &MockRendaFixaRepositoryForDashboard{
@@ -211,12 +309,158 @@ func TestResumoMensal_ComProporcionalidade(t *testing.T) {
 	despesaRepo := &MockDespesaCartaoRepositoryForDashboard{
 		despesas: []*domain.DespesaCartao{},
 	}
-	svc := service.NewDashboardService(rendaRepo, despesaRepo)
+	svc := newSvcSimples(rendaRepo, despesaRepo)
 
 	resumo, err := svc.ResumoMensal(3, 2026)
 
 	require.NoError(t, err)
 	esperado := 15000.00 * 24.0 / 31.0
-	assert.InDelta(t, esperado, resumo.TotalRendas, 0.001)
+	assert.InDelta(t, esperado, resumo.TotalRendaFixa, 0.001)
 	assert.InDelta(t, esperado, resumo.Saldo, 0.001)
+}
+
+// ---- Novos testes RN06/RN08 ----
+
+// TestResumoMensal_RN06_TodosOsTipos — verifica que todos os tipos de renda e despesa
+// são somados corretamente nos totalizadores.
+func TestResumoMensal_RN06_TodosOsTipos(t *testing.T) {
+	svc := service.NewDashboardService(
+		&MockRendaFixaRepositoryForDashboard{
+			rendas: []*domain.RendaFixa{
+				{ID: "rf-1", Valor: 5000.00, DataInicio: dataInicioPadrao},
+			},
+		},
+		&MockDespesaCartaoRepositoryForDashboard{
+			despesas: []*domain.DespesaCartao{
+				{ID: "dc-1", ValorParcela: 300.00},
+			},
+		},
+		&MockRendaVariavelRepositoryForDashboard{
+			rendas: []*domain.RendaVariavel{
+				{ID: "rv-1", Valor: 1200.00},
+				{ID: "rv-2", Valor: 800.00},
+			},
+		},
+		&MockRendaExtraRepositoryForDashboard{
+			rendas: []*domain.RendaExtra{
+				{ID: "re-1", Valor: 500.00},
+			},
+		},
+		&MockRendimentoRepositoryForDashboard{
+			rendimentos: []*domain.RendimentoInvestimento{
+				{ID: "ri-1", Valor: 1000.00, ValorDistribuido: 400.00},
+			},
+		},
+		&MockAssinaturaRepositoryForDashboard{
+			assinaturas: []*domain.Assinatura{
+				{ID: "as-1", Valor: 50.00},
+				{ID: "as-2", Valor: 30.00},
+			},
+		},
+		&MockContaFixaRepositoryForDashboard{
+			contas: []*domain.ContaFixa{
+				{ID: "cf-1", Valor: 200.00},
+			},
+		},
+		&MockDespesaGeralRepositoryForDashboard{
+			despesas: []*domain.DespesaGeral{
+				{ID: "dg-1", Valor: 150.00},
+				{ID: "dg-2", Valor: 100.00},
+			},
+		},
+	)
+
+	resumo, err := svc.ResumoMensal(3, 2026)
+
+	require.NoError(t, err)
+	assert.Equal(t, 3, resumo.Mes)
+	assert.Equal(t, 2026, resumo.Ano)
+
+	// Rendas
+	assert.Equal(t, 5000.00, resumo.TotalRendaFixa)
+	assert.Equal(t, 2000.00, resumo.TotalRendaVariavel)  // 1200 + 800
+	assert.Equal(t, 500.00, resumo.TotalRendaExtra)
+	assert.Equal(t, 400.00, resumo.TotalRendimentoDistribuido)
+	assert.Equal(t, 7900.00, resumo.TotalRendasOperacionais) // 5000 + 2000 + 500 + 400
+
+	// Rendimento informativo
+	assert.Equal(t, 1000.00, resumo.TotalRendimentoInvestimento)
+
+	// Despesas
+	assert.Equal(t, 300.00, resumo.TotalFaturaCartoes)
+	assert.Equal(t, 80.00, resumo.TotalAssinaturas)    // 50 + 30
+	assert.Equal(t, 200.00, resumo.TotalContasFixas)
+	assert.Equal(t, 250.00, resumo.TotalDespesasGerais) // 150 + 100
+	assert.Equal(t, 830.00, resumo.TotalDespesas)        // 300 + 80 + 200 + 250
+
+	// Saldo
+	assert.Equal(t, 7070.00, resumo.Saldo) // 7900 - 830
+}
+
+// TestResumoMensal_RN08_RendimentoNaoDistribuidoNaoEntreNoSaldo — rendimento com ValorDistribuido = 0
+// não deve entrar no saldo, mas deve aparecer em TotalRendimentoInvestimento.
+func TestResumoMensal_RN08_RendimentoNaoDistribuidoNaoEntreNoSaldo(t *testing.T) {
+	svc := service.NewDashboardService(
+		&MockRendaFixaRepositoryForDashboard{
+			rendas: []*domain.RendaFixa{
+				{ID: "rf-1", Valor: 3000.00, DataInicio: dataInicioPadrao},
+			},
+		},
+		&MockDespesaCartaoRepositoryForDashboard{},
+		&MockRendaVariavelRepositoryForDashboard{},
+		&MockRendaExtraRepositoryForDashboard{},
+		&MockRendimentoRepositoryForDashboard{
+			rendimentos: []*domain.RendimentoInvestimento{
+				{ID: "ri-1", Valor: 2000.00, ValorDistribuido: 0.00},
+			},
+		},
+		&MockAssinaturaRepositoryForDashboard{},
+		&MockContaFixaRepositoryForDashboard{},
+		&MockDespesaGeralRepositoryForDashboard{},
+	)
+
+	resumo, err := svc.ResumoMensal(3, 2026)
+
+	require.NoError(t, err)
+	// Rendimento total é informativo
+	assert.Equal(t, 2000.00, resumo.TotalRendimentoInvestimento)
+	// Distribuído é zero — não entra no saldo
+	assert.Equal(t, 0.00, resumo.TotalRendimentoDistribuido)
+	// Rendas operacionais = apenas renda fixa
+	assert.Equal(t, 3000.00, resumo.TotalRendasOperacionais)
+	assert.Equal(t, 3000.00, resumo.Saldo)
+}
+
+// TestResumoMensal_RN08_RendimentoParcialmenteDistribuido — apenas ValorDistribuido entra no saldo,
+// não o valor total do rendimento.
+func TestResumoMensal_RN08_RendimentoParcialmenteDistribuido(t *testing.T) {
+	svc := service.NewDashboardService(
+		&MockRendaFixaRepositoryForDashboard{
+			rendas: []*domain.RendaFixa{
+				{ID: "rf-1", Valor: 3000.00, DataInicio: dataInicioPadrao},
+			},
+		},
+		&MockDespesaCartaoRepositoryForDashboard{},
+		&MockRendaVariavelRepositoryForDashboard{},
+		&MockRendaExtraRepositoryForDashboard{},
+		&MockRendimentoRepositoryForDashboard{
+			rendimentos: []*domain.RendimentoInvestimento{
+				{ID: "ri-1", Valor: 5000.00, ValorDistribuido: 1500.00},
+			},
+		},
+		&MockAssinaturaRepositoryForDashboard{},
+		&MockContaFixaRepositoryForDashboard{},
+		&MockDespesaGeralRepositoryForDashboard{},
+	)
+
+	resumo, err := svc.ResumoMensal(3, 2026)
+
+	require.NoError(t, err)
+	// Rendimento total é informativo
+	assert.Equal(t, 5000.00, resumo.TotalRendimentoInvestimento)
+	// Apenas o valor distribuído entra no saldo
+	assert.Equal(t, 1500.00, resumo.TotalRendimentoDistribuido)
+	// Rendas operacionais = renda fixa + valor distribuído
+	assert.Equal(t, 4500.00, resumo.TotalRendasOperacionais) // 3000 + 1500
+	assert.Equal(t, 4500.00, resumo.Saldo)
 }
