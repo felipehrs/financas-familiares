@@ -5,6 +5,10 @@ import { buscarResumoMensal, buscarCategoriasDespesas } from '@/api/dashboard'
 import type { ResumoMensal, ResumoCategorias } from '@/types/dashboard'
 import { Card, CardContent } from '@/components/ui/card'
 import { GraficoCategoriaDespesas } from '@/components/GraficoCategoriaDespesas'
+import {
+  Users, Tag, CreditCard, TrendingUp, RefreshCcw, Building2,
+  ShoppingBag, BarChart2, Gift, PiggyBank,
+} from 'lucide-react'
 
 const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor)
@@ -81,37 +85,49 @@ export function DashboardPage() {
         </button>
       </div>
 
-      <nav className="mb-6 flex gap-4">
-        <Link to="/membros" className="text-blue-600 hover:underline">
-          Membros da Família
-        </Link>
-        <Link to="/categorias" className="text-blue-600 hover:underline">
-          Categorias
-        </Link>
-        <Link to="/cartoes" className="text-blue-600 hover:underline">
-          Cartões de Crédito
-        </Link>
-        <Link to="/rendas-fixas" className="text-blue-600 hover:underline">
-          Rendas Fixas
-        </Link>
-        <Link to="/assinaturas" className="text-blue-600 hover:underline">
-          Assinaturas
-        </Link>
-        <Link to="/contas-fixas" className="text-blue-600 hover:underline">
-          Contas Fixas
-        </Link>
-        <Link to="/despesas-gerais" className="text-blue-600 hover:underline">
-          Despesas Gerais
-        </Link>
-        <Link to="/rendas-variaveis" className="text-blue-600 hover:underline">
-          Rendas Variáveis
-        </Link>
-        <Link to="/rendas-extras" className="text-blue-600 hover:underline">
-          Rendas Extras
-        </Link>
-        <Link to="/rendimentos-investimento" className="text-blue-600 hover:underline">
-          Rendimentos de Investimento
-        </Link>
+      <nav className="mb-6">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Lançamentos</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+          {[
+            { to: '/cartoes', icon: CreditCard, label: 'Despesas Cartão', color: 'text-purple-600 bg-purple-50' },
+            { to: '/despesas-gerais', icon: ShoppingBag, label: 'Despesas Gerais', color: 'text-orange-600 bg-orange-50' },
+            { to: '/rendas-variaveis', icon: BarChart2, label: 'Rendas Variáveis', color: 'text-blue-600 bg-blue-50' },
+            { to: '/rendas-extras', icon: Gift, label: 'Rendas Extras', color: 'text-pink-600 bg-pink-50' },
+          ].map(({ to, icon: Icon, label, color }) => (
+            <Link
+              key={to}
+              to={to}
+              className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2.5 text-sm font-medium hover:bg-accent transition-colors"
+            >
+              <span className={`rounded-md p-1.5 ${color}`}>
+                <Icon size={14} />
+              </span>
+              {label}
+            </Link>
+          ))}
+        </div>
+
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Cadastros</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {[
+            { to: '/membros', icon: Users, label: 'Membros' },
+            { to: '/categorias', icon: Tag, label: 'Categorias' },
+            { to: '/cartoes', icon: CreditCard, label: 'Cartões' },
+            { to: '/rendas-fixas', icon: TrendingUp, label: 'Rendas Fixas' },
+            { to: '/assinaturas', icon: RefreshCcw, label: 'Assinaturas' },
+            { to: '/contas-fixas', icon: Building2, label: 'Contas Fixas' },
+            { to: '/rendimentos-investimento', icon: PiggyBank, label: 'Investimentos' },
+          ].map(({ to, icon: Icon, label }) => (
+            <Link
+              key={to}
+              to={to}
+              className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            >
+              <Icon size={14} />
+              {label}
+            </Link>
+          ))}
+        </div>
       </nav>
 
       {/* Seletor de mês/ano */}
