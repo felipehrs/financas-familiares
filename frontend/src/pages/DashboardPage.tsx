@@ -79,6 +79,9 @@ export function DashboardPage() {
         <Link to="/assinaturas" className="text-blue-600 hover:underline">
           Assinaturas
         </Link>
+        <Link to="/contas-fixas" className="text-blue-600 hover:underline">
+          Contas Fixas
+        </Link>
       </nav>
 
       {/* Seletor de mês/ano */}

@@ -74,7 +74,7 @@
 | ✅ | US-08 | Lançar compra parcelada no cartão com distribuição automática por mês (RN03) |
 | ✅ | US-09 | Visualizar fatura de cartão por mês com saldo disponível e alerta de limite |
 | ✅ | US-10 | Cadastrar e gerenciar assinaturas recorrentes |
-| 🔲 | US-11 | Cadastrar e gerenciar contas fixas mensais |
+| ✅ | US-11 | Cadastrar e gerenciar contas fixas mensais |
 
 **Critério de conclusão:** Regra RN03 coberta por testes ≥ 90%. Assinaturas e contas fixas entram automaticamente no saldo do mês.
 

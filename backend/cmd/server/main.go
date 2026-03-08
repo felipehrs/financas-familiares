@@ -49,6 +49,7 @@ func main() {
 	despesaRepo := repository.NewDespesaCartaoRepository(db)
 	rendaFixaRepo := repository.NewRendaFixaRepository(db)
 	assinaturaRepo := repository.NewAssinaturaRepository(db)
+	contaFixaRepo := repository.NewContaFixaRepository(db)
 
 	// Inicializar serviços
 	authService := service.NewAuthService(authRepo, cfg.JWT.Secret)
@@ -58,6 +59,7 @@ func main() {
 	despesaSvc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 	rendaFixaSvc := service.NewRendaFixaService(rendaFixaRepo)
 	assinaturaSvc := service.NewAssinaturaService(assinaturaRepo)
+	contaFixaSvc := service.NewContaFixaService(contaFixaRepo)
 	dashboardSvc := service.NewDashboardService(rendaFixaRepo, despesaRepo)
 
 	// Inicializar handlers
@@ -68,6 +70,7 @@ func main() {
 	despesaHandler := handler.NewDespesaCartaoHandler(despesaSvc)
 	rendaFixaHandler := handler.NewRendaFixaHandler(rendaFixaSvc)
 	assinaturaHandler := handler.NewAssinaturaHandler(assinaturaSvc)
+	contaFixaHandler := handler.NewContaFixaHandler(contaFixaSvc)
 	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)
 
 	// Configurar rotas
@@ -129,6 +132,13 @@ func main() {
 			protected.GET("/assinaturas/:id", assinaturaHandler.BuscarPorID)
 			protected.PUT("/assinaturas/:id", assinaturaHandler.Atualizar)
 			protected.PATCH("/assinaturas/:id/status", assinaturaHandler.AlterarStatus)
+
+			// Contas Fixas
+			protected.GET("/contas-fixas", contaFixaHandler.Listar)
+			protected.POST("/contas-fixas", contaFixaHandler.Criar)
+			protected.GET("/contas-fixas/:id", contaFixaHandler.BuscarPorID)
+			protected.PUT("/contas-fixas/:id", contaFixaHandler.Atualizar)
+			protected.PATCH("/contas-fixas/:id/ativo", contaFixaHandler.AlterarAtivo)
 
 			// Dashboard
 			protected.GET("/dashboard/resumo", dashboardHandler.ResumoMensal)
