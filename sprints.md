@@ -80,6 +80,20 @@
 
 ---
 
+## Sprint 4.5 — Melhoria: Vigência de Renda Fixa
+
+**Objetivo:** Enriquecer o cadastro de renda fixa com período de vigência (data de início obrigatória e data de fim opcional), para que o sistema inclua cada renda somente nos meses em que ela realmente vigora — sem necessidade de inativação manual.
+
+**Itens:**
+
+| Status | ID | Descrição |
+|--------|-----|-----------|
+| 🔲 | US-22 | Adicionar data de início (obrigatória) e data de fim (opcional) à renda fixa; cálculos e projeções respeitam o período (RN10) |
+
+**Critério de conclusão:** Migration aplicada com retrocompatibilidade. Dashboard e projeções consideram `data_inicio` e `data_fim` corretamente. RN10 coberta por testes unitários ≥ 90%.
+
+---
+
 ## Sprint 5 — Despesas Gerais e Rendas Completas
 
 **Objetivo:** Completar os módulos de despesas gerais e todos os tipos de renda (variável, extra, investimentos).
@@ -156,6 +170,7 @@
 | 2 | Cadastros base | US-02, US-03, US-04 |
 | 3 | MVP funcional | US-05, US-06, US-07 |
 | 4 | Cartões avançados e recorrências | US-08, US-09, US-10, US-11 |
+| 4.5 | Melhoria: vigência de renda fixa | US-22 |
 | 5 | Despesas gerais e rendas completas | US-12 a US-16 |
 | 6 | Dashboard completo e offline | US-17, US-18, TT-04, TT-05 |
 | 7 | Analytics e projeções | US-19, US-20, US-21 |

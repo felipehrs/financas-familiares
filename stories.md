@@ -344,6 +344,25 @@
 
 ---
 
+## MELHORIAS — Revisões pós-MVP
+
+---
+
+#### US-22 — Definir período de vigência da renda fixa 🟡
+
+**Como** usuário, **quero** informar uma data de início (obrigatória) e uma data de fim (opcional) ao cadastrar uma renda fixa, **para que** o sistema inclua essa renda somente nos meses em que ela realmente vigora, sem precisar inativá-la manualmente.
+
+**Critérios de aceite (RF14 — RN10):**
+- AC01: O formulário de criação e edição de renda fixa exibe o campo "Data de início" (obrigatório) e "Data de fim" (opcional).
+- AC02: O sistema usa apenas o mês e o ano de `data_inicio` e `data_fim` para determinar a vigência; o dia exato é ignorado no cálculo (RN10).
+- AC03: Uma renda fixa ativa é incluída no cálculo e nas projeções de um mês M somente se M >= mês/ano de `data_inicio` E (data_fim é nula OU M <= mês/ano de `data_fim`).
+- AC04: Quando `data_fim` é nula, a renda é tratada como sem fim previsto — comportamento idêntico ao anterior à melhoria.
+- AC05: O dashboard e as projeções respeitam automaticamente o período de vigência, sem nenhuma ação manual do usuário.
+- AC06: Rendas com `data_fim` no passado continuam visíveis no histórico, mas não entram em cálculos de meses futuros.
+- AC07: A migration que adiciona `data_inicio` define como valor padrão `created_at` dos registros existentes (retrocompatibilidade); `data_fim` é nullable sem padrão.
+
+---
+
 ## Tarefas Técnicas (sem valor direto para o usuário, mas necessárias)
 
 ---
@@ -410,7 +429,8 @@
 | 🔴 MVP | US-01 a US-07 | TT-01, TT-02, TT-03 |
 | 🟡 Core | US-08 a US-18 | TT-04, TT-05 |
 | 🟢 Analytics | US-19 a US-21 | TT-06 |
+| 🟡 Melhoria | US-22 | — |
 
 ---
 
-**Total: 21 histórias de usuário + 6 tarefas técnicas**
+**Total: 22 histórias de usuário + 6 tarefas técnicas**

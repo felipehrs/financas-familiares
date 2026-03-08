@@ -143,9 +143,12 @@ Famílias que desejam ter controle detalhado e consolidado de suas finanças, co
   - Membro (FK para Membro)
   - Valor mensal
   - Dia de recebimento
+  - Data de início (obrigatória) — define o primeiro mês em que a renda é considerada
   - Status (ativa/inativa)
   - Observações (opcional)
-- Rendas fixas ativas são consideradas automaticamente nas projeções mensais
+- Campo opcional:
+  - Data de fim — quando preenchida, define o último mês em que a renda é considerada
+- Rendas fixas ativas são consideradas automaticamente nas projeções mensais, respeitando o período de vigência (RN10)
 
 #### RF15 - Registro de Renda Variável
 - Para rendas recorrentes cujo valor muda a cada mês (freelance, comissões, bônus)
@@ -318,6 +321,25 @@ SALDO_MÊS = (TOTAL_RENDAS_OPERACIONAIS + TOTAL_DISTRIBUÍDO) − TOTAL_DESPESAS
 - Somente `valor_distribuido` é incluído no `SALDO_MÊS`.
 - O total recebido não distribuído é exibido como informação de reinvestimento, sem impacto no saldo.
 - Projeções futuras **não incluem** rendimentos de investimentos (nem distribuídos), pois são imprevisíveis.
+
+### RN10 - Vigência de Renda Fixa
+```
+Para um mês/ano de referência (MES, ANO):
+
+PRIMEIRO_MES_VIGENCIA = mês e ano de data_inicio
+ULTIMO_MES_VIGENCIA   = mês e ano de data_fim (se preenchida)
+
+A renda é considerada no mês de referência SE:
+  (MES, ANO) >= (PRIMEIRO_MES_VIGENCIA)
+  E (data_fim IS NULL OU (MES, ANO) <= (ULTIMO_MES_VIGENCIA))
+```
+
+**Exemplos:**
+- `data_inicio = 2026-04-10`, `data_fim = NULL` → renda aparece a partir de ABR/26, indefinidamente
+- `data_inicio = 2026-01-01`, `data_fim = 2026-10-31` → renda aparece de JAN/26 a OUT/26 (inclusive)
+- `data_inicio = 2026-03-15`, `data_fim = 2026-03-15` → renda aparece apenas em MAR/26
+
+> A granularidade é **mês inteiro**: o dia exato de `data_inicio` e `data_fim` não interfere no cálculo — apenas o mês e o ano são usados para determinar se a renda vigora no mês consultado.
 
 ### RN08 - Consolidação Familiar vs. Individual
 - A visão familiar soma todas as rendas e despesas de todos os membros ativos
@@ -498,6 +520,8 @@ SALDO_MÊS = (TOTAL_RENDAS_OPERACIONAIS + TOTAL_DISTRIBUÍDO) − TOTAL_DESPESAS
 - membro_id (FK)
 - valor_mensal
 - dia_recebimento
+- data_inicio (obrigatória) — primeiro dia de vigência da renda
+- data_fim (opcional) — último dia de vigência; nulo = sem fim previsto
 - status (ativa/inativa)
 - observacoes
 
