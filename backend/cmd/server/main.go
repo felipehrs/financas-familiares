@@ -122,6 +122,7 @@ func main() {
 			// Rendas fixas
 			protected.GET("/rendas-fixas", rendaFixaHandler.Listar)
 			protected.POST("/rendas-fixas", rendaFixaHandler.Criar)
+			protected.GET("/rendas-fixas/vigentes", rendaFixaHandler.ListarVigentesPorMes)
 			protected.GET("/rendas-fixas/:id", rendaFixaHandler.BuscarPorID)
 			protected.PUT("/rendas-fixas/:id", rendaFixaHandler.Atualizar)
 			protected.PATCH("/rendas-fixas/:id/inativar", rendaFixaHandler.Inativar)

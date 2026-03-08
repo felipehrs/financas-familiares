@@ -25,8 +25,8 @@ const membrosFixture: Membro[] = [
 ]
 
 const rendasFixture: RendaFixa[] = [
-  { id: 'r-1', descricao: 'Salário Ana', membro_id: 'm-1', valor: 5000, dia_recebimento: 5, ativa: true },
-  { id: 'r-2', descricao: 'Salário Carlos', membro_id: 'm-1', valor: 3000, dia_recebimento: 10, ativa: false },
+  { id: 'r-1', descricao: 'Salário Ana', membro_id: 'm-1', valor: 5000, dia_recebimento: 5, ativa: true, data_inicio: '2026-01-01', data_fim: null },
+  { id: 'r-2', descricao: 'Salário Carlos', membro_id: 'm-1', valor: 3000, dia_recebimento: 10, ativa: false, data_inicio: '2025-03-01', data_fim: '2026-02-28' },
 ]
 
 function renderPage() {
@@ -101,13 +101,14 @@ describe('RendasFixasPage', () => {
     await user.type(screen.getByLabelText(/valor/i), '5000')
     await user.clear(screen.getByLabelText(/dia de recebimento/i))
     await user.type(screen.getByLabelText(/dia de recebimento/i), '5')
+    await user.type(screen.getByLabelText(/data de início/i), '2026-01-01')
 
     await user.click(screen.getByRole('button', { name: /salvar/i }))
 
     await waitFor(() => {
       expect(criarRendaFixa).toHaveBeenCalledWith(
         'fake-token',
-        expect.objectContaining({ descricao: 'Salário Ana', membro_id: 'm-1' }),
+        expect.objectContaining({ descricao: 'Salário Ana', membro_id: 'm-1', data_inicio: '2026-01-01' }),
       )
     })
   })
@@ -175,6 +176,56 @@ describe('RendasFixasPage', () => {
     await waitFor(() => {
       const descricaoInput = screen.getByLabelText(/descrição/i) as HTMLInputElement
       expect(descricaoInput.value).toBe('Salário Ana')
+    })
+  })
+
+  // ─── 9. Exibe data de início no formulário de edição preenchido ───────────
+  it('exibe data de início no formulário de edição preenchido', async () => {
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await waitFor(() => screen.getByText('Salário Ana'))
+
+    const items = screen.getAllByRole('listitem')
+    const rendaAtivaItem = items.find((el) => el.textContent?.includes('Salário Ana'))!
+    await user.click(within(rendaAtivaItem).getByRole('button', { name: /editar/i }))
+
+    await waitFor(() => {
+      const dataInicioInput = screen.getByLabelText(/data de início/i) as HTMLInputElement
+      expect(dataInicioInput.value).toBe('2026-01-01')
+    })
+  })
+
+  // ─── 10. Exibe data de fim quando preenchida ──────────────────────────────
+  it('exibe data de fim quando preenchida', async () => {
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Fim: 2026-02-28/)).toBeInTheDocument()
+    })
+  })
+
+  // ─── 11. Exibe erro de validação quando data de início está vazia ─────────
+  it('exibe erro de validação quando data de início está vazia', async () => {
+    vi.mocked(listarRendasFixas).mockResolvedValue([])
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await waitFor(() => screen.getByRole('button', { name: /adicionar renda fixa/i }))
+    await user.click(screen.getByRole('button', { name: /adicionar renda fixa/i }))
+
+    await user.type(screen.getByLabelText(/descrição/i), 'Salário Ana')
+    await user.selectOptions(screen.getByLabelText(/membro responsável/i), 'm-1')
+    await user.type(screen.getByLabelText(/valor/i), '5000')
+    await user.type(screen.getByLabelText(/dia de recebimento/i), '5')
+    // data_inicio is intentionally left empty
+
+    await user.click(screen.getByRole('button', { name: /salvar/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/data de início é obrigatória/i)).toBeInTheDocument()
     })
   })
 })

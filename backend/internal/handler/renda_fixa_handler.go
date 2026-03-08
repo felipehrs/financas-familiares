@@ -3,6 +3,8 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/felipehrs/financas-familiares/backend/internal/domain"
 	"github.com/gin-gonic/gin"
@@ -11,11 +13,12 @@ import (
 // RendaFixaServiceInterface define os métodos do service usados pelo handler.
 // Redeclarada aqui para desacoplar o pacote handler do service sem importação circular.
 type RendaFixaServiceInterface interface {
-	Criar(descricao, membroID string, valor float64, diaRecebimento int) (*domain.RendaFixa, error)
+	Criar(descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
 	BuscarPorID(id string) (*domain.RendaFixa, error)
 	Listar() ([]*domain.RendaFixa, error)
 	ListarAtivas() ([]*domain.RendaFixa, error)
-	Atualizar(id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool) (*domain.RendaFixa, error)
+	ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error)
+	Atualizar(id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
 	Inativar(id string) error
 }
 
@@ -37,17 +40,25 @@ type rendaFixaResponse struct {
 	Valor          float64 `json:"valor"`
 	DiaRecebimento int     `json:"dia_recebimento"`
 	Ativa          bool    `json:"ativa"`
+	DataInicio     string  `json:"data_inicio"` // "YYYY-MM-DD"
+	DataFim        *string `json:"data_fim"`    // "YYYY-MM-DD" or null
 }
 
 func toRendaFixaResponse(r *domain.RendaFixa) rendaFixaResponse {
-	return rendaFixaResponse{
+	resp := rendaFixaResponse{
 		ID:             r.ID,
 		Descricao:      r.Descricao,
 		MembroID:       r.MembroID,
 		Valor:          r.Valor,
 		DiaRecebimento: r.DiaRecebimento,
 		Ativa:          r.Ativa,
+		DataInicio:     r.DataInicio.Format("2006-01-02"),
 	}
+	if r.DataFim != nil {
+		s := r.DataFim.Format("2006-01-02")
+		resp.DataFim = &s
+	}
+	return resp
 }
 
 type criarRendaFixaRequest struct {
@@ -55,6 +66,8 @@ type criarRendaFixaRequest struct {
 	MembroID       string  `json:"membro_id"`
 	Valor          float64 `json:"valor"`
 	DiaRecebimento int     `json:"dia_recebimento"`
+	DataInicio     string  `json:"data_inicio"`
+	DataFim        *string `json:"data_fim"`
 }
 
 type atualizarRendaFixaRequest struct {
@@ -63,6 +76,8 @@ type atualizarRendaFixaRequest struct {
 	Valor          float64 `json:"valor"           binding:"required"`
 	DiaRecebimento int     `json:"dia_recebimento" binding:"required"`
 	Ativa          bool    `json:"ativa"`
+	DataInicio     string  `json:"data_inicio"`
+	DataFim        *string `json:"data_fim"`
 }
 
 func (h *RendaFixaHandler) erroDominio(c *gin.Context, err error) bool {
@@ -70,7 +85,8 @@ func (h *RendaFixaHandler) erroDominio(c *gin.Context, err error) bool {
 	case errors.Is(err, domain.ErrDescricaoRendaObrigatoria),
 		errors.Is(err, domain.ErrMembroIDRendaObrigatorio),
 		errors.Is(err, domain.ErrValorRendaInvalido),
-		errors.Is(err, domain.ErrDiaRecebimentoInvalido):
+		errors.Is(err, domain.ErrDiaRecebimentoInvalido),
+		errors.Is(err, domain.ErrDataInicioRendaObrigatoria):
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return true
 	case errors.Is(err, domain.ErrRendaFixaNaoEncontrada):
@@ -97,6 +113,43 @@ func (h *RendaFixaHandler) Listar(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// ListarVigentesPorMes retorna as rendas fixas vigentes no mês/ano informado.
+// GET /api/v1/rendas-fixas/vigentes?mes=3&ano=2026
+func (h *RendaFixaHandler) ListarVigentesPorMes(c *gin.Context) {
+	mesStr := c.Query("mes")
+	anoStr := c.Query("ano")
+
+	if mesStr == "" || anoStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "parâmetros mes e ano são obrigatórios"})
+		return
+	}
+
+	mes, err := strconv.Atoi(mesStr)
+	if err != nil || mes < 1 || mes > 12 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "parâmetro mes inválido"})
+		return
+	}
+
+	ano, err := strconv.Atoi(anoStr)
+	if err != nil || ano < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "parâmetro ano inválido"})
+		return
+	}
+
+	rendas, err := h.svc.ListarVigentesPorMes(mes, ano)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
+		return
+	}
+
+	resp := make([]rendaFixaResponse, 0, len(rendas))
+	for _, r := range rendas {
+		resp = append(resp, toRendaFixaResponse(r))
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
 // Criar cria uma nova renda fixa.
 // POST /api/v1/rendas-fixas
 func (h *RendaFixaHandler) Criar(c *gin.Context) {
@@ -106,7 +159,28 @@ func (h *RendaFixaHandler) Criar(c *gin.Context) {
 		return
 	}
 
-	renda, err := h.svc.Criar(req.Descricao, req.MembroID, req.Valor, req.DiaRecebimento)
+	if req.DataInicio == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": domain.ErrDataInicioRendaObrigatoria.Error()})
+		return
+	}
+
+	dataInicio, err := time.Parse("2006-01-02", req.DataInicio)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "data_inicio inválida, use o formato YYYY-MM-DD"})
+		return
+	}
+
+	var dataFim *time.Time
+	if req.DataFim != nil && *req.DataFim != "" {
+		df, err := time.Parse("2006-01-02", *req.DataFim)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "data_fim inválida, use o formato YYYY-MM-DD"})
+			return
+		}
+		dataFim = &df
+	}
+
+	renda, err := h.svc.Criar(req.Descricao, req.MembroID, req.Valor, req.DiaRecebimento, dataInicio, dataFim)
 	if err != nil {
 		if h.erroDominio(c, err) {
 			return
@@ -146,7 +220,28 @@ func (h *RendaFixaHandler) Atualizar(c *gin.Context) {
 		return
 	}
 
-	renda, err := h.svc.Atualizar(id, req.Descricao, req.MembroID, req.Valor, req.DiaRecebimento, req.Ativa)
+	if req.DataInicio == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": domain.ErrDataInicioRendaObrigatoria.Error()})
+		return
+	}
+
+	dataInicio, err := time.Parse("2006-01-02", req.DataInicio)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "data_inicio inválida, use o formato YYYY-MM-DD"})
+		return
+	}
+
+	var dataFim *time.Time
+	if req.DataFim != nil && *req.DataFim != "" {
+		df, err := time.Parse("2006-01-02", *req.DataFim)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "data_fim inválida, use o formato YYYY-MM-DD"})
+			return
+		}
+		dataFim = &df
+	}
+
+	renda, err := h.svc.Atualizar(id, req.Descricao, req.MembroID, req.Valor, req.DiaRecebimento, req.Ativa, dataInicio, dataFim)
 	if err != nil {
 		if h.erroDominio(c, err) {
 			return

@@ -1,0 +1,3 @@
+ALTER TABLE rendas_fixas
+    ADD COLUMN data_inicio DATE NOT NULL DEFAULT CURRENT_DATE,
+    ADD COLUMN data_fim DATE;

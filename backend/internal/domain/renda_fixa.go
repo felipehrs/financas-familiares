@@ -1,6 +1,9 @@
 package domain
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 // RendaFixa representa uma renda fixa mensal de um membro da família.
 type RendaFixa struct {
@@ -10,6 +13,8 @@ type RendaFixa struct {
 	Valor          float64
 	DiaRecebimento int
 	Ativa          bool
+	DataInicio     time.Time
+	DataFim        *time.Time // nil = sem fim previsto
 }
 
 var (
@@ -27,4 +32,7 @@ var (
 
 	// ErrDiaRecebimentoInvalido é retornado quando o dia de recebimento está fora do intervalo válido.
 	ErrDiaRecebimentoInvalido = errors.New("dia de recebimento deve ser entre 1 e 31")
+
+	// ErrDataInicioRendaObrigatoria é retornado quando a data de início da renda fixa não é informada.
+	ErrDataInicioRendaObrigatoria = errors.New("data de início da renda fixa é obrigatória")
 )

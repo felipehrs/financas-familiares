@@ -2,6 +2,7 @@ package service
 
 import (
 	"strings"
+	"time"
 
 	"github.com/felipehrs/financas-familiares/backend/internal/domain"
 )
@@ -13,6 +14,7 @@ type RendaFixaRepository interface {
 	BuscarPorID(id string) (*domain.RendaFixa, error)
 	Listar() ([]*domain.RendaFixa, error)
 	ListarAtivas() ([]*domain.RendaFixa, error)
+	ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error)
 	Atualizar(r *domain.RendaFixa) (*domain.RendaFixa, error)
 	Inativar(id string) error
 }
@@ -20,11 +22,12 @@ type RendaFixaRepository interface {
 // RendaFixaServiceInterface define os métodos públicos do serviço de rendas fixas.
 // Redeclarada nos handlers para desacoplamento.
 type RendaFixaServiceInterface interface {
-	Criar(descricao, membroID string, valor float64, diaRecebimento int) (*domain.RendaFixa, error)
+	Criar(descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
 	BuscarPorID(id string) (*domain.RendaFixa, error)
 	Listar() ([]*domain.RendaFixa, error)
 	ListarAtivas() ([]*domain.RendaFixa, error)
-	Atualizar(id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool) (*domain.RendaFixa, error)
+	ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error)
+	Atualizar(id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
 	Inativar(id string) error
 }
 
@@ -38,7 +41,7 @@ func NewRendaFixaService(repo RendaFixaRepository) *RendaFixaService {
 	return &RendaFixaService{repo: repo}
 }
 
-func validarRendaFixa(descricao, membroID string, valor float64, diaRecebimento int) error {
+func validarRendaFixa(descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time) error {
 	if strings.TrimSpace(descricao) == "" {
 		return domain.ErrDescricaoRendaObrigatoria
 	}
@@ -51,13 +54,16 @@ func validarRendaFixa(descricao, membroID string, valor float64, diaRecebimento 
 	if diaRecebimento < 1 || diaRecebimento > 31 {
 		return domain.ErrDiaRecebimentoInvalido
 	}
+	if dataInicio.IsZero() {
+		return domain.ErrDataInicioRendaObrigatoria
+	}
 	return nil
 }
 
 // Criar cria uma nova renda fixa.
 // Valida os campos obrigatórios e define Ativa=true por padrão.
-func (s *RendaFixaService) Criar(descricao, membroID string, valor float64, diaRecebimento int) (*domain.RendaFixa, error) {
-	if err := validarRendaFixa(descricao, membroID, valor, diaRecebimento); err != nil {
+func (s *RendaFixaService) Criar(descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
+	if err := validarRendaFixa(descricao, membroID, valor, diaRecebimento, dataInicio); err != nil {
 		return nil, err
 	}
 
@@ -67,6 +73,8 @@ func (s *RendaFixaService) Criar(descricao, membroID string, valor float64, diaR
 		Valor:          valor,
 		DiaRecebimento: diaRecebimento,
 		Ativa:          true,
+		DataInicio:     dataInicio,
+		DataFim:        dataFim,
 	}
 
 	return s.repo.Criar(renda)
@@ -88,10 +96,16 @@ func (s *RendaFixaService) ListarAtivas() ([]*domain.RendaFixa, error) {
 	return s.repo.ListarAtivas()
 }
 
+// ListarVigentesPorMes retorna as rendas fixas vigentes em um dado mês/ano.
+// Uma renda é vigente se: data_inicio <= mês/ano AND (data_fim IS NULL OR data_fim >= mês/ano).
+func (s *RendaFixaService) ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error) {
+	return s.repo.ListarVigentesPorMes(mes, ano)
+}
+
 // Atualizar atualiza os dados de uma renda fixa existente.
 // Valida os campos obrigatórios antes de buscar no repositório.
-func (s *RendaFixaService) Atualizar(id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool) (*domain.RendaFixa, error) {
-	if err := validarRendaFixa(descricao, membroID, valor, diaRecebimento); err != nil {
+func (s *RendaFixaService) Atualizar(id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
+	if err := validarRendaFixa(descricao, membroID, valor, diaRecebimento, dataInicio); err != nil {
 		return nil, err
 	}
 
@@ -105,6 +119,8 @@ func (s *RendaFixaService) Atualizar(id, descricao, membroID string, valor float
 	renda.Valor = valor
 	renda.DiaRecebimento = diaRecebimento
 	renda.Ativa = ativa
+	renda.DataInicio = dataInicio
+	renda.DataFim = dataFim
 
 	return s.repo.Atualizar(renda)
 }

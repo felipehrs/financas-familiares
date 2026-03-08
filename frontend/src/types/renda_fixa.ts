@@ -5,6 +5,8 @@ export interface RendaFixa {
   valor: number
   dia_recebimento: number
   ativa: boolean
+  data_inicio: string       // "YYYY-MM-DD"
+  data_fim: string | null   // "YYYY-MM-DD" or null
 }
 
 export interface CriarRendaFixaRequest {
@@ -12,6 +14,8 @@ export interface CriarRendaFixaRequest {
   membro_id: string
   valor: number
   dia_recebimento: number
+  data_inicio: string
+  data_fim?: string
 }
 
 export interface AtualizarRendaFixaRequest {
@@ -20,4 +24,6 @@ export interface AtualizarRendaFixaRequest {
   valor: number
   dia_recebimento: number
   ativa: boolean
+  data_inicio: string
+  data_fim?: string
 }

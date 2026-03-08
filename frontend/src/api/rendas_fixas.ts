@@ -69,3 +69,14 @@ export async function inativarRendaFixa(token: string, id: string): Promise<void
   })
   return handleResponse<void>(response)
 }
+
+export async function listarRendasFixasVigentes(
+  token: string,
+  mes: number,
+  ano: number,
+): Promise<RendaFixa[]> {
+  const response = await fetch(`${API_BASE}/api/v1/rendas-fixas/vigentes?mes=${mes}&ano=${ano}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return handleResponse<RendaFixa[]>(response)
+}

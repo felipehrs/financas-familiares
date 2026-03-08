@@ -88,7 +88,7 @@
 
 | Status | ID | Descrição |
 |--------|-----|-----------|
-| 🔲 | US-22 | Adicionar data de início (obrigatória) e data de fim (opcional) à renda fixa; cálculos e projeções respeitam o período (RN10) |
+| ✅ | US-22 | Adicionar data de início (obrigatória) e data de fim (opcional) à renda fixa; cálculos e projeções respeitam o período (RN10) |
 
 **Critério de conclusão:** Migration aplicada com retrocompatibilidade. Dashboard e projeções consideram `data_inicio` e `data_fim` corretamente. RN10 coberta por testes unitários ≥ 90%.
 

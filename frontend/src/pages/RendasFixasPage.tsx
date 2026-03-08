@@ -23,6 +23,8 @@ const rendaFixaSchema = z.object({
     .int()
     .min(1, 'Deve ser entre 1 e 31')
     .max(31, 'Deve ser entre 1 e 31'),
+  data_inicio: z.string().min(1, 'Data de início é obrigatória'),
+  data_fim: z.string().optional(),
 })
 
 type RendaFixaFormValues = z.infer<typeof rendaFixaSchema>
@@ -48,7 +50,7 @@ export function RendasFixasPage() {
     formState: { errors, isSubmitting },
   } = useForm<RendaFixaFormValues>({
     resolver: zodResolver(rendaFixaSchema),
-    defaultValues: { descricao: '', membro_id: '', valor: '' as unknown as number, dia_recebimento: '' as unknown as number },
+    defaultValues: { descricao: '', membro_id: '', valor: '' as unknown as number, dia_recebimento: '' as unknown as number, data_inicio: '', data_fim: '' },
   })
 
   // ─── Carrega dados ──────────────────────────────────────────────────────────
@@ -90,7 +92,7 @@ export function RendasFixasPage() {
     setFormMode('criar')
     setEditandoId(null)
     setApiError(null)
-    reset({ descricao: '', membro_id: '', valor: undefined, dia_recebimento: undefined })
+    reset({ descricao: '', membro_id: '', valor: undefined, dia_recebimento: undefined, data_inicio: '', data_fim: '' })
   }
 
   function abrirFormEdicao(renda: RendaFixa) {
@@ -102,6 +104,8 @@ export function RendasFixasPage() {
       membro_id: renda.membro_id,
       valor: renda.valor,
       dia_recebimento: renda.dia_recebimento,
+      data_inicio: renda.data_inicio,
+      data_fim: renda.data_fim ?? '',
     })
   }
 
@@ -109,7 +113,7 @@ export function RendasFixasPage() {
     setFormMode('hidden')
     setEditandoId(null)
     setApiError(null)
-    reset({ descricao: '', membro_id: '', valor: undefined, dia_recebimento: undefined })
+    reset({ descricao: '', membro_id: '', valor: undefined, dia_recebimento: undefined, data_inicio: '', data_fim: '' })
   }
 
   // ─── Submit ─────────────────────────────────────────────────────────────────
@@ -125,6 +129,8 @@ export function RendasFixasPage() {
           membro_id: values.membro_id,
           valor: values.valor,
           dia_recebimento: values.dia_recebimento,
+          data_inicio: values.data_inicio,
+          data_fim: values.data_fim || undefined,
         })
       } else if (formMode === 'editar' && editandoId) {
         const renda = rendas.find((r) => r.id === editandoId)!
@@ -134,6 +140,8 @@ export function RendasFixasPage() {
           valor: values.valor,
           dia_recebimento: values.dia_recebimento,
           ativa: renda.ativa,
+          data_inicio: values.data_inicio,
+          data_fim: values.data_fim || undefined,
         }
         await atualizarRendaFixa(accessToken, editandoId, payload)
       }
@@ -246,6 +254,30 @@ export function RendasFixasPage() {
                 </div>
               </div>
 
+              <div className="mb-4 grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="data_inicio">Data de início</Label>
+                  <Input
+                    id="data_inicio"
+                    type="date"
+                    {...register('data_inicio')}
+                    className="mt-1"
+                  />
+                  {errors.data_inicio && (
+                    <p className="mt-1 text-sm text-red-600">{errors.data_inicio.message}</p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="data_fim">Data de fim (opcional)</Label>
+                  <Input
+                    id="data_fim"
+                    type="date"
+                    {...register('data_fim')}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? 'Salvando...' : 'Salvar'}
@@ -275,6 +307,10 @@ export function RendasFixasPage() {
                     <p className="text-sm text-muted-foreground">{nomeMembro(renda.membro_id)}</p>
                     <p className="text-sm text-muted-foreground">
                       {formatarValor(renda.valor)} · Dia {renda.dia_recebimento}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Início: {renda.data_inicio}
+                      {renda.data_fim ? ` · Fim: ${renda.data_fim}` : ''}
                     </p>
                     <span
                       className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full ${

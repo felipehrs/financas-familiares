@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/felipehrs/financas-familiares/backend/internal/domain"
 	"github.com/felipehrs/financas-familiares/backend/internal/service"
@@ -53,6 +54,13 @@ func (m *MockRendaFixaRepository) ListarAtivas() ([]*domain.RendaFixa, error) {
 	return m.returnRendas, nil
 }
 
+func (m *MockRendaFixaRepository) ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error) {
+	if m.returnError != nil {
+		return nil, m.returnError
+	}
+	return m.returnRendas, nil
+}
+
 func (m *MockRendaFixaRepository) Atualizar(r *domain.RendaFixa) (*domain.RendaFixa, error) {
 	m.atualizarChamado = true
 	m.rendaRecebida = r
@@ -74,7 +82,8 @@ func TestCriarRendaFixa_Sucesso(t *testing.T) {
 	mock := &MockRendaFixaRepository{}
 	svc := service.NewRendaFixaService(mock)
 
-	renda, err := svc.Criar("Salário", "membro-1", 5000.00, 5)
+	dataInicio := time.Now()
+	renda, err := svc.Criar("Salário", "membro-1", 5000.00, 5, dataInicio, nil)
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-gerado-mock", renda.ID)
@@ -90,7 +99,7 @@ func TestCriarRendaFixa_DescricaoVazia(t *testing.T) {
 	mock := &MockRendaFixaRepository{}
 	svc := service.NewRendaFixaService(mock)
 
-	_, err := svc.Criar("", "membro-1", 5000.00, 5)
+	_, err := svc.Criar("", "membro-1", 5000.00, 5, time.Now(), nil)
 
 	assert.ErrorIs(t, err, domain.ErrDescricaoRendaObrigatoria)
 	assert.False(t, mock.criarChamado)
@@ -100,7 +109,7 @@ func TestCriarRendaFixa_DescricaoApenasEspacos(t *testing.T) {
 	mock := &MockRendaFixaRepository{}
 	svc := service.NewRendaFixaService(mock)
 
-	_, err := svc.Criar("   ", "membro-1", 5000.00, 5)
+	_, err := svc.Criar("   ", "membro-1", 5000.00, 5, time.Now(), nil)
 
 	assert.ErrorIs(t, err, domain.ErrDescricaoRendaObrigatoria)
 	assert.False(t, mock.criarChamado)
@@ -110,7 +119,7 @@ func TestCriarRendaFixa_MembroIDVazio(t *testing.T) {
 	mock := &MockRendaFixaRepository{}
 	svc := service.NewRendaFixaService(mock)
 
-	_, err := svc.Criar("Salário", "", 5000.00, 5)
+	_, err := svc.Criar("Salário", "", 5000.00, 5, time.Now(), nil)
 
 	assert.ErrorIs(t, err, domain.ErrMembroIDRendaObrigatorio)
 	assert.False(t, mock.criarChamado)
@@ -120,7 +129,7 @@ func TestCriarRendaFixa_ValorZero(t *testing.T) {
 	mock := &MockRendaFixaRepository{}
 	svc := service.NewRendaFixaService(mock)
 
-	_, err := svc.Criar("Salário", "membro-1", 0, 5)
+	_, err := svc.Criar("Salário", "membro-1", 0, 5, time.Now(), nil)
 
 	assert.ErrorIs(t, err, domain.ErrValorRendaInvalido)
 	assert.False(t, mock.criarChamado)
@@ -130,7 +139,7 @@ func TestCriarRendaFixa_ValorNegativo(t *testing.T) {
 	mock := &MockRendaFixaRepository{}
 	svc := service.NewRendaFixaService(mock)
 
-	_, err := svc.Criar("Salário", "membro-1", -100, 5)
+	_, err := svc.Criar("Salário", "membro-1", -100, 5, time.Now(), nil)
 
 	assert.ErrorIs(t, err, domain.ErrValorRendaInvalido)
 	assert.False(t, mock.criarChamado)
@@ -140,7 +149,7 @@ func TestCriarRendaFixa_DiaRecebimentoZero(t *testing.T) {
 	mock := &MockRendaFixaRepository{}
 	svc := service.NewRendaFixaService(mock)
 
-	_, err := svc.Criar("Salário", "membro-1", 5000.00, 0)
+	_, err := svc.Criar("Salário", "membro-1", 5000.00, 0, time.Now(), nil)
 
 	assert.ErrorIs(t, err, domain.ErrDiaRecebimentoInvalido)
 	assert.False(t, mock.criarChamado)
@@ -150,10 +159,47 @@ func TestCriarRendaFixa_DiaRecebimentoAcimaDe31(t *testing.T) {
 	mock := &MockRendaFixaRepository{}
 	svc := service.NewRendaFixaService(mock)
 
-	_, err := svc.Criar("Salário", "membro-1", 5000.00, 32)
+	_, err := svc.Criar("Salário", "membro-1", 5000.00, 32, time.Now(), nil)
 
 	assert.ErrorIs(t, err, domain.ErrDiaRecebimentoInvalido)
 	assert.False(t, mock.criarChamado)
+}
+
+func TestCriarRendaFixa_DataInicioZero(t *testing.T) {
+	mock := &MockRendaFixaRepository{}
+	svc := service.NewRendaFixaService(mock)
+
+	_, err := svc.Criar("Salário", "membro-1", 5000.00, 5, time.Time{}, nil)
+
+	assert.ErrorIs(t, err, domain.ErrDataInicioRendaObrigatoria)
+	assert.False(t, mock.criarChamado)
+}
+
+func TestCriarRendaFixa_DataFimNilPermitido(t *testing.T) {
+	mock := &MockRendaFixaRepository{}
+	svc := service.NewRendaFixaService(mock)
+
+	renda, err := svc.Criar("Salário", "membro-1", 5000.00, 5, time.Now(), nil)
+
+	require.NoError(t, err)
+	assert.Nil(t, renda.DataFim)
+	assert.True(t, mock.criarChamado)
+}
+
+func TestCriarRendaFixa_ComDataFim(t *testing.T) {
+	mock := &MockRendaFixaRepository{}
+	svc := service.NewRendaFixaService(mock)
+
+	dataInicio := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	dataFim := time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC)
+
+	renda, err := svc.Criar("Salário", "membro-1", 5000.00, 5, dataInicio, &dataFim)
+
+	require.NoError(t, err)
+	assert.True(t, mock.criarChamado)
+	require.NotNil(t, renda.DataFim)
+	assert.Equal(t, dataFim.Year(), renda.DataFim.Year())
+	assert.Equal(t, dataFim.Month(), renda.DataFim.Month())
 }
 
 // ---- Testes de BuscarPorID ----
@@ -218,6 +264,32 @@ func TestListarRendasFixasAtivas_Sucesso(t *testing.T) {
 	assert.True(t, resultado[0].Ativa)
 }
 
+// ---- Testes de ListarVigentesPorMes ----
+
+func TestListarVigentesPorMes_RetornaVigentes(t *testing.T) {
+	rendas := []*domain.RendaFixa{
+		{ID: "uuid-1", Descricao: "Salário", Ativa: true},
+		{ID: "uuid-2", Descricao: "Freelance", Ativa: true},
+	}
+	mock := &MockRendaFixaRepository{returnRendas: rendas}
+	svc := service.NewRendaFixaService(mock)
+
+	resultado, err := svc.ListarVigentesPorMes(3, 2026)
+
+	require.NoError(t, err)
+	assert.Len(t, resultado, 2)
+}
+
+func TestListarVigentesPorMes_ListaVazia(t *testing.T) {
+	mock := &MockRendaFixaRepository{returnRendas: []*domain.RendaFixa{}}
+	svc := service.NewRendaFixaService(mock)
+
+	resultado, err := svc.ListarVigentesPorMes(3, 2026)
+
+	require.NoError(t, err)
+	assert.Empty(t, resultado)
+}
+
 // ---- Testes de Atualizar ----
 
 func TestAtualizarRendaFixa_Sucesso(t *testing.T) {
@@ -232,7 +304,7 @@ func TestAtualizarRendaFixa_Sucesso(t *testing.T) {
 	mock := &MockRendaFixaRepository{returnRenda: existente}
 	svc := service.NewRendaFixaService(mock)
 
-	atualizado, err := svc.Atualizar("uuid-1", "Salário Atualizado", "membro-1", 6000.00, 10, true)
+	atualizado, err := svc.Atualizar("uuid-1", "Salário Atualizado", "membro-1", 6000.00, 10, true, time.Now(), nil)
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-1", atualizado.ID)
@@ -246,7 +318,7 @@ func TestAtualizarRendaFixa_NaoEncontrada(t *testing.T) {
 	mock := &MockRendaFixaRepository{returnError: domain.ErrRendaFixaNaoEncontrada}
 	svc := service.NewRendaFixaService(mock)
 
-	_, err := svc.Atualizar("uuid-inexistente", "Salário", "membro-1", 5000.00, 5, true)
+	_, err := svc.Atualizar("uuid-inexistente", "Salário", "membro-1", 5000.00, 5, true, time.Now(), nil)
 
 	assert.ErrorIs(t, err, domain.ErrRendaFixaNaoEncontrada)
 }
@@ -256,7 +328,7 @@ func TestAtualizarRendaFixa_DescricaoVazia(t *testing.T) {
 	mock := &MockRendaFixaRepository{returnRenda: existente}
 	svc := service.NewRendaFixaService(mock)
 
-	_, err := svc.Atualizar("uuid-1", "", "membro-1", 5000.00, 5, true)
+	_, err := svc.Atualizar("uuid-1", "", "membro-1", 5000.00, 5, true, time.Now(), nil)
 
 	assert.ErrorIs(t, err, domain.ErrDescricaoRendaObrigatoria)
 	assert.False(t, mock.atualizarChamado)
