@@ -1,6 +1,6 @@
 import type { LoginRequest, LoginResponse, RefreshResponse } from '@/types/auth'
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {
   const response = await fetch(`${API_BASE}/api/v1/auth/login`, {

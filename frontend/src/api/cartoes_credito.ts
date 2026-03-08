@@ -1,6 +1,6 @@
 import type { CartaoCredito, CriarCartaoCreditoRequest, AtualizarCartaoCreditoRequest } from '@/types/cartao_credito'
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (response.status === 401) {
