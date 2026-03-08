@@ -46,18 +46,21 @@ func main() {
 	membroRepo := repository.NewMembroRepository(db)
 	categoriaRepo := repository.NewCategoriaRepository(db)
 	cartaoRepo := repository.NewCartaoCreditoRepository(db)
+	despesaRepo := repository.NewDespesaCartaoRepository(db)
 
 	// Inicializar serviços
 	authService := service.NewAuthService(authRepo, cfg.JWT.Secret)
 	membroSvc := service.NewMembroService(membroRepo)
 	categoriaSvc := service.NewCategoriaService(categoriaRepo)
 	cartaoSvc := service.NewCartaoCreditoService(cartaoRepo)
+	despesaSvc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	// Inicializar handlers
 	authHandler := handler.NewAuthHandler(authService)
 	membroHandler := handler.NewMembroHandler(membroSvc)
 	categoriaHandler := handler.NewCategoriaHandler(categoriaSvc)
 	cartaoHandler := handler.NewCartaoCreditoHandler(cartaoSvc)
+	despesaHandler := handler.NewDespesaCartaoHandler(despesaSvc)
 
 	// Configurar rotas
 	r := gin.Default()
@@ -98,6 +101,12 @@ func main() {
 			protected.GET("/cartoes/:id", cartaoHandler.BuscarPorID)
 			protected.PUT("/cartoes/:id", cartaoHandler.Atualizar)
 			protected.PATCH("/cartoes/:id/inativar", cartaoHandler.Inativar)
+
+			// Despesas de cartão de crédito
+			protected.GET("/cartoes/:id/despesas", despesaHandler.ListarPorCartao)
+			protected.GET("/cartoes/:id/despesas/fatura", despesaHandler.ListarPorFatura)
+			protected.POST("/cartoes/:id/despesas", despesaHandler.Criar)
+			protected.DELETE("/despesas/:id", despesaHandler.Excluir)
 		}
 	}
 
