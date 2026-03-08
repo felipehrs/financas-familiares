@@ -1,6 +1,7 @@
 package service
 
 import (
+	"math"
 	"time"
 
 	"github.com/felipehrs/financas-familiares/backend/internal/domain"
@@ -48,6 +49,26 @@ type DespesaGeralRepositoryForDashboard interface {
 	ListarPorMes(mes, ano int) ([]*domain.DespesaGeral, error)
 }
 
+// CategoriaDespesa representa uma categoria com seu total e percentual de despesas do mês.
+type CategoriaDespesa struct {
+	Nome       string  `json:"nome"`
+	Total      float64 `json:"total"`
+	Percentual float64 `json:"percentual"`
+}
+
+// ResumoCategorias agrupa as categorias de despesas de um mês.
+type ResumoCategorias struct {
+	Mes           int                `json:"mes"`
+	Ano           int                `json:"ano"`
+	TotalDespesas float64            `json:"total_despesas"`
+	Categorias    []CategoriaDespesa `json:"categorias"`
+}
+
+// DashboardRepositoryForCategorias define a query agregada de despesas por categoria.
+type DashboardRepositoryForCategorias interface {
+	DespesasPorCategoria(mes, ano int) ([]domain.CategoriaTotalRaw, error)
+}
+
 // ResumoMensal contém os totais calculados para um determinado mês/ano.
 type ResumoMensal struct {
 	Mes int `json:"mes"`
@@ -80,6 +101,7 @@ type DashboardService struct {
 	assinaturaRepo    AssinaturaRepositoryForDashboard
 	contaFixaRepo     ContaFixaRepositoryForDashboard
 	despesaGeralRepo  DespesaGeralRepositoryForDashboard
+	categoriasRepo    DashboardRepositoryForCategorias
 }
 
 // NewDashboardService cria uma nova instância do DashboardService.
@@ -92,6 +114,7 @@ func NewDashboardService(
 	assinaturaRepo AssinaturaRepositoryForDashboard,
 	contaFixaRepo ContaFixaRepositoryForDashboard,
 	despesaGeralRepo DespesaGeralRepositoryForDashboard,
+	categoriasRepo DashboardRepositoryForCategorias,
 ) *DashboardService {
 	return &DashboardService{
 		rendaRepo:         rendaRepo,
@@ -102,6 +125,7 @@ func NewDashboardService(
 		assinaturaRepo:    assinaturaRepo,
 		contaFixaRepo:     contaFixaRepo,
 		despesaGeralRepo:  despesaGeralRepo,
+		categoriasRepo:    categoriasRepo,
 	}
 }
 
@@ -236,5 +260,38 @@ func (s *DashboardService) ResumoMensal(mes, ano int) (*ResumoMensal, error) {
 		TotalDespesasGerais:         totalDespesasGerais,
 		TotalDespesas:               totalDespesas,
 		Saldo:                       saldo,
+	}, nil
+}
+
+// DespesasPorCategoria retorna o resumo de despesas agrupadas por categoria para um mês/ano.
+func (s *DashboardService) DespesasPorCategoria(mes, ano int) (*ResumoCategorias, error) {
+	rows, err := s.categoriasRepo.DespesasPorCategoria(mes, ano)
+	if err != nil {
+		return nil, err
+	}
+
+	var totalDespesas float64
+	for _, r := range rows {
+		totalDespesas += r.Total
+	}
+
+	categorias := make([]CategoriaDespesa, 0, len(rows))
+	for _, r := range rows {
+		var percentual float64
+		if totalDespesas > 0 {
+			percentual = math.Round((r.Total/totalDespesas)*100*100) / 100
+		}
+		categorias = append(categorias, CategoriaDespesa{
+			Nome:       r.Nome,
+			Total:      r.Total,
+			Percentual: percentual,
+		})
+	}
+
+	return &ResumoCategorias{
+		Mes:           mes,
+		Ano:           ano,
+		TotalDespesas: totalDespesas,
+		Categorias:    categorias,
 	}, nil
 }

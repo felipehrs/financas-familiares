@@ -1,4 +1,4 @@
-import type { ResumoMensal } from '@/types/dashboard'
+import type { ResumoMensal, ResumoCategorias } from '@/types/dashboard'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
@@ -25,6 +25,17 @@ async function handleResponse<T>(response: Response): Promise<T> {
   }
 
   return response.json() as Promise<T>
+}
+
+export async function buscarCategoriasDespesas(
+  token: string,
+  mes: number,
+  ano: number,
+): Promise<ResumoCategorias> {
+  const response = await fetch(`${API_BASE}/api/v1/dashboard/categorias?mes=${mes}&ano=${ano}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return handleResponse<ResumoCategorias>(response)
 }
 
 export async function buscarResumoMensal(

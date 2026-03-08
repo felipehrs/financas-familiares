@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import { buscarResumoMensal } from '@/api/dashboard'
-import type { ResumoMensal } from '@/types/dashboard'
+import { buscarResumoMensal, buscarCategoriasDespesas } from '@/api/dashboard'
+import type { ResumoMensal, ResumoCategorias } from '@/types/dashboard'
 import { Card, CardContent } from '@/components/ui/card'
+import { GraficoCategoriaDespesas } from '@/components/GraficoCategoriaDespesas'
 
 const formatarMoeda = (valor: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor)
@@ -17,6 +18,9 @@ export function DashboardPage() {
   const [resumo, setResumo] = useState<ResumoMensal | null>(null)
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const [resumoCategorias, setResumoCategorias] = useState<ResumoCategorias | null>(null)
+  const [loadingCategorias, setLoadingCategorias] = useState(true)
+  const [erroCategorias, setErroCategorias] = useState<string | null>(null)
 
   async function carregarResumo(mesSelecionado: number, anoSelecionado: number) {
     if (!accessToken) return
@@ -32,8 +36,22 @@ export function DashboardPage() {
     }
   }
 
+  async function carregarCategorias(m: number, a: number) {
+    setLoadingCategorias(true)
+    setErroCategorias(null)
+    try {
+      const data = await buscarCategoriasDespesas(accessToken!, m, a)
+      setResumoCategorias(data)
+    } catch (err) {
+      setErroCategorias(err instanceof Error ? err.message : 'Erro ao carregar categorias')
+    } finally {
+      setLoadingCategorias(false)
+    }
+  }
+
   useEffect(() => {
     void carregarResumo(mes, ano)
+    void carregarCategorias(mes, ano)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mes, ano])
 
@@ -218,6 +236,20 @@ export function DashboardPage() {
               >
                 {formatarMoeda(resumo.saldo)}
               </p>
+            </CardContent>
+          </Card>
+
+          {/* Seção — Despesas por Categoria */}
+          <Card>
+            <CardContent className="pt-4">
+              <p className="font-medium mb-4">Despesas por Categoria</p>
+              {loadingCategorias ? (
+                <p className="text-muted-foreground text-sm">Carregando...</p>
+              ) : erroCategorias ? (
+                <p className="text-red-600 text-sm" role="alert">{erroCategorias}</p>
+              ) : resumoCategorias ? (
+                <GraficoCategoriaDespesas categorias={resumoCategorias.categorias} />
+              ) : null}
             </CardContent>
           </Card>
         </div>

@@ -1,3 +1,16 @@
+export interface CategoriaDespesa {
+  nome: string
+  total: number
+  percentual: number
+}
+
+export interface ResumoCategorias {
+  mes: number
+  ano: number
+  total_despesas: number
+  categorias: CategoriaDespesa[]
+}
+
 export interface ResumoMensal {
   mes: number
   ano: number

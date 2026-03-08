@@ -4,10 +4,13 @@ import { MemoryRouter } from 'react-router-dom'
 import { DashboardPage } from './DashboardPage'
 import type { ResumoMensal } from '@/types/dashboard'
 
-vi.mock('@/api/dashboard', () => ({ buscarResumoMensal: vi.fn() }))
+vi.mock('@/api/dashboard', () => ({
+  buscarResumoMensal: vi.fn(),
+  buscarCategoriasDespesas: vi.fn(),
+}))
 vi.mock('@/hooks/useAuth', () => ({ useAuth: vi.fn(() => ({ accessToken: 'fake-token', logout: vi.fn() })) }))
 
-import { buscarResumoMensal } from '@/api/dashboard'
+import { buscarResumoMensal, buscarCategoriasDespesas } from '@/api/dashboard'
 
 const resumoFixture: ResumoMensal = {
   mes: 3,
@@ -37,6 +40,15 @@ function renderPage() {
 describe('DashboardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(buscarCategoriasDespesas).mockResolvedValue({
+      mes: 3,
+      ano: 2026,
+      total_despesas: 1700,
+      categorias: [
+        { nome: 'Alimentação', total: 999, percentual: 58.82 },
+        { nome: 'Sem categoria', total: 701, percentual: 41.18 },
+      ],
+    })
   })
 
   // ─── 1. Exibe os cards com valores formatados após carregar ───────────────
@@ -148,6 +160,27 @@ describe('DashboardPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeInTheDocument()
       expect(screen.getByText('Falha na conexão')).toBeInTheDocument()
+    })
+  })
+
+  // ─── 9. Exibe seção de despesas por categoria ─────────────────────────────
+  it('exibe seção de despesas por categoria', async () => {
+    vi.mocked(buscarResumoMensal).mockResolvedValue(resumoFixture)
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText('Despesas por Categoria')).toBeInTheDocument()
+      expect(screen.getByText('Alimentação')).toBeInTheDocument()
+      expect(screen.getByText('Sem categoria')).toBeInTheDocument()
+    })
+  })
+
+  // ─── 10. Exibe erro de categorias quando API falha ────────────────────────
+  it('exibe erro de categorias quando API falha', async () => {
+    vi.mocked(buscarResumoMensal).mockResolvedValue(resumoFixture)
+    vi.mocked(buscarCategoriasDespesas).mockRejectedValue(new Error('Erro de categorias'))
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getAllByRole('alert').length).toBeGreaterThan(0)
     })
   })
 })

@@ -115,11 +115,24 @@ func (m *MockDespesaGeralRepositoryForDashboard) ListarPorMes(mes, ano int) ([]*
 	return m.despesas, nil
 }
 
+// MockDashboardRepositoryForCategorias implementa DashboardRepositoryForCategorias para testes.
+type MockDashboardRepositoryForCategorias struct {
+	rows []domain.CategoriaTotalRaw
+	err  error
+}
+
+func (m *MockDashboardRepositoryForCategorias) DespesasPorCategoria(mes, ano int) ([]domain.CategoriaTotalRaw, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.rows, nil
+}
+
 // dataInicioPadrao é uma data no passado para que os testes que não testam proporcionalidade
 // recebam o valor cheio (mês intermediário).
 var dataInicioPadrao = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
-// newSvcSimples cria um DashboardService com mocks vazios para os 6 novos repositórios,
+// newSvcSimples cria um DashboardService com mocks vazios para os repositórios secundários,
 // útil para testes que focam apenas em renda fixa e despesas de cartão.
 func newSvcSimples(
 	rendaRepo *MockRendaFixaRepositoryForDashboard,
@@ -134,6 +147,22 @@ func newSvcSimples(
 		&MockAssinaturaRepositoryForDashboard{},
 		&MockContaFixaRepositoryForDashboard{},
 		&MockDespesaGeralRepositoryForDashboard{},
+		&MockDashboardRepositoryForCategorias{},
+	)
+}
+
+// newSvcCategorias cria um DashboardService com mocks vazios para todos os repositórios exceto categorias.
+func newSvcCategorias(catRepo *MockDashboardRepositoryForCategorias) *service.DashboardService {
+	return service.NewDashboardService(
+		&MockRendaFixaRepositoryForDashboard{},
+		&MockDespesaCartaoRepositoryForDashboard{},
+		&MockRendaVariavelRepositoryForDashboard{},
+		&MockRendaExtraRepositoryForDashboard{},
+		&MockRendimentoRepositoryForDashboard{},
+		&MockAssinaturaRepositoryForDashboard{},
+		&MockContaFixaRepositoryForDashboard{},
+		&MockDespesaGeralRepositoryForDashboard{},
+		catRepo,
 	)
 }
 
@@ -368,6 +397,7 @@ func TestResumoMensal_RN06_TodosOsTipos(t *testing.T) {
 				{ID: "dg-2", Valor: 100.00},
 			},
 		},
+		&MockDashboardRepositoryForCategorias{},
 	)
 
 	resumo, err := svc.ResumoMensal(3, 2026)
@@ -417,6 +447,7 @@ func TestResumoMensal_RN08_RendimentoNaoDistribuidoNaoEntreNoSaldo(t *testing.T)
 		&MockAssinaturaRepositoryForDashboard{},
 		&MockContaFixaRepositoryForDashboard{},
 		&MockDespesaGeralRepositoryForDashboard{},
+		&MockDashboardRepositoryForCategorias{},
 	)
 
 	resumo, err := svc.ResumoMensal(3, 2026)
@@ -429,6 +460,63 @@ func TestResumoMensal_RN08_RendimentoNaoDistribuidoNaoEntreNoSaldo(t *testing.T)
 	// Rendas operacionais = apenas renda fixa
 	assert.Equal(t, 3000.00, resumo.TotalRendasOperacionais)
 	assert.Equal(t, 3000.00, resumo.Saldo)
+}
+
+// ---- Testes de DespesasPorCategoria ----
+
+func TestDespesasPorCategoria_MultiplasCategorias(t *testing.T) {
+	mockCat := &MockDashboardRepositoryForCategorias{
+		rows: []domain.CategoriaTotalRaw{
+			{Nome: "Alimentação", Total: 650.0},
+			{Nome: "Transporte", Total: 350.0},
+		},
+	}
+	svc := newSvcCategorias(mockCat)
+
+	resumo, err := svc.DespesasPorCategoria(3, 2026)
+
+	require.NoError(t, err)
+	assert.Equal(t, 1000.0, resumo.TotalDespesas)
+	assert.Len(t, resumo.Categorias, 2)
+	assert.Equal(t, "Alimentação", resumo.Categorias[0].Nome)
+	assert.Equal(t, 65.0, resumo.Categorias[0].Percentual)
+	assert.Equal(t, "Transporte", resumo.Categorias[1].Nome)
+	assert.Equal(t, 35.0, resumo.Categorias[1].Percentual)
+}
+
+func TestDespesasPorCategoria_SemCategoria(t *testing.T) {
+	mockCat := &MockDashboardRepositoryForCategorias{
+		rows: []domain.CategoriaTotalRaw{
+			{Nome: "Sem categoria", Total: 200.0},
+		},
+	}
+	svc := newSvcCategorias(mockCat)
+
+	resumo, err := svc.DespesasPorCategoria(3, 2026)
+
+	require.NoError(t, err)
+	assert.Equal(t, "Sem categoria", resumo.Categorias[0].Nome)
+	assert.Equal(t, 100.0, resumo.Categorias[0].Percentual)
+}
+
+func TestDespesasPorCategoria_SemDespesas(t *testing.T) {
+	mockCat := &MockDashboardRepositoryForCategorias{rows: []domain.CategoriaTotalRaw{}}
+	svc := newSvcCategorias(mockCat)
+
+	resumo, err := svc.DespesasPorCategoria(3, 2026)
+
+	require.NoError(t, err)
+	assert.Equal(t, 0.0, resumo.TotalDespesas)
+	assert.Empty(t, resumo.Categorias)
+}
+
+func TestDespesasPorCategoria_ErroNoRepositorio(t *testing.T) {
+	mockCat := &MockDashboardRepositoryForCategorias{err: errors.New("db error")}
+	svc := newSvcCategorias(mockCat)
+
+	_, err := svc.DespesasPorCategoria(3, 2026)
+
+	assert.Error(t, err)
 }
 
 // TestResumoMensal_RN08_RendimentoParcialmenteDistribuido — apenas ValorDistribuido entra no saldo,
@@ -451,6 +539,7 @@ func TestResumoMensal_RN08_RendimentoParcialmenteDistribuido(t *testing.T) {
 		&MockAssinaturaRepositoryForDashboard{},
 		&MockContaFixaRepositoryForDashboard{},
 		&MockDespesaGeralRepositoryForDashboard{},
+		&MockDashboardRepositoryForCategorias{},
 	)
 
 	resumo, err := svc.ResumoMensal(3, 2026)

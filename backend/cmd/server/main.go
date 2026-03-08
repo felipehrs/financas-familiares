@@ -54,6 +54,7 @@ func main() {
 	rendaVariavelRepo := repository.NewRendaVariavelRepository(db)
 	rendaExtraRepo := repository.NewRendaExtraRepository(db)
 	rendimentoRepo := repository.NewRendimentoInvestimentoRepository(db)
+	dashboardRepo := repository.NewDashboardRepository(db)
 
 	// Inicializar serviços
 	authService := service.NewAuthService(authRepo, cfg.JWT.Secret)
@@ -77,6 +78,7 @@ func main() {
 		assinaturaRepo,
 		contaFixaRepo,
 		despesaGeralRepo,
+		dashboardRepo,
 	)
 
 	// Inicializar handlers
@@ -192,6 +194,7 @@ func main() {
 
 			// Dashboard
 			protected.GET("/dashboard/resumo", dashboardHandler.ResumoMensal)
+			protected.GET("/dashboard/categorias", dashboardHandler.DespesasPorCategoria)
 		}
 	}
 

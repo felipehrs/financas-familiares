@@ -13,6 +13,7 @@ import (
 // Redeclarada aqui para desacoplar o pacote handler do service sem importação circular.
 type DashboardServiceInterface interface {
 	ResumoMensal(mes, ano int) (*service.ResumoMensal, error)
+	DespesasPorCategoria(mes, ano int) (*service.ResumoCategorias, error)
 }
 
 // DashboardHandler contém os handlers HTTP para o dashboard.
@@ -52,6 +53,40 @@ func (h *DashboardHandler) ResumoMensal(c *gin.Context) {
 	}
 
 	resumo, err := h.svc.ResumoMensal(mes, ano)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
+		return
+	}
+
+	c.JSON(http.StatusOK, resumo)
+}
+
+// DespesasPorCategoria retorna as despesas agrupadas por categoria para um mês/ano.
+// GET /api/v1/dashboard/categorias?mes=3&ano=2026
+func (h *DashboardHandler) DespesasPorCategoria(c *gin.Context) {
+	mesStr := c.Query("mes")
+	anoStr := c.Query("ano")
+
+	var mes, ano int
+	if mesStr != "" && anoStr != "" {
+		var err error
+		mes, err = strconv.Atoi(mesStr)
+		if err != nil || mes < 1 || mes > 12 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "parâmetro mes inválido"})
+			return
+		}
+		ano, err = strconv.Atoi(anoStr)
+		if err != nil || ano < 2000 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "parâmetro ano inválido"})
+			return
+		}
+	} else {
+		now := time.Now()
+		mes = int(now.Month())
+		ano = now.Year()
+	}
+
+	resumo, err := h.svc.DespesasPorCategoria(mes, ano)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
