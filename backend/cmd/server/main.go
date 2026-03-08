@@ -53,6 +53,7 @@ func main() {
 	despesaGeralRepo := repository.NewDespesaGeralRepository(db)
 	rendaVariavelRepo := repository.NewRendaVariavelRepository(db)
 	rendaExtraRepo := repository.NewRendaExtraRepository(db)
+	rendimentoRepo := repository.NewRendimentoInvestimentoRepository(db)
 
 	// Inicializar serviços
 	authService := service.NewAuthService(authRepo, cfg.JWT.Secret)
@@ -66,6 +67,7 @@ func main() {
 	despesaGeralSvc := service.NewDespesaGeralService(despesaGeralRepo)
 	rendaVariavelSvc := service.NewRendaVariavelService(rendaVariavelRepo)
 	rendaExtraSvc := service.NewRendaExtraService(rendaExtraRepo)
+	rendimentoSvc := service.NewRendimentoInvestimentoService(rendimentoRepo)
 	dashboardSvc := service.NewDashboardService(rendaFixaRepo, despesaRepo)
 
 	// Inicializar handlers
@@ -80,6 +82,7 @@ func main() {
 	despesaGeralHandler := handler.NewDespesaGeralHandler(despesaGeralSvc)
 	rendaVariavelHandler := handler.NewRendaVariavelHandler(rendaVariavelSvc)
 	rendaExtraHandler := handler.NewRendaExtraHandler(rendaExtraSvc)
+	rendimentoHandler := handler.NewRendimentoInvestimentoHandler(rendimentoSvc)
 	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)
 
 	// Configurar rotas
@@ -170,6 +173,13 @@ func main() {
 			protected.GET("/rendas-extras/:id", rendaExtraHandler.BuscarPorID)
 			protected.PUT("/rendas-extras/:id", rendaExtraHandler.Atualizar)
 			protected.DELETE("/rendas-extras/:id", rendaExtraHandler.Excluir)
+
+			// Rendimentos de Investimento
+			protected.GET("/rendimentos-investimento", rendimentoHandler.Listar)
+			protected.POST("/rendimentos-investimento", rendimentoHandler.Criar)
+			protected.GET("/rendimentos-investimento/:id", rendimentoHandler.BuscarPorID)
+			protected.PUT("/rendimentos-investimento/:id", rendimentoHandler.Atualizar)
+			protected.DELETE("/rendimentos-investimento/:id", rendimentoHandler.Excluir)
 
 			// Dashboard
 			protected.GET("/dashboard/resumo", dashboardHandler.ResumoMensal)

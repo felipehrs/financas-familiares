@@ -91,6 +91,9 @@ export function DashboardPage() {
         <Link to="/rendas-extras" className="text-blue-600 hover:underline">
           Rendas Extras
         </Link>
+        <Link to="/rendimentos-investimento" className="text-blue-600 hover:underline">
+          Rendimentos de Investimento
+        </Link>
       </nav>
 
       {/* Seletor de mês/ano */}
