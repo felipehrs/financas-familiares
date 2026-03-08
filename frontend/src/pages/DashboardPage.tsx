@@ -17,6 +17,9 @@ export function DashboardPage() {
         <Link to="/cartoes" className="text-blue-600 hover:underline">
           Cartões de Crédito
         </Link>
+        <Link to="/rendas-fixas" className="text-blue-600 hover:underline">
+          Rendas Fixas
+        </Link>
       </nav>
       <button className="mt-4" onClick={logout}>Sair</button>
     </div>
