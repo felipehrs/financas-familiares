@@ -102,7 +102,7 @@
 
 | Status | ID | Descrição |
 |--------|-----|-----------|
-| 🔲 | US-12 | Lançar despesa geral (dinheiro, débito, PIX) |
+| ✅ | US-12 | Lançar despesa geral (dinheiro, débito, PIX) |
 | 🔲 | US-13 | Filtrar e visualizar histórico de despesas gerais com exportação CSV |
 | 🔲 | US-14 | Registrar renda variável do mês |
 | 🔲 | US-15 | Registrar renda extra / pontual |

@@ -50,6 +50,7 @@ func main() {
 	rendaFixaRepo := repository.NewRendaFixaRepository(db)
 	assinaturaRepo := repository.NewAssinaturaRepository(db)
 	contaFixaRepo := repository.NewContaFixaRepository(db)
+	despesaGeralRepo := repository.NewDespesaGeralRepository(db)
 
 	// Inicializar serviços
 	authService := service.NewAuthService(authRepo, cfg.JWT.Secret)
@@ -60,6 +61,7 @@ func main() {
 	rendaFixaSvc := service.NewRendaFixaService(rendaFixaRepo)
 	assinaturaSvc := service.NewAssinaturaService(assinaturaRepo)
 	contaFixaSvc := service.NewContaFixaService(contaFixaRepo)
+	despesaGeralSvc := service.NewDespesaGeralService(despesaGeralRepo)
 	dashboardSvc := service.NewDashboardService(rendaFixaRepo, despesaRepo)
 
 	// Inicializar handlers
@@ -71,6 +73,7 @@ func main() {
 	rendaFixaHandler := handler.NewRendaFixaHandler(rendaFixaSvc)
 	assinaturaHandler := handler.NewAssinaturaHandler(assinaturaSvc)
 	contaFixaHandler := handler.NewContaFixaHandler(contaFixaSvc)
+	despesaGeralHandler := handler.NewDespesaGeralHandler(despesaGeralSvc)
 	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)
 
 	// Configurar rotas
@@ -140,6 +143,13 @@ func main() {
 			protected.GET("/contas-fixas/:id", contaFixaHandler.BuscarPorID)
 			protected.PUT("/contas-fixas/:id", contaFixaHandler.Atualizar)
 			protected.PATCH("/contas-fixas/:id/ativo", contaFixaHandler.AlterarAtivo)
+
+			// Despesas Gerais
+			protected.GET("/despesas-gerais", despesaGeralHandler.Listar)
+			protected.POST("/despesas-gerais", despesaGeralHandler.Criar)
+			protected.GET("/despesas-gerais/:id", despesaGeralHandler.BuscarPorID)
+			protected.PUT("/despesas-gerais/:id", despesaGeralHandler.Atualizar)
+			protected.DELETE("/despesas-gerais/:id", despesaGeralHandler.Excluir)
 
 			// Dashboard
 			protected.GET("/dashboard/resumo", dashboardHandler.ResumoMensal)
