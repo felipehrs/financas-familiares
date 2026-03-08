@@ -22,12 +22,14 @@ func NewDespesaCartaoRepository(db *sqlx.DB) *DespesaCartaoRepository {
 // despesaCartaoRow é a estrutura de scan para as colunas do banco.
 type despesaCartaoRow struct {
 	ID             string    `db:"id"`
+	CompraID       string    `db:"compra_id"`
 	CartaoID       string    `db:"cartao_id"`
 	CategoriaID    *string   `db:"categoria_id"`
 	Descricao      string    `db:"descricao"`
 	DataCompra     time.Time `db:"data_compra"`
 	ValorTotal     float64   `db:"valor_total"`
 	NumeroParcelas int       `db:"numero_parcelas"`
+	ParcelaNumero  int       `db:"parcela_numero"`
 	ValorParcela   float64   `db:"valor_parcela"`
 	FaturaMes      int       `db:"fatura_mes"`
 	FaturaAno      int       `db:"fatura_ano"`
@@ -36,12 +38,14 @@ type despesaCartaoRow struct {
 func (r despesaCartaoRow) toDomain() *domain.DespesaCartao {
 	return &domain.DespesaCartao{
 		ID:             r.ID,
+		CompraID:       r.CompraID,
 		CartaoID:       r.CartaoID,
 		CategoriaID:    r.CategoriaID,
 		Descricao:      r.Descricao,
 		DataCompra:     r.DataCompra,
 		ValorTotal:     r.ValorTotal,
 		NumeroParcelas: r.NumeroParcelas,
+		ParcelaNumero:  r.ParcelaNumero,
 		ValorParcela:   r.ValorParcela,
 		FaturaMes:      r.FaturaMes,
 		FaturaAno:      r.FaturaAno,
@@ -53,10 +57,10 @@ func (r *DespesaCartaoRepository) Criar(d *domain.DespesaCartao) (*domain.Despes
 	var row despesaCartaoRow
 	err := r.db.QueryRowx(`
 		INSERT INTO despesas_cartao
-			(cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, valor_parcela, fatura_mes, fatura_ano)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		RETURNING id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, valor_parcela, fatura_mes, fatura_ano
-	`, d.CartaoID, d.CategoriaID, d.Descricao, d.DataCompra, d.ValorTotal, d.NumeroParcelas, d.ValorParcela, d.FaturaMes, d.FaturaAno).StructScan(&row)
+			(compra_id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, parcela_numero, valor_parcela, fatura_mes, fatura_ano)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		RETURNING id, compra_id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, parcela_numero, valor_parcela, fatura_mes, fatura_ano
+	`, d.CompraID, d.CartaoID, d.CategoriaID, d.Descricao, d.DataCompra, d.ValorTotal, d.NumeroParcelas, d.ParcelaNumero, d.ValorParcela, d.FaturaMes, d.FaturaAno).StructScan(&row)
 	if err != nil {
 		return nil, err
 	}
@@ -67,10 +71,10 @@ func (r *DespesaCartaoRepository) Criar(d *domain.DespesaCartao) (*domain.Despes
 func (r *DespesaCartaoRepository) ListarPorCartao(cartaoID string) ([]*domain.DespesaCartao, error) {
 	var rows []despesaCartaoRow
 	err := r.db.Select(&rows, `
-		SELECT id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, valor_parcela, fatura_mes, fatura_ano
+		SELECT id, compra_id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, parcela_numero, valor_parcela, fatura_mes, fatura_ano
 		FROM despesas_cartao
 		WHERE cartao_id = $1 AND deleted_at IS NULL
-		ORDER BY data_compra DESC
+		ORDER BY data_compra DESC, parcela_numero ASC
 	`, cartaoID)
 	if err != nil {
 		return nil, err
@@ -87,10 +91,10 @@ func (r *DespesaCartaoRepository) ListarPorCartao(cartaoID string) ([]*domain.De
 func (r *DespesaCartaoRepository) ListarPorFatura(cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error) {
 	var rows []despesaCartaoRow
 	err := r.db.Select(&rows, `
-		SELECT id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, valor_parcela, fatura_mes, fatura_ano
+		SELECT id, compra_id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, parcela_numero, valor_parcela, fatura_mes, fatura_ano
 		FROM despesas_cartao
 		WHERE cartao_id = $1 AND fatura_mes = $2 AND fatura_ano = $3 AND deleted_at IS NULL
-		ORDER BY data_compra DESC
+		ORDER BY data_compra DESC, parcela_numero ASC
 	`, cartaoID, mes, ano)
 	if err != nil {
 		return nil, err
@@ -108,7 +112,7 @@ func (r *DespesaCartaoRepository) ListarPorFatura(cartaoID string, mes, ano int)
 func (r *DespesaCartaoRepository) BuscarPorID(id string) (*domain.DespesaCartao, error) {
 	var row despesaCartaoRow
 	err := r.db.QueryRowx(`
-		SELECT id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, valor_parcela, fatura_mes, fatura_ano
+		SELECT id, compra_id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, parcela_numero, valor_parcela, fatura_mes, fatura_ano
 		FROM despesas_cartao
 		WHERE id = $1 AND deleted_at IS NULL
 	`, id).StructScan(&row)
@@ -126,10 +130,10 @@ func (r *DespesaCartaoRepository) BuscarPorID(id string) (*domain.DespesaCartao,
 func (r *DespesaCartaoRepository) ListarPorFaturaGlobal(mes, ano int) ([]*domain.DespesaCartao, error) {
 	var rows []despesaCartaoRow
 	err := r.db.Select(&rows, `
-		SELECT id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, valor_parcela, fatura_mes, fatura_ano
+		SELECT id, compra_id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, parcela_numero, valor_parcela, fatura_mes, fatura_ano
 		FROM despesas_cartao
 		WHERE fatura_mes = $1 AND fatura_ano = $2 AND deleted_at IS NULL
-		ORDER BY data_compra DESC
+		ORDER BY data_compra DESC, parcela_numero ASC
 	`, mes, ano)
 	if err != nil {
 		return nil, err

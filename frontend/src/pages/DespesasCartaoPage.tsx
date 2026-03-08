@@ -23,6 +23,10 @@ const despesaSchema = z.object({
   valor_total: z.coerce
     .number({ invalid_type_error: 'Informe o valor total' })
     .positive('Valor deve ser maior que zero'),
+  numero_parcelas: z.coerce
+    .number({ invalid_type_error: 'Informe o número de parcelas' })
+    .int('Número de parcelas deve ser inteiro')
+    .min(1, 'Mínimo de 1 parcela'),
   categoria_id: z.string().optional(),
 })
 
@@ -70,6 +74,7 @@ export function DespesasCartaoPage() {
       descricao: '',
       data_compra: '',
       valor_total: '' as unknown as number,
+      numero_parcelas: 1,
       categoria_id: '',
     },
   })
@@ -79,14 +84,12 @@ export function DespesasCartaoPage() {
   async function carregarDados() {
     if (!accessToken || !cartaoId) return
     try {
-      const [listaDespesas, listaCartoes, listaCategorias] = await Promise.all([
+      const [listaDespesas, listaCartoes] = await Promise.all([
         listarDespesasPorCartao(accessToken, cartaoId),
         listarCartoes(accessToken),
-        listarCategorias(accessToken),
       ])
       setDespesas(listaDespesas)
       setCartao(listaCartoes.find((c) => c.id === cartaoId) ?? null)
-      setCategorias(listaCategorias)
     } catch (err) {
       setApiError(err instanceof Error ? err.message : 'Erro ao carregar dados')
     } finally {
@@ -94,8 +97,19 @@ export function DespesasCartaoPage() {
     }
   }
 
+  async function carregarCategorias() {
+    if (!accessToken) return
+    try {
+      const listaCategorias = await listarCategorias(accessToken)
+      setCategorias(listaCategorias ?? [])
+    } catch {
+      // categorias são opcionais no formulário; falha silenciosa
+    }
+  }
+
   useEffect(() => {
     void carregarDados()
+    void carregarCategorias()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -104,13 +118,13 @@ export function DespesasCartaoPage() {
   function abrirForm() {
     setMostrarForm(true)
     setApiError(null)
-    reset({ descricao: '', data_compra: '', valor_total: undefined, categoria_id: '' })
+    reset({ descricao: '', data_compra: '', valor_total: undefined, numero_parcelas: 1, categoria_id: '' })
   }
 
   function fecharForm() {
     setMostrarForm(false)
     setApiError(null)
-    reset({ descricao: '', data_compra: '', valor_total: undefined, categoria_id: '' })
+    reset({ descricao: '', data_compra: '', valor_total: undefined, numero_parcelas: 1, categoria_id: '' })
   }
 
   // ─── Submit ─────────────────────────────────────────────────────────────────
@@ -124,6 +138,7 @@ export function DespesasCartaoPage() {
         descricao: values.descricao,
         data_compra: values.data_compra,
         valor_total: values.valor_total,
+        numero_parcelas: values.numero_parcelas,
         categoria_id: values.categoria_id || undefined,
       })
       fecharForm()
@@ -221,6 +236,21 @@ export function DespesasCartaoPage() {
               </div>
 
               <div className="mb-4">
+                <Label htmlFor="numero_parcelas">Número de parcelas</Label>
+                <Input
+                  id="numero_parcelas"
+                  type="number"
+                  min={1}
+                  step={1}
+                  {...register('numero_parcelas')}
+                  className="mt-1"
+                />
+                {errors.numero_parcelas && (
+                  <p className="mt-1 text-sm text-red-600">{errors.numero_parcelas.message}</p>
+                )}
+              </div>
+
+              <div className="mb-4">
                 <Label htmlFor="categoria_id">Categoria (opcional)</Label>
                 <select
                   id="categoria_id"
@@ -269,7 +299,7 @@ export function DespesasCartaoPage() {
                           <p className="text-sm text-muted-foreground">
                             {formatarMoeda(despesa.valor_parcela)}
                             {despesa.numero_parcelas > 1 &&
-                              ` (${despesa.numero_parcelas}x de ${formatarMoeda(despesa.valor_parcela)})`}
+                              ` · Parcela ${despesa.parcela_numero}/${despesa.numero_parcelas}`}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             Compra em {despesa.data_compra} · Fatura {despesa.fatura}

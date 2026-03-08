@@ -6,15 +6,18 @@ import (
 )
 
 // DespesaCartao representa uma despesa lançada em um cartão de crédito.
+// Para compras parceladas, cada parcela é um registro separado com o mesmo CompraID.
 type DespesaCartao struct {
 	ID             string
+	CompraID       string  // agrupa todas as parcelas da mesma compra
 	CartaoID       string
 	CategoriaID    *string // opcional
 	Descricao      string
 	DataCompra     time.Time
 	ValorTotal     float64
 	NumeroParcelas int
-	ValorParcela   float64 // calculado
+	ParcelaNumero  int     // posição desta parcela (1, 2, 3, ...)
+	ValorParcela   float64 // calculado: ValorTotal / NumeroParcelas
 	FaturaMes      int     // calculado (1-12)
 	FaturaAno      int     // calculado
 }

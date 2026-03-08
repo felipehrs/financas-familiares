@@ -50,7 +50,7 @@ export async function criarDespesa(
   token: string,
   cartaoId: string,
   data: CriarDespesaCartaoRequest,
-): Promise<DespesaCartao> {
+): Promise<DespesaCartao[]> {
   const response = await fetch(`${API_BASE}/api/v1/cartoes/${cartaoId}/despesas`, {
     method: 'POST',
     headers: {
@@ -59,7 +59,7 @@ export async function criarDespesa(
     },
     body: JSON.stringify(data),
   })
-  return handleResponse<DespesaCartao>(response)
+  return handleResponse<DespesaCartao[]>(response)
 }
 
 export async function excluirDespesa(token: string, id: string): Promise<void> {

@@ -14,7 +14,7 @@ import (
 // DespesaCartaoServiceInterface define os métodos do service usados pelo handler.
 // Redeclarada aqui para desacoplar o pacote handler do service sem importação circular.
 type DespesaCartaoServiceInterface interface {
-	Criar(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64) (*domain.DespesaCartao, error)
+	Criar(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error)
 	ListarPorCartao(cartaoID string) ([]*domain.DespesaCartao, error)
 	ListarPorFatura(cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error)
 	BuscarPorID(id string) (*domain.DespesaCartao, error)
@@ -56,28 +56,32 @@ func formatarFatura(mes, ano int) string {
 
 // despesaCartaoResponse é a estrutura de resposta JSON para uma despesa de cartão.
 type despesaCartaoResponse struct {
-	ID             string   `json:"id"`
-	CartaoID       string   `json:"cartao_id"`
-	CategoriaID    *string  `json:"categoria_id"`
-	Descricao      string   `json:"descricao"`
-	DataCompra     string   `json:"data_compra"`
-	ValorTotal     float64  `json:"valor_total"`
-	NumeroParcelas int      `json:"numero_parcelas"`
-	ValorParcela   float64  `json:"valor_parcela"`
-	FaturaMes      int      `json:"fatura_mes"`
-	FaturaAno      int      `json:"fatura_ano"`
-	Fatura         string   `json:"fatura"`
+	ID             string  `json:"id"`
+	CompraID       string  `json:"compra_id"`
+	CartaoID       string  `json:"cartao_id"`
+	CategoriaID    *string `json:"categoria_id"`
+	Descricao      string  `json:"descricao"`
+	DataCompra     string  `json:"data_compra"`
+	ValorTotal     float64 `json:"valor_total"`
+	NumeroParcelas int     `json:"numero_parcelas"`
+	ParcelaNumero  int     `json:"parcela_numero"`
+	ValorParcela   float64 `json:"valor_parcela"`
+	FaturaMes      int     `json:"fatura_mes"`
+	FaturaAno      int     `json:"fatura_ano"`
+	Fatura         string  `json:"fatura"`
 }
 
 func toDespesaCartaoResponse(d *domain.DespesaCartao) despesaCartaoResponse {
 	return despesaCartaoResponse{
 		ID:             d.ID,
+		CompraID:       d.CompraID,
 		CartaoID:       d.CartaoID,
 		CategoriaID:    d.CategoriaID,
 		Descricao:      d.Descricao,
 		DataCompra:     d.DataCompra.Format("2006-01-02"),
 		ValorTotal:     d.ValorTotal,
 		NumeroParcelas: d.NumeroParcelas,
+		ParcelaNumero:  d.ParcelaNumero,
 		ValorParcela:   d.ValorParcela,
 		FaturaMes:      d.FaturaMes,
 		FaturaAno:      d.FaturaAno,
@@ -86,10 +90,11 @@ func toDespesaCartaoResponse(d *domain.DespesaCartao) despesaCartaoResponse {
 }
 
 type criarDespesaCartaoRequest struct {
-	Descricao   string   `json:"descricao"`
-	CategoriaID *string  `json:"categoria_id"`
-	DataCompra  string   `json:"data_compra"`
-	ValorTotal  float64  `json:"valor_total"`
+	Descricao      string  `json:"descricao"`
+	CategoriaID    *string `json:"categoria_id"`
+	DataCompra     string  `json:"data_compra"`
+	ValorTotal     float64 `json:"valor_total"`
+	NumeroParcelas int     `json:"numero_parcelas"`
 }
 
 func (h *DespesaCartaoHandler) erroDominio(c *gin.Context, err error) bool {
@@ -168,8 +173,9 @@ func (h *DespesaCartaoHandler) ListarPorFatura(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// Criar cria uma nova despesa em um cartão.
+// Criar cria uma ou mais despesas em um cartão (uma por parcela — RN03).
 // POST /api/v1/cartoes/:id/despesas
+// Responde com array JSON de todas as parcelas criadas.
 func (h *DespesaCartaoHandler) Criar(c *gin.Context) {
 	cartaoID := c.Param("id")
 
@@ -185,7 +191,12 @@ func (h *DespesaCartaoHandler) Criar(c *gin.Context) {
 		return
 	}
 
-	despesa, err := h.svc.Criar(cartaoID, req.Descricao, req.CategoriaID, dataCompra, req.ValorTotal)
+	// Mantém compatibilidade: se numero_parcelas não informado (0), assume 1
+	if req.NumeroParcelas < 1 {
+		req.NumeroParcelas = 1
+	}
+
+	despesas, err := h.svc.Criar(cartaoID, req.Descricao, req.CategoriaID, dataCompra, req.ValorTotal, req.NumeroParcelas)
 	if err != nil {
 		if h.erroDominio(c, err) {
 			return
@@ -194,7 +205,12 @@ func (h *DespesaCartaoHandler) Criar(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, toDespesaCartaoResponse(despesa))
+	resp := make([]despesaCartaoResponse, 0, len(despesas))
+	for _, d := range despesas {
+		resp = append(resp, toDespesaCartaoResponse(d))
+	}
+
+	c.JSON(http.StatusCreated, resp)
 }
 
 // Excluir remove (soft delete) uma despesa de cartão.

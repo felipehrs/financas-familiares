@@ -17,15 +17,15 @@ import (
 
 // MockDespesaCartaoService implementa DespesaCartaoServiceInterface para testes.
 type MockDespesaCartaoService struct {
-	CriarFn            func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64) (*domain.DespesaCartao, error)
-	ListarPorCartaoFn  func(cartaoID string) ([]*domain.DespesaCartao, error)
-	ListarPorFaturaFn  func(cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error)
-	BuscarPorIDFn      func(id string) (*domain.DespesaCartao, error)
-	ExcluirFn          func(id string) error
+	CriarFn           func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error)
+	ListarPorCartaoFn func(cartaoID string) ([]*domain.DespesaCartao, error)
+	ListarPorFaturaFn func(cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error)
+	BuscarPorIDFn     func(id string) (*domain.DespesaCartao, error)
+	ExcluirFn         func(id string) error
 }
 
-func (m *MockDespesaCartaoService) Criar(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64) (*domain.DespesaCartao, error) {
-	return m.CriarFn(cartaoID, descricao, categoriaID, dataCompra, valorTotal)
+func (m *MockDespesaCartaoService) Criar(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
+	return m.CriarFn(cartaoID, descricao, categoriaID, dataCompra, valorTotal, numeroParcelas)
 }
 
 func (m *MockDespesaCartaoService) ListarPorCartao(cartaoID string) ([]*domain.DespesaCartao, error) {
@@ -61,11 +61,13 @@ func setupDespesaRouter(svc handler.DespesaCartaoServiceInterface) *gin.Engine {
 func despesaFixa() *domain.DespesaCartao {
 	return &domain.DespesaCartao{
 		ID:             "d-uuid-1",
+		CompraID:       "compra-uuid-1",
 		CartaoID:       "cartao-1",
 		Descricao:      "Supermercado",
 		DataCompra:     time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC),
 		ValorTotal:     150.00,
 		NumeroParcelas: 1,
+		ParcelaNumero:  1,
 		ValorParcela:   150.00,
 		FaturaMes:      3,
 		FaturaAno:      2026,
@@ -96,6 +98,8 @@ func TestListarDespesasPorCartaoHandler_Sucesso(t *testing.T) {
 	assert.Equal(t, "d-uuid-1", resp[0]["id"])
 	assert.Equal(t, "Supermercado", resp[0]["descricao"])
 	assert.Equal(t, "MAR/26", resp[0]["fatura"])
+	assert.Equal(t, "compra-uuid-1", resp[0]["compra_id"])
+	assert.Equal(t, float64(1), resp[0]["parcela_numero"])
 }
 
 func TestListarDespesasPorCartaoHandler_ListaVazia(t *testing.T) {
@@ -166,19 +170,23 @@ func TestListarDespesasPorFaturaHandler_MesInvalido(t *testing.T) {
 
 // ---- POST /cartoes/:id/despesas ----
 
-func TestCriarDespesaCartaoHandler_Sucesso(t *testing.T) {
+func TestCriarDespesaCartaoHandler_Sucesso_AVista(t *testing.T) {
 	svc := &MockDespesaCartaoService{
-		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64) (*domain.DespesaCartao, error) {
-			return &domain.DespesaCartao{
-				ID:             "d-novo",
-				CartaoID:       cartaoID,
-				Descricao:      descricao,
-				DataCompra:     dataCompra,
-				ValorTotal:     valorTotal,
-				NumeroParcelas: 1,
-				ValorParcela:   valorTotal,
-				FaturaMes:      3,
-				FaturaAno:      2026,
+		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
+			return []*domain.DespesaCartao{
+				{
+					ID:             "d-novo",
+					CompraID:       "compra-novo",
+					CartaoID:       cartaoID,
+					Descricao:      descricao,
+					DataCompra:     dataCompra,
+					ValorTotal:     valorTotal,
+					NumeroParcelas: 1,
+					ParcelaNumero:  1,
+					ValorParcela:   valorTotal,
+					FaturaMes:      3,
+					FaturaAno:      2026,
+				},
 			}, nil
 		},
 	}
@@ -196,13 +204,105 @@ func TestCriarDespesaCartaoHandler_Sucesso(t *testing.T) {
 
 	require.Equal(t, http.StatusCreated, w.Code)
 
-	var resp map[string]any
+	var resp []map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	require.NoError(t, err)
-	assert.Equal(t, "d-novo", resp["id"])
-	assert.Equal(t, "Supermercado", resp["descricao"])
-	assert.Equal(t, "MAR/26", resp["fatura"])
-	assert.Equal(t, float64(1), resp["numero_parcelas"])
+	require.Len(t, resp, 1)
+	assert.Equal(t, "d-novo", resp[0]["id"])
+	assert.Equal(t, "Supermercado", resp[0]["descricao"])
+	assert.Equal(t, "MAR/26", resp[0]["fatura"])
+	assert.Equal(t, float64(1), resp[0]["numero_parcelas"])
+	assert.Equal(t, float64(1), resp[0]["parcela_numero"])
+}
+
+func TestCriarDespesaCartaoHandler_3Parcelas_RetornaArray3Elementos(t *testing.T) {
+	var numeroParcelas int
+	svc := &MockDespesaCartaoService{
+		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, np int) ([]*domain.DespesaCartao, error) {
+			numeroParcelas = np
+			return []*domain.DespesaCartao{
+				{ID: "d-1", CompraID: "c-1", CartaoID: cartaoID, Descricao: descricao, DataCompra: dataCompra, ValorTotal: valorTotal, NumeroParcelas: 3, ParcelaNumero: 1, ValorParcela: 100.00, FaturaMes: 3, FaturaAno: 2026},
+				{ID: "d-2", CompraID: "c-1", CartaoID: cartaoID, Descricao: descricao, DataCompra: dataCompra, ValorTotal: valorTotal, NumeroParcelas: 3, ParcelaNumero: 2, ValorParcela: 100.00, FaturaMes: 4, FaturaAno: 2026},
+				{ID: "d-3", CompraID: "c-1", CartaoID: cartaoID, Descricao: descricao, DataCompra: dataCompra, ValorTotal: valorTotal, NumeroParcelas: 3, ParcelaNumero: 3, ValorParcela: 100.00, FaturaMes: 5, FaturaAno: 2026},
+			}, nil
+		},
+	}
+	r := setupDespesaRouter(svc)
+
+	body, _ := json.Marshal(map[string]any{
+		"descricao":        "Notebook",
+		"data_compra":      "2026-03-05",
+		"valor_total":      300.00,
+		"numero_parcelas":  3,
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/cartoes/cartao-1/despesas", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusCreated, w.Code)
+
+	var resp []map[string]any
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	require.Len(t, resp, 3)
+	assert.Equal(t, 3, numeroParcelas)
+	assert.Equal(t, float64(1), resp[0]["parcela_numero"])
+	assert.Equal(t, float64(2), resp[1]["parcela_numero"])
+	assert.Equal(t, float64(3), resp[2]["parcela_numero"])
+	assert.Equal(t, "MAR/26", resp[0]["fatura"])
+	assert.Equal(t, "ABR/26", resp[1]["fatura"])
+	assert.Equal(t, "MAI/26", resp[2]["fatura"])
+}
+
+func TestCriarDespesaCartaoHandler_NumeroParcelas0_DefaultsPara1(t *testing.T) {
+	var numeroParcelas int
+	svc := &MockDespesaCartaoService{
+		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, np int) ([]*domain.DespesaCartao, error) {
+			numeroParcelas = np
+			return []*domain.DespesaCartao{
+				{ID: "d-1", CompraID: "c-1", CartaoID: cartaoID, Descricao: descricao, DataCompra: dataCompra, ValorTotal: valorTotal, NumeroParcelas: 1, ParcelaNumero: 1, ValorParcela: valorTotal, FaturaMes: 3, FaturaAno: 2026},
+			}, nil
+		},
+	}
+	r := setupDespesaRouter(svc)
+
+	// Envia sem numero_parcelas (omitido → zero value em Go)
+	body, _ := json.Marshal(map[string]any{
+		"descricao":   "Supermercado",
+		"data_compra": "2026-03-05",
+		"valor_total": 150.00,
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/cartoes/cartao-1/despesas", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, 1, numeroParcelas)
+}
+
+func TestCriarDespesaCartaoHandler_ErrNumeroParcelas_Returns400(t *testing.T) {
+	svc := &MockDespesaCartaoService{
+		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
+			return nil, domain.ErrNumeroParcelas
+		},
+	}
+	r := setupDespesaRouter(svc)
+
+	// Envia numero_parcelas=-1 para forçar erro no service
+	body, _ := json.Marshal(map[string]any{
+		"descricao":       "Supermercado",
+		"data_compra":     "2026-03-05",
+		"valor_total":     150.00,
+		"numero_parcelas": -1,
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/cartoes/cartao-1/despesas", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestCriarDespesaCartaoHandler_DataInvalida(t *testing.T) {
@@ -236,7 +336,7 @@ func TestCriarDespesaCartaoHandler_BodyInvalido(t *testing.T) {
 
 func TestCriarDespesaCartaoHandler_DescricaoVazia(t *testing.T) {
 	svc := &MockDespesaCartaoService{
-		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64) (*domain.DespesaCartao, error) {
+		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
 			return nil, domain.ErrDescricaoObrigatoria
 		},
 	}
@@ -262,7 +362,7 @@ func TestCriarDespesaCartaoHandler_DescricaoVazia(t *testing.T) {
 
 func TestCriarDespesaCartaoHandler_ValorInvalido(t *testing.T) {
 	svc := &MockDespesaCartaoService{
-		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64) (*domain.DespesaCartao, error) {
+		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
 			return nil, domain.ErrValorTotalInvalido
 		},
 	}
@@ -283,7 +383,7 @@ func TestCriarDespesaCartaoHandler_ValorInvalido(t *testing.T) {
 
 func TestCriarDespesaCartaoHandler_CartaoNaoEncontrado(t *testing.T) {
 	svc := &MockDespesaCartaoService{
-		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64) (*domain.DespesaCartao, error) {
+		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
 			return nil, domain.ErrCartaoNaoEncontrado
 		},
 	}

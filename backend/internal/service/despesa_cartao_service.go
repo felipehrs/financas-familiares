@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/felipehrs/financas-familiares/backend/internal/domain"
+	"github.com/google/uuid"
 )
 
 // DespesaCartaoRepository define as operações de persistência necessárias para despesas de cartão.
@@ -25,7 +26,7 @@ type CartaoRepositoryForDespesa interface {
 // DespesaCartaoServiceInterface define os métodos públicos do serviço de despesas de cartão.
 // Redeclarada nos handlers para desacoplamento.
 type DespesaCartaoServiceInterface interface {
-	Criar(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64) (*domain.DespesaCartao, error)
+	Criar(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error)
 	ListarPorCartao(cartaoID string) ([]*domain.DespesaCartao, error)
 	ListarPorFatura(cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error)
 	BuscarPorID(id string) (*domain.DespesaCartao, error)
@@ -54,10 +55,19 @@ func calcularFatura(dataCompra time.Time, diaFechamento int) (mes, ano int) {
 	return int(proximo.Month()), proximo.Year()
 }
 
-// Criar cria uma nova despesa de cartão à vista (numero_parcelas = 1).
+// proximaFatura avança um mês a partir de mes/ano (RN03).
+func proximaFatura(mes, ano int) (int, int) {
+	if mes == 12 {
+		return 1, ano + 1
+	}
+	return mes + 1, ano
+}
+
+// Criar cria uma ou mais despesas de cartão (uma por parcela — RN02, RN03).
 // Valida os campos obrigatórios, busca o cartão para obter DiaFechamento,
-// calcula fatura_mes, fatura_ano e valor_parcela via RN01 e RN02.
-func (s *DespesaCartaoService) Criar(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64) (*domain.DespesaCartao, error) {
+// calcula a fatura inicial via RN01 e distribui as parcelas por mês.
+// Retorna slice com todas as parcelas criadas.
+func (s *DespesaCartaoService) Criar(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
 	if strings.TrimSpace(cartaoID) == "" {
 		return nil, domain.ErrCartaoIDObrigatorio
 	}
@@ -67,6 +77,9 @@ func (s *DespesaCartaoService) Criar(cartaoID, descricao string, categoriaID *st
 	if valorTotal <= 0 {
 		return nil, domain.ErrValorTotalInvalido
 	}
+	if numeroParcelas < 1 {
+		return nil, domain.ErrNumeroParcelas
+	}
 
 	cartao, err := s.cartaoRepo.BuscarPorID(cartaoID)
 	if err != nil {
@@ -74,20 +87,36 @@ func (s *DespesaCartaoService) Criar(cartaoID, descricao string, categoriaID *st
 	}
 
 	faturaMes, faturaAno := calcularFatura(dataCompra, cartao.DiaFechamento)
+	valorParcela := valorTotal / float64(numeroParcelas)
+	compraID := uuid.NewString()
 
-	despesa := &domain.DespesaCartao{
-		CartaoID:       cartaoID,
-		CategoriaID:    categoriaID,
-		Descricao:      descricao,
-		DataCompra:     dataCompra,
-		ValorTotal:     valorTotal,
-		NumeroParcelas: 1,
-		ValorParcela:   valorTotal, // à vista: valor_parcela = valor_total
-		FaturaMes:      faturaMes,
-		FaturaAno:      faturaAno,
+	resultado := make([]*domain.DespesaCartao, 0, numeroParcelas)
+	for i := 1; i <= numeroParcelas; i++ {
+		despesa := &domain.DespesaCartao{
+			CompraID:       compraID,
+			CartaoID:       cartaoID,
+			CategoriaID:    categoriaID,
+			Descricao:      descricao,
+			DataCompra:     dataCompra,
+			ValorTotal:     valorTotal,
+			NumeroParcelas: numeroParcelas,
+			ParcelaNumero:  i,
+			ValorParcela:   valorParcela,
+			FaturaMes:      faturaMes,
+			FaturaAno:      faturaAno,
+		}
+
+		criada, err := s.repo.Criar(despesa)
+		if err != nil {
+			return nil, err
+		}
+		resultado = append(resultado, criada)
+
+		// Avança para a fatura do próximo mês (RN03)
+		faturaMes, faturaAno = proximaFatura(faturaMes, faturaAno)
 	}
 
-	return s.repo.Criar(despesa)
+	return resultado, nil
 }
 
 // ListarPorCartao retorna todas as despesas de um cartão (sem deletadas).

@@ -41,11 +41,13 @@ const categoriasFixture: Categoria[] = [
 const despesasFixture: DespesaCartao[] = [
   {
     id: 'd1',
+    compra_id: 'c1',
     cartao_id: '1',
     descricao: 'Supermercado',
     valor_total: 150,
     valor_parcela: 150,
     numero_parcelas: 1,
+    parcela_numero: 1,
     fatura_mes: 3,
     fatura_ano: 2026,
     fatura: 'MAR/26',
@@ -106,12 +108,13 @@ describe('DespesasCartaoPage', () => {
     expect(screen.getByLabelText(/descrição/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/data da compra/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/valor total/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/número de parcelas/i)).toBeInTheDocument()
   })
 
   // ─── 4. Chama criarDespesa ao submeter formulário válido ─────────────────
   it('chama criarDespesa ao submeter formulário válido', async () => {
     vi.mocked(listarDespesasPorCartao).mockResolvedValue([])
-    vi.mocked(criarDespesa).mockResolvedValue(despesasFixture[0])
+    vi.mocked(criarDespesa).mockResolvedValue(despesasFixture)
 
     const user = userEvent.setup()
     renderPage()
@@ -132,7 +135,7 @@ describe('DespesasCartaoPage', () => {
       expect(criarDespesa).toHaveBeenCalledWith(
         'fake-token',
         '1',
-        expect.objectContaining({ descricao: 'Supermercado', valor_total: 150 }),
+        expect.objectContaining({ descricao: 'Supermercado', valor_total: 150, numero_parcelas: 1 }),
       )
     })
   })
@@ -153,7 +156,40 @@ describe('DespesasCartaoPage', () => {
     })
   })
 
-  // ─── 6. Chama excluirDespesa ao clicar em "Excluir" ──────────────────────
+  // ─── 6. Exibe categorias no select ao abrir o formulário ─────────────────
+  it('exibe categorias no select ao abrir o formulário', async () => {
+    vi.mocked(listarDespesasPorCartao).mockResolvedValue([])
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await waitFor(() => screen.getByRole('button', { name: /nova despesa/i }))
+    await user.click(screen.getByRole('button', { name: /nova despesa/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'Alimentação' })).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: 'Saúde' })).toBeInTheDocument()
+    })
+  })
+
+  // ─── 7. Exibe categorias mesmo quando listarDespesasPorCartao falha ───────
+  it('exibe categorias no select mesmo quando o carregamento de despesas falha', async () => {
+    vi.mocked(listarDespesasPorCartao).mockRejectedValue(new Error('Erro de rede'))
+    const user = userEvent.setup()
+
+    renderPage()
+
+    // Aguarda o carregamento terminar (erro é exibido ou botão aparece)
+    await waitFor(() => screen.getByRole('button', { name: /nova despesa/i }))
+    await user.click(screen.getByRole('button', { name: /nova despesa/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'Alimentação' })).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: 'Saúde' })).toBeInTheDocument()
+    })
+  })
+
+  // ─── 8. Chama excluirDespesa ao clicar em "Excluir" ──────────────────────
   it('chama excluirDespesa ao clicar em "Excluir"', async () => {
     vi.mocked(excluirDespesa).mockResolvedValue(undefined)
 
@@ -166,6 +202,51 @@ describe('DespesasCartaoPage', () => {
 
     await waitFor(() => {
       expect(excluirDespesa).toHaveBeenCalledWith('fake-token', 'd1')
+    })
+  })
+
+  // ─── 9. Exibe indicador "Parcela X/Y" para compras parceladas ────────────
+  it('exibe indicador de parcela X/Y para compras parceladas', async () => {
+    const parcelada: DespesaCartao = {
+      id: 'd2',
+      compra_id: 'c2',
+      cartao_id: '1',
+      descricao: 'Notebook',
+      valor_total: 3000,
+      valor_parcela: 1000,
+      numero_parcelas: 3,
+      parcela_numero: 1,
+      fatura_mes: 3,
+      fatura_ano: 2026,
+      fatura: 'MAR/26',
+      data_compra: '2026-03-05',
+      categoria_id: null,
+    }
+    vi.mocked(listarDespesasPorCartao).mockResolvedValue([parcelada])
+
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/parcela 1\/3/i)).toBeInTheDocument()
+    })
+  })
+
+  // ─── 10. Exibe erro de validação quando numero_parcelas é apagado ─────────
+  it('exibe erro de validação quando numero_parcelas é menor que 1', async () => {
+    vi.mocked(listarDespesasPorCartao).mockResolvedValue([])
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await waitFor(() => screen.getByRole('button', { name: /nova despesa/i }))
+    await user.click(screen.getByRole('button', { name: /nova despesa/i }))
+
+    // Apaga o valor padrão "1" e deixa em branco
+    await user.clear(screen.getByLabelText(/número de parcelas/i))
+    await user.click(screen.getByRole('button', { name: /salvar/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/mínimo de 1 parcela/i)).toBeInTheDocument()
     })
   })
 })
