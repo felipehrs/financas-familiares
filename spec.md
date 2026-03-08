@@ -322,24 +322,36 @@ SALDO_MÊS = (TOTAL_RENDAS_OPERACIONAIS + TOTAL_DISTRIBUÍDO) − TOTAL_DESPESAS
 - O total recebido não distribuído é exibido como informação de reinvestimento, sem impacto no saldo.
 - Projeções futuras **não incluem** rendimentos de investimentos (nem distribuídos), pois são imprevisíveis.
 
-### RN10 - Vigência de Renda Fixa
+### RN10 - Vigência e Proporcionalidade de Renda Fixa
+
+**Elegibilidade (o mês é considerado SE):**
 ```
-Para um mês/ano de referência (MES, ANO):
+(MES, ANO) >= mês/ano de data_inicio
+E (data_fim IS NULL OU (MES, ANO) <= mês/ano de data_fim)
+```
 
-PRIMEIRO_MES_VIGENCIA = mês e ano de data_inicio
-ULTIMO_MES_VIGENCIA   = mês e ano de data_fim (se preenchida)
+**Valor a aplicar no mês (proporcionalidade pelo dia):**
+```
+DIAS_NO_MES = número de dias do mês/ano de referência
 
-A renda é considerada no mês de referência SE:
-  (MES, ANO) >= (PRIMEIRO_MES_VIGENCIA)
-  E (data_fim IS NULL OU (MES, ANO) <= (ULTIMO_MES_VIGENCIA))
+Mês intermediário (nem início nem fim):
+  VALOR_MES = valor
+
+Mês de início (mesmo mês/ano de data_inicio):
+  VALOR_MES = valor × (DIAS_NO_MES − dia(data_inicio) + 1) / DIAS_NO_MES
+
+Mês de fim (mesmo mês/ano de data_fim, e data_fim não é nula):
+  VALOR_MES = valor × dia(data_fim) / DIAS_NO_MES
+
+Mês que é simultaneamente início e fim (data_inicio e data_fim no mesmo mês/ano):
+  VALOR_MES = valor × (dia(data_fim) − dia(data_inicio) + 1) / DIAS_NO_MES
 ```
 
 **Exemplos:**
-- `data_inicio = 2026-04-10`, `data_fim = NULL` → renda aparece a partir de ABR/26, indefinidamente
-- `data_inicio = 2026-01-01`, `data_fim = 2026-10-31` → renda aparece de JAN/26 a OUT/26 (inclusive)
-- `data_inicio = 2026-03-15`, `data_fim = 2026-03-15` → renda aparece apenas em MAR/26
-
-> A granularidade é **mês inteiro**: o dia exato de `data_inicio` e `data_fim` não interfere no cálculo — apenas o mês e o ano são usados para determinar se a renda vigora no mês consultado.
+- `data_inicio = 2026-04-10`, `data_fim = NULL` → ABR/26: valor × 21/30; MAI/26 em diante: valor cheio
+- `data_inicio = 2026-01-01`, `data_fim = 2026-10-31` → JAN a SET/26: valor cheio; OUT/26: valor × 31/31 = valor cheio; NOV/26 em diante: não aparece
+- `data_inicio = 2026-03-08`, `data_fim = NULL` → MAR/26: valor × 24/31; ABR/26 em diante: valor cheio
+- `data_inicio = 2026-03-01`, `data_fim = 2026-03-15` → MAR/26: valor × 15/31; outros meses: não aparece
 
 ### RN08 - Consolidação Familiar vs. Individual
 - A visão familiar soma todas as rendas e despesas de todos os membros ativos
