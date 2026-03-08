@@ -45,16 +45,19 @@ func main() {
 	authRepo := repository.NewAuthRepository(db)
 	membroRepo := repository.NewMembroRepository(db)
 	categoriaRepo := repository.NewCategoriaRepository(db)
+	cartaoRepo := repository.NewCartaoCreditoRepository(db)
 
 	// Inicializar serviços
 	authService := service.NewAuthService(authRepo, cfg.JWT.Secret)
 	membroSvc := service.NewMembroService(membroRepo)
 	categoriaSvc := service.NewCategoriaService(categoriaRepo)
+	cartaoSvc := service.NewCartaoCreditoService(cartaoRepo)
 
 	// Inicializar handlers
 	authHandler := handler.NewAuthHandler(authService)
 	membroHandler := handler.NewMembroHandler(membroSvc)
 	categoriaHandler := handler.NewCategoriaHandler(categoriaSvc)
+	cartaoHandler := handler.NewCartaoCreditoHandler(cartaoSvc)
 
 	// Configurar rotas
 	r := gin.Default()
@@ -88,6 +91,13 @@ func main() {
 			protected.POST("/categorias", categoriaHandler.Criar)
 			protected.PUT("/categorias/:id", categoriaHandler.Atualizar)
 			protected.DELETE("/categorias/:id", categoriaHandler.Excluir)
+
+			// Cartões de crédito
+			protected.GET("/cartoes", cartaoHandler.Listar)
+			protected.POST("/cartoes", cartaoHandler.Criar)
+			protected.GET("/cartoes/:id", cartaoHandler.BuscarPorID)
+			protected.PUT("/cartoes/:id", cartaoHandler.Atualizar)
+			protected.PATCH("/cartoes/:id/inativar", cartaoHandler.Inativar)
 		}
 	}
 
