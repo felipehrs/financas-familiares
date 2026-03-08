@@ -12,27 +12,35 @@ down:
 # 3. Sobe o backend (Go) em background
 # 4. Sobe o frontend (Vite dev server)
 dev:
-	@echo "→ Verificando PostgreSQL..."
-	@if ! docker compose ps postgres 2>/dev/null | grep -q "running\|Up"; then \
+	@set -e; \
+	ROOT=$(CURDIR); \
+	echo "→ Verificando PostgreSQL..."; \
+	if ! docker compose ps postgres 2>/dev/null | grep -q "running\|Up"; then \
 		echo "→ Subindo PostgreSQL..."; \
 		docker compose up -d postgres; \
 		echo "→ Aguardando PostgreSQL ficar pronto..."; \
 		until docker compose exec postgres pg_isready -U postgres -q 2>/dev/null; do sleep 1; done; \
 	else \
 		echo "→ PostgreSQL já está rodando."; \
-	fi
-	@echo "→ Rodando migrations..."
-	@migrate -path backend/migrations -database "postgres://postgres:postgres@localhost:5432/financas_familiares?sslmode=disable" up 2>&1 | grep -v "no change" || true
-	@echo "→ Subindo backend em background (logs em /tmp/backend.log)..."
-	@pkill -f "go run ./cmd/server" 2>/dev/null || true
-	@cd backend && go run ./cmd/server > /tmp/backend.log 2>&1 &
-	@sleep 2
-	@if ! curl -sf http://localhost:8080/health > /dev/null; then \
-		echo "✗ Backend falhou ao iniciar. Veja /tmp/backend.log"; exit 1; \
-	fi
-	@echo "→ Backend rodando em http://localhost:8080"
-	@echo "→ Subindo frontend..."
-	cd frontend && npm run dev
+	fi; \
+	echo "→ Rodando migrations..."; \
+	migrate -path $$ROOT/backend/migrations -database "postgres://postgres:postgres@localhost:5432/financas_familiares?sslmode=disable" up 2>&1 | grep -v "no change" || true; \
+	echo "→ Subindo backend em background (logs em /tmp/backend.log)..."; \
+	pkill -f "go run ./cmd/server" 2>/dev/null || true; \
+	sleep 2; \
+	(cd $$ROOT/backend && go run ./cmd/server > /tmp/backend.log 2>&1) & \
+	echo "→ Aguardando backend iniciar..."; \
+	for i in $$(seq 1 20); do \
+		if curl -sf http://localhost:8080/health > /dev/null 2>&1; then \
+			echo "→ Backend rodando em http://localhost:8080"; break; \
+		fi; \
+		if [ $$i -eq 20 ]; then \
+			echo "✗ Backend falhou ao iniciar. Logs:"; cat /tmp/backend.log; exit 1; \
+		fi; \
+		sleep 1; \
+	done; \
+	echo "→ Subindo frontend..."; \
+	cd $$ROOT/frontend && npm run dev
 
 # Backend targets
 test:
