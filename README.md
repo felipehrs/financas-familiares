@@ -70,12 +70,18 @@ O sistema resolve a necessidade de visibilidade clara e consolidada das finança
 
 ## Roadmap
 
-| Fase | Descrição | Status |
-|------|-----------|--------|
-| **Fase 1 — MVP** | Membros, categorias, cartões, despesas à vista, renda fixa, dashboard básico | 🔲 Planejado |
-| **Fase 2 — Core** | Parcelamento, assinaturas, contas fixas, despesas gerais, todos os tipos de renda, dashboard completo | 🔲 Planejado |
-| **Fase 3 — Analytics** | Gráficos de evolução, projeções futuras, relatórios | 🔲 Planejado |
-| **Fase 4 — Extras** | Integração bancária, alertas, importação de extratos, app mobile | 🔲 Futuro |
+| Sprint | Foco | Status |
+|--------|------|--------|
+| **Sprint 1 — Fundação** | Scaffolding do monorepo, Docker + PostgreSQL + migrations, autenticação JWT, tela de login | ✅ Concluído |
+| **Sprint 2 — Cadastros Base** | Membros, categorias, cartões de crédito (CRUD completo com TDD) | ✅ Concluído |
+| **Sprint 3 — MVP** | Despesas à vista no cartão (RN01/RN02), renda fixa, dashboard básico com saldo | ✅ Concluído |
+| **Sprint 4 — Cartões Avançados** | Compras parceladas (RN03), fatura por mês, assinaturas, contas fixas | ✅ Concluído |
+| **Sprint 4.5 — Vigência de Renda Fixa** | Data de início/fim na renda fixa; proporcionalidade por dia (RN10) | ✅ Concluído |
+| **Sprint 5 — Despesas e Rendas Completas** | Despesas gerais, filtros e CSV, renda variável, renda extra, rendimentos de investimento (RN09) | ✅ Concluído |
+| **Sprint 6 — Dashboard Completo e Offline** | Dashboard com todas as seções (RN06/RN08), gráfico de categorias, PWA, IndexedDB offline-first | 🔲 Planejado |
+| **Sprint 7 — Analytics e Projeções** | Gráfico de evolução mensal (12 meses), projeção 3 meses (RN07), histórico de rendas | 🔲 Planejado |
+| **Sprint 8 — Qualidade e Deploy** | CI/CD GitHub Actions, cobertura validada, deploy (Vercel + Railway) | 🔲 Planejado |
+| **Sprint 9 — Melhorias de Usabilidade** | Contas fixas variáveis + reajustes, assinaturas em moeda estrangeira, lista centralizada de despesas | 🔲 Futuro |
 
 ---
 
@@ -83,9 +89,10 @@ O sistema resolve a necessidade de visibilidade clara e consolidada das finança
 
 | Arquivo | Descrição |
 |---------|-----------|
-| [`spec.md`](spec.md) | Especificação funcional completa (RF01–RF22, RN01–RN09, modelo de dados, wireframes) |
+| [`spec.md`](spec.md) | Especificação funcional completa (RF01–RF22, RN01–RN15, modelo de dados, wireframes) |
 | [`tech-spec.md`](tech-spec.md) | Especificação técnica (stack, arquitetura, autenticação, sync offline, infra) |
 | [`stories.md`](stories.md) | Histórias de usuário com critérios de aceite por fase |
+| [`sprints.md`](sprints.md) | Status detalhado de cada sprint com itens e critérios de conclusão |
 
 ---
 
@@ -111,6 +118,13 @@ SALDO = (Rendas Fixas + Rendas Variáveis + Rendas Extras + Valor Distribuído d
 ```
 
 > Rendimentos de investimentos não distribuídos são informativos e não impactam o saldo.
+
+**Proporcionalidade de renda fixa (RN10)**
+```
+Mês de início → valor × (dias restantes no mês / dias no mês)
+Mês de fim    → valor × (dia de fim / dias no mês)
+Mês intermediário → valor cheio
+```
 
 ---
 
