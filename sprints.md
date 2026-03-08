@@ -162,6 +162,24 @@
 
 ---
 
+## Sprint 9 — Melhorias de Usabilidade
+
+**Objetivo:** Implementar três melhorias de UX decididas após a conclusão das sprints 1–8: suporte a moeda estrangeira em assinaturas, vinculação de despesa geral a cartão de crédito, e tela centralizada de despesas com formulário dinâmico por tipo.
+
+**Itens:**
+
+| Status | ID | Descrição |
+|--------|-----|-----------|
+| 🔲 | US-23 | Assinaturas em moeda estrangeira: campo `moeda`, busca de cotação via API de câmbio na data de fechamento, cotação manual pelo usuário (RF08a, RN11) |
+| 🔲 | US-24 | Despesa geral com cartão de crédito: campo `cartao_id` quando forma de pagamento = cartão; entrada na fatura via RN01 (RF12 revisado, RN12) |
+| 🔲 | US-25 | Tela centralizada de despesas: lista unificada com badges por tipo abaixo do dashboard; botão "+ Nova Despesa" com seletor de tipo e formulário dinâmico (RF12a, RN13) |
+
+**Critério de conclusão:** As três melhorias funcionando integradas. Cotação automática buscada e sobrescrita manualmente pelo usuário. Lista centralizada exibindo todos os tipos com badges corretos. Formulário dinâmico carregando o form correto por tipo. Testes unitários cobrindo RN11, RN12 e RN13 ≥ 90%.
+
+**Pré-requisito:** Sprints 1–8 concluídas.
+
+---
+
 ## Resumo Geral
 
 | Sprint | Foco | Stories/TTs |
@@ -175,3 +193,4 @@
 | 6 | Dashboard completo e offline | US-17, US-18, TT-04, TT-05 |
 | 7 | Analytics e projeções | US-19, US-20, US-21 |
 | 8 | Qualidade e deploy | TT-06 + validações |
+| 9 | Melhorias de usabilidade (pós-deploy) | US-23, US-24, US-25 |

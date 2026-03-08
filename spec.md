@@ -1,7 +1,7 @@
 # Especificação Funcional - Sistema de Gestão de Finanças Familiares
 
-**Versão:** 1.1
-**Data:** 06 de Março de 2026
+**Versão:** 1.2
+**Data:** 08 de Março de 2026
 **Status:** Especificação Inicial
 
 ---
@@ -91,10 +91,21 @@ Famílias que desejam ter controle detalhado e consolidado de suas finanças, co
   - Membro responsável (FK para Membro)
   - Categoria
   - Valor mensal
+  - Moeda (BRL por padrão; outras: USD, EUR, GBP, ARS, etc.)
   - Dia da cobrança
   - Forma de pagamento (cartão de crédito, débito, etc)
   - Status (ativa/cancelada)
   - Observações (opcional)
+- Campos opcionais (quando moeda ≠ BRL):
+  - Cotação manual (R$/unidade da moeda estrangeira) — permite ao usuário informar o valor pago em BRL na última fatura e o sistema calcula a cotação implícita
+  - Se a forma de pagamento for cartão de crédito, o sistema pode tentar buscar a cotação da moeda na data de fechamento da fatura via API de câmbio; o usuário pode sobrescrever esse valor a qualquer momento
+
+#### RF08a - Conversão de Moeda em Assinaturas Estrangeiras
+- Quando a assinatura está em moeda estrangeira e vinculada a cartão de crédito:
+  1. **Cotação automática:** ao calcular o valor da fatura do mês, o sistema consulta a cotação da moeda na data de fechamento do cartão (via API de câmbio — ex: AwesomeAPI ou API do Banco Central)
+  2. **Cotação manual:** o usuário pode informar o valor cobrado em BRL na fatura; o sistema calcula e armazena a cotação implícita (`cotacao = valor_brl / valor_original`)
+  3. A cotação manual prevalece sobre a automática; ela é armazenada por mês, permitindo histórico de cotações por assinatura
+- O dashboard sempre exibe o valor em BRL, com indicação da cotação utilizada e a moeda original
 
 #### RF09 - Recorrência Automática
 - Assinaturas ativas devem ser automaticamente consideradas nas projeções mensais
@@ -126,8 +137,24 @@ Famílias que desejam ter controle detalhado e consolidado de suas finanças, co
   - Descrição
   - Categoria
   - Valor
-  - Forma de pagamento (dinheiro, débito, PIX, etc)
+  - Forma de pagamento (dinheiro, débito, PIX, cartão de crédito, etc)
+  - Cartão de crédito (FK para CartaoCredito) — obrigatório quando forma de pagamento = "cartão de crédito"
   - Observações (opcional)
+- Quando a forma de pagamento for "cartão de crédito", a despesa entra na fatura do cartão selecionado (calculada conforme RN01), sem parcelamento (equivale a 1 parcela de 1)
+
+#### RF12a - Tela Centralizada de Despesas
+- O sistema oferece uma tela unificada de despesas que consolida **todos os tipos de despesa** em uma única lista:
+  - Despesas gerais (dinheiro, débito, PIX, cartão de crédito)
+  - Despesas no cartão (compras parceladas)
+  - Assinaturas ativas
+  - Contas fixas ativas
+- Cada item exibe uma **badge de tipo** indicando a origem (ex: "Cartão", "Geral", "Assinatura", "Conta Fixa")
+- A lista fica posicionada **abaixo do dashboard** na tela principal, exibindo as despesas do mês corrente por padrão
+- Um botão "＋ Nova Despesa" abre um formulário centralizado onde o usuário:
+  1. Seleciona o **tipo de despesa** (Despesa Geral, Compra no Cartão, Assinatura, Conta Fixa)
+  2. O formulário específico do tipo selecionado é carregado dinamicamente
+  3. O usuário preenche os campos e salva
+- Filtros disponíveis na lista: período, tipo, categoria, membro
 
 #### RF13 - Histórico de Despesas
 - Visualizar todas as despesas gerais lançadas
@@ -353,6 +380,48 @@ Mês que é simultaneamente início e fim (data_inicio e data_fim no mesmo mês/
 - `data_inicio = 2026-03-08`, `data_fim = NULL` → MAR/26: valor × 24/31; ABR/26 em diante: valor cheio
 - `data_inicio = 2026-03-01`, `data_fim = 2026-03-15` → MAR/26: valor × 15/31; outros meses: não aparece
 
+### RN11 - Conversão de Moeda em Assinaturas Estrangeiras
+```
+Se assinatura.moeda ≠ "BRL" e forma_pagamento = "cartão de crédito":
+
+  1. Buscar cotacao de AssinaturaCotacao para (assinatura_id, mes, ano)
+  2. Se não existir cotacao manual:
+     a. Calcular data_fechamento = dia_fechamento do cartão no mês corrente
+     b. Consultar API de câmbio para obter cotacao(moeda, data_fechamento)
+     c. valor_brl = valor_mensal × cotacao
+     d. Salvar em AssinaturaCotacao com origem = "automatica"
+  3. Se o usuário informar o valor pago em BRL:
+     a. cotacao = valor_brl_informado / valor_mensal
+     b. Atualizar/criar AssinaturaCotacao com origem = "manual"
+     c. A cotacao manual prevalece sobre a automática
+
+VALOR_FATURA_BRL = valor_mensal × cotacao_vigente
+```
+
+### RN12 - Despesa Geral com Cartão de Crédito
+```
+Se DespesaGeral.forma_pagamento = "cartao_credito":
+  - cartao_id é obrigatório
+  - A despesa entra na fatura do cartão usando RN01 (data da despesa vs. dia_fechamento)
+  - É tratada como 1 parcela de 1 (sem parcelamento)
+  - Aparece tanto na lista de despesas gerais quanto na fatura do cartão
+```
+
+### RN13 - Tela Centralizada de Despesas
+```
+A lista unificada do mês exibe, ordenada por data:
+  - DespesaGeral (badge: tipo de pagamento — ex: "PIX", "Débito", "Cartão")
+  - DespesaCartao (badge: "Cartão Parcelado" com indicação "X/Y")
+  - Assinatura ativa (badge: "Assinatura")
+  - ContaFixa ativa (badge: "Conta Fixa")
+
+O botão "+ Nova Despesa" abre modal/formulário com seletor de tipo:
+  - "Despesa Geral" → formulário RF12
+  - "Compra no Cartão" → formulário RF04
+  - "Assinatura" → formulário RF08
+  - "Conta Fixa" → formulário RF10
+```
+
 ### RN08 - Consolidação Familiar vs. Individual
 - A visão familiar soma todas as rendas e despesas de todos os membros ativos
 - A visão individual filtra rendas e despesas por membro
@@ -500,10 +569,22 @@ Mês que é simultaneamente início e fim (data_inicio e data_fim no mesmo mês/
 - membro_id (FK)
 - categoria_id (FK)
 - valor_mensal
+- moeda (padrão: "BRL")
 - dia_cobranca
 - forma_pagamento
+- cartao_id (FK, opcional — obrigatório quando forma_pagamento = cartão de crédito)
 - status (ativa/cancelada)
 - observacoes
+
+#### AssinaturaCotacao
+- id
+- assinatura_id (FK)
+- mes (int)
+- ano (int)
+- cotacao (float — R$ por unidade da moeda estrangeira)
+- valor_brl (float — valor efetivamente cobrado em BRL)
+- origem ("automatica" | "manual")
+- (chave única: assinatura_id + mes + ano)
 
 #### ContaFixa
 - id
@@ -524,7 +605,7 @@ Mês que é simultaneamente início e fim (data_inicio e data_fim no mesmo mês/
 - categoria_id (FK)
 - valor
 - forma_pagamento
-- observacoes
+- cartao_id (FK, opcional — obrigatório quando forma_pagamento = "cartao_credito")
 
 #### RendaFixa
 - id
@@ -616,6 +697,35 @@ Mês que é simultaneamente início e fim (data_inicio e data_fim no mesmo mês/
 +------------------------------------------------------------+
 ```
 
+### Tela: Lista Centralizada de Despesas (abaixo do Dashboard)
+```
++------------------------------------------------------------+
+| DESPESAS DO MÊS        [MAR/26] [Tipo: Todos ▼] [+ Nova]  |
++------------------------------------------------------------+
+| Data       | Descrição         | Membro | Valor     | Tipo |
+|------------|-------------------|--------|-----------|------|
+| 05/03/2026 | Supermercado      | Felipe | R$ 350,00 | PIX  |
+| 10/03/2026 | Notebook Dell     | Felipe | R$ 300,00 | Cartão Parcelado 1/10 |
+| 15/03/2026 | Netflix           | Ana    | R$  49,90 | Assinatura |
+| 15/03/2026 | Spotify           | Felipe | R$  21,90 | Assinatura |
+| 20/03/2026 | Condomínio        | Felipe | R$ 800,00 | Conta Fixa |
++------------------------------------------------------------+
+| TOTAL: R$ 1.521,80                                         |
++------------------------------------------------------------+
+
+[+ Nova Despesa] → abre modal:
+
++---------------------------+
+| Qual tipo de despesa?     |
+| ○ Despesa Geral           |
+| ○ Compra no Cartão        |
+| ○ Assinatura              |
+| ○ Conta Fixa              |
+| [Continuar]               |
++---------------------------+
+→ formulário específico carregado dinamicamente
+```
+
 ### Tela: Cartões de Crédito
 ```
 +--------------------------------------------------+
@@ -684,6 +794,11 @@ Mês que é simultaneamente início e fim (data_inicio e data_fim no mesmo mês/
 - Importação de extratos
 - Relatórios personalizados
 - App mobile
+
+### Fase 5 - Melhorias de Usabilidade (pós-Sprint 8)
+- **Assinaturas em moeda estrangeira:** suporte a USD, EUR, GBP, ARS e outras; conversão automática via API de câmbio na data de fechamento da fatura; cotação manual pelo usuário prevalece (RF08a, RN11)
+- **Despesa geral no cartão:** quando forma de pagamento = "cartão de crédito", vincular ao cartão cadastrado e entrar na fatura via RN01 (RF12, RN12)
+- **Lista centralizada de despesas:** tela unificada abaixo do dashboard exibindo todos os tipos de despesa com badges; botão "+ Nova Despesa" com seletor de tipo e formulário dinâmico (RF12a, RN13)
 
 ---
 
