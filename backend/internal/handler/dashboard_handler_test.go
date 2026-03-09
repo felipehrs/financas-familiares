@@ -17,8 +17,9 @@ import (
 
 // MockDashboardService implementa DashboardServiceInterface para testes.
 type MockDashboardService struct {
-	ResumoMensalFn          func(mes, ano int) (*service.ResumoMensal, error)
-	DespesasPorCategoriaFn  func(mes, ano int) (*service.ResumoCategorias, error)
+	ResumoMensalFn         func(mes, ano int) (*service.ResumoMensal, error)
+	DespesasPorCategoriaFn func(mes, ano int) (*service.ResumoCategorias, error)
+	EvolucaoMensalFn       func(qtdMeses int) ([]service.PontoEvolucao, error)
 }
 
 func (m *MockDashboardService) ResumoMensal(mes, ano int) (*service.ResumoMensal, error) {
@@ -32,6 +33,13 @@ func (m *MockDashboardService) DespesasPorCategoria(mes, ano int) (*service.Resu
 	return nil, nil
 }
 
+func (m *MockDashboardService) EvolucaoMensal(qtdMeses int) ([]service.PontoEvolucao, error) {
+	if m.EvolucaoMensalFn != nil {
+		return m.EvolucaoMensalFn(qtdMeses)
+	}
+	return []service.PontoEvolucao{}, nil
+}
+
 func setupDashboardRouter(svc handler.DashboardServiceInterface) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -40,6 +48,7 @@ func setupDashboardRouter(svc handler.DashboardServiceInterface) *gin.Engine {
 	{
 		v1.GET("/dashboard/resumo", h.ResumoMensal)
 		v1.GET("/dashboard/categorias", h.DespesasPorCategoria)
+		v1.GET("/dashboard/evolucao", h.EvolucaoMensal)
 	}
 	return r
 }
@@ -289,6 +298,55 @@ func TestDespesasPorCategoriaHandler_ErroInterno(t *testing.T) {
 	r := setupDashboardRouter(svc)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/categorias?mes=3&ano=2026", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusInternalServerError, w.Code)
+
+	var resp map[string]any
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "erro interno", resp["error"])
+}
+
+// ---- Testes de GET /dashboard/evolucao ----
+
+func TestEvolucaoMensalHandler_Sucesso(t *testing.T) {
+	svc := &MockDashboardService{
+		EvolucaoMensalFn: func(qtdMeses int) ([]service.PontoEvolucao, error) {
+			assert.Equal(t, 12, qtdMeses)
+			return []service.PontoEvolucao{
+				{Mes: 4, Ano: 2025, TotalRendas: 5000.00, TotalDespesas: 1000.00, Saldo: 4000.00},
+				{Mes: 3, Ano: 2026, TotalRendas: 6000.00, TotalDespesas: 1500.00, Saldo: 4500.00},
+			}, nil
+		},
+	}
+	r := setupDashboardRouter(svc)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/evolucao", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var resp []map[string]any
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Len(t, resp, 2)
+	assert.Equal(t, float64(4), resp[0]["mes"])
+	assert.Equal(t, float64(2025), resp[0]["ano"])
+	assert.Equal(t, 5000.00, resp[0]["total_rendas"])
+}
+
+func TestEvolucaoMensalHandler_ErroInterno(t *testing.T) {
+	svc := &MockDashboardService{
+		EvolucaoMensalFn: func(qtdMeses int) ([]service.PontoEvolucao, error) {
+			return nil, errors.New("falha no banco de dados")
+		},
+	}
+	r := setupDashboardRouter(svc)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/dashboard/evolucao", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 

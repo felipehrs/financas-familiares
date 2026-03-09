@@ -137,7 +137,7 @@
 
 | Status | ID | Descrição |
 |--------|-----|-----------|
-| 🔲 | US-19 | Gráfico de evolução mensal (Recharts): rendas, despesas e saldo dos últimos 12 meses |
+| ✅ | US-19 | Gráfico de evolução mensal (Recharts): rendas, despesas e saldo dos últimos 12 meses |
 | 🔲 | US-20 | Projeção dos próximos 3 meses: rendas fixas vs. despesas recorrentes + parcelas (RN07) |
 | 🔲 | US-21 | Histórico e resumo de rendas filtráveis por tipo, membro e período |
 

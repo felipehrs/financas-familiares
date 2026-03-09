@@ -1,4 +1,4 @@
-import type { ResumoMensal, ResumoCategorias } from '@/types/dashboard'
+import type { ResumoMensal, ResumoCategorias, PontoEvolucao } from '@/types/dashboard'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
@@ -36,6 +36,13 @@ export async function buscarCategoriasDespesas(
     headers: { Authorization: `Bearer ${token}` },
   })
   return handleResponse<ResumoCategorias>(response)
+}
+
+export async function buscarEvolucaoMensal(token: string): Promise<PontoEvolucao[]> {
+  const response = await fetch(`${API_BASE}/api/v1/dashboard/evolucao`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return handleResponse<PontoEvolucao[]>(response)
 }
 
 export async function buscarResumoMensal(

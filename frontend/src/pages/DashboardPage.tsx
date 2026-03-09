@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
-import { buscarResumoMensal, buscarCategoriasDespesas } from '@/api/dashboard'
-import type { ResumoMensal, ResumoCategorias } from '@/types/dashboard'
+import { buscarResumoMensal, buscarCategoriasDespesas, buscarEvolucaoMensal } from '@/api/dashboard'
+import type { ResumoMensal, ResumoCategorias, PontoEvolucao } from '@/types/dashboard'
 import { Card, CardContent } from '@/components/ui/card'
 import { GraficoCategoriaDespesas } from '@/components/GraficoCategoriaDespesas'
+import { GraficoEvolucaoMensal } from '@/components/GraficoEvolucaoMensal'
 import {
   Users, Tag, CreditCard, TrendingUp, RefreshCcw, Building2,
   ShoppingBag, BarChart2, Gift, PiggyBank, Moon, Sun,
@@ -27,6 +28,9 @@ export function DashboardPage() {
   const [resumoCategorias, setResumoCategorias] = useState<ResumoCategorias | null>(null)
   const [loadingCategorias, setLoadingCategorias] = useState(true)
   const [erroCategorias, setErroCategorias] = useState<string | null>(null)
+  const [evolucao, setEvolucao] = useState<PontoEvolucao[]>([])
+  const [loadingEvolucao, setLoadingEvolucao] = useState(true)
+  const [erroEvolucao, setErroEvolucao] = useState<string | null>(null)
 
   async function carregarResumo(mesSelecionado: number, anoSelecionado: number) {
     if (!accessToken) return
@@ -55,11 +59,30 @@ export function DashboardPage() {
     }
   }
 
+  async function carregarEvolucao() {
+    if (!accessToken) return
+    setLoadingEvolucao(true)
+    setErroEvolucao(null)
+    try {
+      const data = await buscarEvolucaoMensal(accessToken)
+      setEvolucao(data)
+    } catch (err) {
+      setErroEvolucao(err instanceof Error ? err.message : 'Erro ao carregar evolução')
+    } finally {
+      setLoadingEvolucao(false)
+    }
+  }
+
   useEffect(() => {
     void carregarResumo(mes, ano)
     void carregarCategorias(mes, ano)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mes, ano])
+
+  useEffect(() => {
+    void carregarEvolucao()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const meses = [
     { value: 1, label: 'Janeiro' },
@@ -277,6 +300,20 @@ export function DashboardPage() {
               ) : resumoCategorias ? (
                 <GraficoCategoriaDespesas categorias={resumoCategorias.categorias} />
               ) : null}
+            </CardContent>
+          </Card>
+
+          {/* Seção — Evolução Mensal */}
+          <Card>
+            <CardContent className="pt-4">
+              <p className="font-medium mb-4">Evolução Mensal</p>
+              {loadingEvolucao ? (
+                <p className="text-muted-foreground text-sm">Carregando...</p>
+              ) : erroEvolucao ? (
+                <p className="text-red-600 dark:text-red-400 text-sm" role="alert">{erroEvolucao}</p>
+              ) : (
+                <GraficoEvolucaoMensal pontos={evolucao} />
+              )}
             </CardContent>
           </Card>
         </div>

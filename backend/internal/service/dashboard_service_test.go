@@ -166,6 +166,69 @@ func newSvcCategorias(catRepo *MockDashboardRepositoryForCategorias) *service.Da
 	)
 }
 
+// newSvcVazio cria um DashboardService com todos os mocks vazios, útil para testes de EvolucaoMensal.
+func newSvcVazio() *service.DashboardService {
+	return service.NewDashboardService(
+		&MockRendaFixaRepositoryForDashboard{},
+		&MockDespesaCartaoRepositoryForDashboard{},
+		&MockRendaVariavelRepositoryForDashboard{},
+		&MockRendaExtraRepositoryForDashboard{},
+		&MockRendimentoRepositoryForDashboard{},
+		&MockAssinaturaRepositoryForDashboard{},
+		&MockContaFixaRepositoryForDashboard{},
+		&MockDespesaGeralRepositoryForDashboard{},
+		&MockDashboardRepositoryForCategorias{},
+	)
+}
+
+// ---- Testes de EvolucaoMensal ----
+
+func TestEvolucaoMensal_Retorna12Pontos(t *testing.T) {
+	svc := newSvcVazio()
+	pontos, err := svc.EvolucaoMensal(12)
+	require.NoError(t, err)
+	assert.Len(t, pontos, 12)
+}
+
+func TestEvolucaoMensal_OrdemCronologica(t *testing.T) {
+	svc := newSvcVazio()
+	pontos, err := svc.EvolucaoMensal(12)
+	require.NoError(t, err)
+	// Verificar que cada ponto é posterior ao anterior
+	for i := 1; i < len(pontos); i++ {
+		prev := time.Date(pontos[i-1].Ano, time.Month(pontos[i-1].Mes), 1, 0, 0, 0, 0, time.UTC)
+		curr := time.Date(pontos[i].Ano, time.Month(pontos[i].Mes), 1, 0, 0, 0, 0, time.UTC)
+		assert.True(t, curr.After(prev), "ponto %d deve ser posterior ao ponto %d", i, i-1)
+	}
+}
+
+func TestEvolucaoMensal_UltimoMesEhAtual(t *testing.T) {
+	svc := newSvcVazio()
+	pontos, err := svc.EvolucaoMensal(12)
+	require.NoError(t, err)
+	agora := time.Now()
+	ultimo := pontos[len(pontos)-1]
+	assert.Equal(t, int(agora.Month()), ultimo.Mes)
+	assert.Equal(t, agora.Year(), ultimo.Ano)
+}
+
+func TestEvolucaoMensal_ErroPropaganado(t *testing.T) {
+	mockRendaFixa := &MockRendaFixaRepositoryForDashboard{err: errors.New("db error")}
+	svc := service.NewDashboardService(
+		mockRendaFixa,
+		&MockDespesaCartaoRepositoryForDashboard{},
+		&MockRendaVariavelRepositoryForDashboard{},
+		&MockRendaExtraRepositoryForDashboard{},
+		&MockRendimentoRepositoryForDashboard{},
+		&MockAssinaturaRepositoryForDashboard{},
+		&MockContaFixaRepositoryForDashboard{},
+		&MockDespesaGeralRepositoryForDashboard{},
+		&MockDashboardRepositoryForCategorias{},
+	)
+	_, err := svc.EvolucaoMensal(12)
+	assert.Error(t, err)
+}
+
 // ---- Testes de ResumoMensal ----
 
 func TestResumoMensal_ComRendasEDespesas(t *testing.T) {

@@ -195,6 +195,7 @@ func main() {
 			// Dashboard
 			protected.GET("/dashboard/resumo", dashboardHandler.ResumoMensal)
 			protected.GET("/dashboard/categorias", dashboardHandler.DespesasPorCategoria)
+			protected.GET("/dashboard/evolucao", dashboardHandler.EvolucaoMensal)
 		}
 	}
 

@@ -263,6 +263,39 @@ func (s *DashboardService) ResumoMensal(mes, ano int) (*ResumoMensal, error) {
 	}, nil
 }
 
+// PontoEvolucao representa os totais de um mês para o gráfico de evolução.
+type PontoEvolucao struct {
+	Mes           int     `json:"mes"`
+	Ano           int     `json:"ano"`
+	TotalRendas   float64 `json:"total_rendas"`
+	TotalDespesas float64 `json:"total_despesas"`
+	Saldo         float64 `json:"saldo"`
+}
+
+// EvolucaoMensal retorna os totais dos últimos qtdMeses meses em ordem cronológica crescente.
+func (s *DashboardService) EvolucaoMensal(qtdMeses int) ([]PontoEvolucao, error) {
+	agora := time.Now()
+	inicio := agora.AddDate(0, -(qtdMeses - 1), 0)
+	inicio = time.Date(inicio.Year(), inicio.Month(), 1, 0, 0, 0, 0, time.UTC)
+
+	pontos := make([]PontoEvolucao, 0, qtdMeses)
+	for i := 0; i < qtdMeses; i++ {
+		mesAtual := inicio.AddDate(0, i, 0)
+		resumo, err := s.ResumoMensal(int(mesAtual.Month()), mesAtual.Year())
+		if err != nil {
+			return nil, err
+		}
+		pontos = append(pontos, PontoEvolucao{
+			Mes:           int(mesAtual.Month()),
+			Ano:           mesAtual.Year(),
+			TotalRendas:   resumo.TotalRendasOperacionais,
+			TotalDespesas: resumo.TotalDespesas,
+			Saldo:         resumo.Saldo,
+		})
+	}
+	return pontos, nil
+}
+
 // DespesasPorCategoria retorna o resumo de despesas agrupadas por categoria para um mês/ano.
 func (s *DashboardService) DespesasPorCategoria(mes, ano int) (*ResumoCategorias, error) {
 	rows, err := s.categoriasRepo.DespesasPorCategoria(mes, ano)

@@ -14,6 +14,7 @@ import (
 type DashboardServiceInterface interface {
 	ResumoMensal(mes, ano int) (*service.ResumoMensal, error)
 	DespesasPorCategoria(mes, ano int) (*service.ResumoCategorias, error)
+	EvolucaoMensal(qtdMeses int) ([]service.PontoEvolucao, error)
 }
 
 // DashboardHandler contém os handlers HTTP para o dashboard.
@@ -59,6 +60,17 @@ func (h *DashboardHandler) ResumoMensal(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, resumo)
+}
+
+// EvolucaoMensal retorna os totais dos últimos 12 meses para o gráfico de evolução.
+// GET /api/v1/dashboard/evolucao
+func (h *DashboardHandler) EvolucaoMensal(c *gin.Context) {
+	pontos, err := h.svc.EvolucaoMensal(12)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
+		return
+	}
+	c.JSON(http.StatusOK, pontos)
 }
 
 // DespesasPorCategoria retorna as despesas agrupadas por categoria para um mês/ano.

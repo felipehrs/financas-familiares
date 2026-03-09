@@ -7,11 +7,12 @@ import type { ResumoMensal } from '@/types/dashboard'
 vi.mock('@/api/dashboard', () => ({
   buscarResumoMensal: vi.fn(),
   buscarCategoriasDespesas: vi.fn(),
+  buscarEvolucaoMensal: vi.fn(),
 }))
 vi.mock('@/hooks/useAuth', () => ({ useAuth: vi.fn(() => ({ accessToken: 'fake-token', logout: vi.fn() })) }))
 vi.mock('@/hooks/useTheme', () => ({ useTheme: vi.fn(() => ({ theme: 'light', toggleTheme: vi.fn() })) }))
 
-import { buscarResumoMensal, buscarCategoriasDespesas } from '@/api/dashboard'
+import { buscarResumoMensal, buscarCategoriasDespesas, buscarEvolucaoMensal } from '@/api/dashboard'
 
 const resumoFixture: ResumoMensal = {
   mes: 3,
@@ -50,6 +51,7 @@ describe('DashboardPage', () => {
         { nome: 'Sem categoria', total: 701, percentual: 41.18 },
       ],
     })
+    vi.mocked(buscarEvolucaoMensal).mockResolvedValue([])
   })
 
   // ─── 1. Exibe os cards com valores formatados após carregar ───────────────

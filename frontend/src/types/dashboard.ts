@@ -1,3 +1,11 @@
+export interface PontoEvolucao {
+  mes: number
+  ano: number
+  total_rendas: number
+  total_despesas: number
+  saldo: number
+}
+
 export interface CategoriaDespesa {
   nome: string
   total: number
