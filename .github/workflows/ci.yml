@@ -61,7 +61,18 @@ jobs:
 
       - name: Test
         working-directory: backend
-        run: go test ./...
+        run: go test -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Coverage summary
+        working-directory: backend
+        run: go tool cover -func=coverage.out | tail -1
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.out
+          retention-days: 7
 
   # ── Frontend ───────────────────────────────────────────────────────────────
   frontend:
@@ -91,7 +102,14 @@ jobs:
 
       - name: Test
         working-directory: frontend
-        run: pnpm test:run
+        run: pnpm test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+          retention-days: 7
 
       - name: Build
         working-directory: frontend
