@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { BackToDashboard } from '@/components/BackToDashboard'
@@ -37,9 +38,9 @@ const SELECT_CLASS = 'mt-1 w-full rounded-md border border-input bg-background p
 const rendaVariavelSchema = z.object({
   descricao: z.string().min(2, 'Descrição é obrigatória e deve ter pelo menos 2 caracteres'),
   membro_id: z.string().min(1, 'Membro é obrigatório'),
-  mes_referencia: z.coerce.number({ invalid_type_error: 'Informe o mês' }).int().min(1).max(12),
-  ano_referencia: z.coerce.number({ invalid_type_error: 'Informe o ano' }).int().positive('Ano deve ser maior que zero'),
-  valor: z.coerce.number({ invalid_type_error: 'Informe o valor' }).positive('Valor deve ser maior que zero'),
+  mes_referencia: z.coerce.number({ error: 'Informe o mês' }).int().min(1).max(12),
+  ano_referencia: z.coerce.number({ error: 'Informe o ano' }).int().positive('Ano deve ser maior que zero'),
+  valor: z.coerce.number({ error: 'Informe o valor' }).positive('Valor deve ser maior que zero'),
   data_recebimento: z.string().min(1, 'Data de recebimento é obrigatória'),
 })
 
@@ -81,7 +82,7 @@ export function RendasVariaveisPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<RendaVariavelFormValues>({
-    resolver: zodResolver(rendaVariavelSchema),
+    resolver: zodResolver(rendaVariavelSchema) as Resolver<RendaVariavelFormValues>,
     defaultValues: {
       descricao: '',
       membro_id: '',

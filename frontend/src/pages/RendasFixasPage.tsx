@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { BackToDashboard } from '@/components/BackToDashboard'
@@ -18,9 +19,9 @@ import { Label } from '@/components/ui/label'
 const rendaFixaSchema = z.object({
   descricao: z.string().min(2, 'Descrição é obrigatória e deve ter pelo menos 2 caracteres'),
   membro_id: z.string().min(1, 'Membro responsável é obrigatório'),
-  valor: z.coerce.number({ invalid_type_error: 'Informe o valor' }).positive('Valor deve ser positivo'),
+  valor: z.coerce.number({ error: 'Informe o valor' }).positive('Valor deve ser positivo'),
   dia_recebimento: z.coerce
-    .number({ invalid_type_error: 'Informe o dia de recebimento' })
+    .number({ error: 'Informe o dia de recebimento' })
     .int()
     .min(1, 'Deve ser entre 1 e 31')
     .max(31, 'Deve ser entre 1 e 31'),
@@ -50,7 +51,7 @@ export function RendasFixasPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<RendaFixaFormValues>({
-    resolver: zodResolver(rendaFixaSchema),
+    resolver: zodResolver(rendaFixaSchema) as Resolver<RendaFixaFormValues>,
     defaultValues: { descricao: '', membro_id: '', valor: '' as unknown as number, dia_recebimento: '' as unknown as number, data_inicio: '', data_fim: '' },
   })
 

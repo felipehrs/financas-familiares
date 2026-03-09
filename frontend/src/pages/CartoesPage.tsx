@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BackToDashboard } from '@/components/BackToDashboard'
 import { useForm } from 'react-hook-form'
+import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '@/hooks/useAuth'
@@ -20,12 +21,12 @@ const cartaoSchema = z.object({
   nome: z.string().min(2, 'Nome é obrigatório e deve ter pelo menos 2 caracteres'),
   membro_id: z.string().min(1, 'Membro responsável é obrigatório'),
   dia_fechamento: z.coerce
-    .number({ invalid_type_error: 'Informe o dia de fechamento' })
+    .number({ error: 'Informe o dia de fechamento' })
     .int()
     .min(1, 'Deve ser entre 1 e 31')
     .max(31, 'Deve ser entre 1 e 31'),
   dia_vencimento: z.coerce
-    .number({ invalid_type_error: 'Informe o dia de vencimento' })
+    .number({ error: 'Informe o dia de vencimento' })
     .int()
     .min(1, 'Deve ser entre 1 e 31')
     .max(31, 'Deve ser entre 1 e 31'),
@@ -54,7 +55,7 @@ export function CartoesPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CartaoFormValues>({
-    resolver: zodResolver(cartaoSchema),
+    resolver: zodResolver(cartaoSchema) as Resolver<CartaoFormValues>,
     defaultValues: { nome: '', membro_id: '', dia_fechamento: '' as unknown as number, dia_vencimento: '' as unknown as number, limite: '' as unknown as number | undefined },
   })
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { BackToDashboard } from '@/components/BackToDashboard'
@@ -78,7 +79,7 @@ export function AssinaturasPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<AssinaturaFormValues>({
-    resolver: zodResolver(assinaturaSchema),
+    resolver: zodResolver(assinaturaSchema) as Resolver<AssinaturaFormValues>,
     defaultValues: {
       nome: '',
       membro_id: '',

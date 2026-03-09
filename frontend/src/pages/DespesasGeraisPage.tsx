@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { BackToDashboard } from '@/components/BackToDashboard'
@@ -47,7 +48,7 @@ const despesaGeralSchema = z.object({
   membro_id: z.string().min(1, 'Membro é obrigatório'),
   descricao: z.string().min(2, 'Descrição é obrigatória e deve ter pelo menos 2 caracteres'),
   categoria_id: z.string().optional(),
-  valor: z.coerce.number({ invalid_type_error: 'Informe o valor' }).positive('Valor deve ser maior que zero'),
+  valor: z.coerce.number({ error: 'Informe o valor' }).positive('Valor deve ser maior que zero'),
   forma_pagamento: z.string().min(1, 'Forma de pagamento é obrigatória'),
   observacoes: z.string().optional(),
 })
@@ -92,7 +93,7 @@ export function DespesasGeraisPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<DespesaGeralFormValues>({
-    resolver: zodResolver(despesaGeralSchema),
+    resolver: zodResolver(despesaGeralSchema) as Resolver<DespesaGeralFormValues>,
     defaultValues: {
       data: '',
       membro_id: '',

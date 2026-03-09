@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
+import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '@/hooks/useAuth'
@@ -21,10 +22,10 @@ const despesaSchema = z.object({
   descricao: z.string().min(2, 'Descrição é obrigatória e deve ter pelo menos 2 caracteres'),
   data_compra: z.string().min(1, 'Data da compra é obrigatória'),
   valor_total: z.coerce
-    .number({ invalid_type_error: 'Informe o valor total' })
+    .number({ error: 'Informe o valor total' })
     .positive('Valor deve ser maior que zero'),
   numero_parcelas: z.coerce
-    .number({ invalid_type_error: 'Informe o número de parcelas' })
+    .number({ error: 'Informe o número de parcelas' })
     .int('Número de parcelas deve ser inteiro')
     .min(1, 'Mínimo de 1 parcela'),
   categoria_id: z.string().optional(),
@@ -93,7 +94,7 @@ export function DespesasCartaoPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<DespesaFormValues>({
-    resolver: zodResolver(despesaSchema),
+    resolver: zodResolver(despesaSchema) as Resolver<DespesaFormValues>,
     defaultValues: {
       descricao: '',
       data_compra: '',

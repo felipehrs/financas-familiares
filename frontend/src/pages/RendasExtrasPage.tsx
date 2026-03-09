@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { BackToDashboard } from '@/components/BackToDashboard'
@@ -38,7 +39,7 @@ const rendaExtraSchema = z.object({
   descricao: z.string().min(2, 'Descrição é obrigatória e deve ter pelo menos 2 caracteres'),
   membro_id: z.string().min(1, 'Membro é obrigatório'),
   data_recebimento: z.string().min(1, 'Data de recebimento é obrigatória'),
-  valor: z.coerce.number({ invalid_type_error: 'Informe o valor' }).positive('Valor deve ser maior que zero'),
+  valor: z.coerce.number({ error: 'Informe o valor' }).positive('Valor deve ser maior que zero'),
 })
 
 type RendaExtraFormValues = z.infer<typeof rendaExtraSchema>
@@ -75,7 +76,7 @@ export function RendasExtrasPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<RendaExtraFormValues>({
-    resolver: zodResolver(rendaExtraSchema),
+    resolver: zodResolver(rendaExtraSchema) as Resolver<RendaExtraFormValues>,
     defaultValues: {
       descricao: '',
       membro_id: '',

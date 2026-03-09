@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { BackToDashboard } from '@/components/BackToDashboard'
@@ -25,8 +26,8 @@ const contaFixaSchema = z.object({
   descricao: z.string().min(2, 'Descrição é obrigatória e deve ter pelo menos 2 caracteres'),
   membro_id: z.string().min(1, 'Membro é obrigatório'),
   categoria_id: z.string().optional(),
-  valor: z.coerce.number({ invalid_type_error: 'Informe o valor' }).positive('Valor deve ser maior que zero'),
-  dia_vencimento: z.coerce.number({ invalid_type_error: 'Informe o dia' }).int().min(1, 'Mínimo 1').max(28, 'Máximo 28'),
+  valor: z.coerce.number({ error: 'Informe o valor' }).positive('Valor deve ser maior que zero'),
+  dia_vencimento: z.coerce.number({ error: 'Informe o dia' }).int().min(1, 'Mínimo 1').max(28, 'Máximo 28'),
   forma_pagamento: z.string().min(1, 'Forma de pagamento é obrigatória'),
 })
 
@@ -53,7 +54,7 @@ export function ContasFixasPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ContaFixaFormValues>({
-    resolver: zodResolver(contaFixaSchema),
+    resolver: zodResolver(contaFixaSchema) as Resolver<ContaFixaFormValues>,
     defaultValues: {
       descricao: '',
       membro_id: '',

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { BackToDashboard } from '@/components/BackToDashboard'
@@ -38,7 +39,7 @@ const rendimentoSchema = z.object({
   descricao: z.string().min(2, 'Descrição é obrigatória e deve ter pelo menos 2 caracteres'),
   membro_id: z.string().min(1, 'Membro é obrigatório'),
   data: z.string().min(1, 'Data é obrigatória'),
-  valor: z.coerce.number({ invalid_type_error: 'Informe o valor' }).positive('Valor deve ser maior que zero'),
+  valor: z.coerce.number({ error: 'Informe o valor' }).positive('Valor deve ser maior que zero'),
   valor_distribuido: z.coerce.number().min(0, 'Mínimo 0').default(0),
 }).refine((data) => data.valor_distribuido <= data.valor, {
   message: 'Valor distribuído não pode ser maior que o valor total recebido',
@@ -79,7 +80,7 @@ export function RendimentosInvestimentoPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<RendimentoFormValues>({
-    resolver: zodResolver(rendimentoSchema),
+    resolver: zodResolver(rendimentoSchema) as Resolver<RendimentoFormValues>,
     defaultValues: {
       descricao: '',
       membro_id: '',
