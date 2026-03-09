@@ -1,0 +1,22 @@
+{
+  "name": "Financas Familiares",
+  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
+  "service": "devcontainer",
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "cd /workspace/frontend && pnpm install",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint"
+      ],
+      "settings": {
+        "go.toolsManagement.autoUpdate": false,
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "remoteUser": "root"
+}

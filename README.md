@@ -68,6 +68,38 @@ O sistema resolve a necessidade de visibilidade clara e consolidada das finança
 
 ---
 
+## Desenvolvimento
+
+### Pré-requisitos
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (ou Docker Engine no Linux)
+- [VS Code](https://code.visualstudio.com/) com a extensão [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+
+### Subindo o ambiente com Dev Container (recomendado)
+
+O devcontainer já inclui Go, Node.js, pnpm e `go-migrate` — não é necessário instalar nada na máquina host além do Docker.
+
+1. Abra a pasta do projeto no VS Code
+2. Aceite o prompt **"Reopen in Container"** (ou use `Ctrl+Shift+P` → `Dev Containers: Reopen in Container`)
+3. Aguarde o build da imagem e a instalação das dependências do frontend (feita automaticamente no `postCreateCommand`)
+4. Dentro do terminal do container:
+
+```bash
+make dev
+```
+
+Isso vai rodar as migrations e subir o backend (`http://localhost:8080`) e o frontend (`http://localhost:5173`).
+
+### Sem Dev Container (ambiente local)
+
+Requer Go 1.25+, Node.js, pnpm e [`golang-migrate`](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate) instalados na máquina.
+
+```bash
+make dev
+```
+
+---
+
 ## Roadmap
 
 | Sprint | Foco | Status |
@@ -79,7 +111,7 @@ O sistema resolve a necessidade de visibilidade clara e consolidada das finança
 | **Sprint 4.5 — Vigência de Renda Fixa** | Data de início/fim na renda fixa; proporcionalidade por dia (RN10) | ✅ Concluído |
 | **Sprint 5 — Despesas e Rendas Completas** | Despesas gerais, filtros e CSV, renda variável, renda extra, rendimentos de investimento (RN09) | ✅ Concluído |
 | **Sprint 6 — Dashboard Completo e Offline** | Dashboard com todas as seções (RN06/RN08), gráfico de categorias, PWA, IndexedDB offline-first | ✅ Concluído |
-| **Sprint 7 — Analytics e Projeções** | Gráfico de evolução mensal (12 meses), projeção 3 meses (RN07), histórico de rendas | 🔲 Planejado |
+| **Sprint 7 — Analytics e Projeções** | Gráfico de evolução mensal (12 meses), projeção 3 meses (RN07), histórico de rendas | ✅ Concluído |
 | **Sprint 8 — Qualidade e Deploy** | CI/CD GitHub Actions, cobertura validada, deploy (Vercel + Railway) | 🔲 Planejado |
 | **Sprint 9 — Melhorias de Usabilidade** | Contas fixas variáveis + reajustes, assinaturas em moeda estrangeira, lista centralizada de despesas | 🔲 Futuro |
 

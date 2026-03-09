@@ -1,10 +1,14 @@
-.PHONY: up down dev test test-unit test-integration test-coverage build run lint
+.PHONY: up down dev devcontainer-build test test-unit test-integration test-coverage build run lint
 
 up:
 	docker compose up -d
 
 down:
 	docker compose down
+
+# Builda a imagem do devcontainer manualmente (opcional — VS Code faz isso automaticamente)
+devcontainer-build:
+	docker compose -f docker-compose.yml -f .devcontainer/docker-compose.yml build devcontainer
 
 # Sobe o ambiente completo de desenvolvimento:
 # 1. Garante que o PostgreSQL está rodando

@@ -4,19 +4,35 @@ set -e
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_PID_FILE="/tmp/financas-backend.pid"
 BACKEND_LOG="/tmp/financas-backend.log"
-DB_URL="postgres://postgres:postgres@localhost:5432/financas_familiares?sslmode=disable"
+
+# Detecta se está dentro do devcontainer (DB_HOST definido + /.dockerenv presente)
+if [ -f "/.dockerenv" ] && [ -n "$DB_HOST" ]; then
+  IN_DEVCONTAINER=true
+  DB_URL="postgres://postgres:postgres@${DB_HOST}:5432/financas_familiares?sslmode=disable"
+else
+  IN_DEVCONTAINER=false
+  DB_URL="postgres://postgres:postgres@localhost:5432/financas_familiares?sslmode=disable"
+fi
 
 # ── 1. PostgreSQL ────────────────────────────────────────────────────────────
-echo "→ Verificando PostgreSQL..."
-if ! docker compose -f "$ROOT/docker-compose.yml" ps postgres 2>/dev/null | grep -q "running\|Up"; then
-  echo "→ Subindo PostgreSQL..."
-  docker compose -f "$ROOT/docker-compose.yml" up -d postgres
-  echo "→ Aguardando PostgreSQL ficar pronto..."
-  until docker compose -f "$ROOT/docker-compose.yml" exec postgres pg_isready -U postgres -q 2>/dev/null; do
+if [ "$IN_DEVCONTAINER" = "true" ]; then
+  echo "→ Dentro do devcontainer — aguardando PostgreSQL em ${DB_HOST}..."
+  until pg_isready -h "$DB_HOST" -U postgres -q 2>/dev/null; do
     sleep 1
   done
+  echo "→ PostgreSQL pronto."
 else
-  echo "→ PostgreSQL já está rodando."
+  echo "→ Verificando PostgreSQL..."
+  if ! docker compose -f "$ROOT/docker-compose.yml" ps postgres 2>/dev/null | grep -q "running\|Up"; then
+    echo "→ Subindo PostgreSQL..."
+    docker compose -f "$ROOT/docker-compose.yml" up -d postgres
+    echo "→ Aguardando PostgreSQL ficar pronto..."
+    until docker compose -f "$ROOT/docker-compose.yml" exec postgres pg_isready -U postgres -q 2>/dev/null; do
+      sleep 1
+    done
+  else
+    echo "→ PostgreSQL já está rodando."
+  fi
 fi
 
 # ── 2. Migrations ────────────────────────────────────────────────────────────
@@ -57,4 +73,4 @@ echo "→ Subindo frontend em http://localhost:5173"
 echo "   (Ctrl+C para encerrar — o backend continuará rodando)"
 echo "   Para parar o backend: kill \$(cat $BACKEND_PID_FILE)"
 echo ""
-cd "$ROOT/frontend" && npm run dev
+cd "$ROOT/frontend" && pnpm dev

@@ -45,9 +45,15 @@ backend/
 
 ## Pré-requisitos
 
+**Recomendado — Dev Container (zero configuração local):**
+
+Abra o repositório raiz no VS Code com a extensão Dev Containers. O container já inclui Go 1.25, Node.js, pnpm e `golang-migrate`.
+
+**Alternativa — ambiente local:**
+
 - Go 1.25+
 - Docker + Docker Compose (para PostgreSQL local)
-- `golang-migrate` CLI (opcional, para rodar migrações manualmente)
+- [`golang-migrate`](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate) CLI
 
 ---
 
@@ -75,6 +81,8 @@ cp .env.example .env
 
 ## Subindo o banco localmente
 
+Dentro do Dev Container o PostgreSQL já sobe automaticamente junto com o container. Fora dele:
+
 ```bash
 # Na raiz do monorepo
 docker compose up -d
@@ -84,7 +92,7 @@ docker compose up -d
 
 ## Migrações
 
-As migrações são aplicadas automaticamente na inicialização do servidor. Para rodar manualmente:
+As migrações são aplicadas automaticamente ao rodar `make dev` (via `dev.sh`). Para rodar manualmente (dentro do Dev Container ou com `golang-migrate` instalado localmente):
 
 ```bash
 migrate -path migrations -database "$DATABASE_URL" up
