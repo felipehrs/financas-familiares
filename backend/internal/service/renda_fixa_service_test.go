@@ -12,9 +12,9 @@ import (
 
 // MockRendaFixaRepository implementa RendaFixaRepository para testes unitários.
 type MockRendaFixaRepository struct {
-	returnRenda   *domain.RendaFixa
-	returnRendas  []*domain.RendaFixa
-	returnError   error
+	returnRenda  *domain.RendaFixa
+	returnRendas []*domain.RendaFixa
+	returnError  error
 
 	criarChamado     bool
 	atualizarChamado bool

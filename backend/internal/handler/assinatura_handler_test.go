@@ -16,10 +16,10 @@ import (
 
 // MockAssinaturaService implementa AssinaturaServiceInterface (declarada no handler) para testes.
 type MockAssinaturaService struct {
-	CriarFn        func(nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error)
-	BuscarFn       func(id string) (*domain.Assinatura, error)
-	ListarFn       func() ([]*domain.Assinatura, error)
-	AtualizarFn    func(id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error)
+	CriarFn         func(nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error)
+	BuscarFn        func(id string) (*domain.Assinatura, error)
+	ListarFn        func() ([]*domain.Assinatura, error)
+	AtualizarFn     func(id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error)
 	AlterarStatusFn func(id, status string) (*domain.Assinatura, error)
 }
 

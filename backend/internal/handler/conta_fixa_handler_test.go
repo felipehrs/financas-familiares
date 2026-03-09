@@ -16,10 +16,10 @@ import (
 
 // MockContaFixaService implementa ContaFixaServiceInterface (declarada no handler) para testes.
 type MockContaFixaService struct {
-	CriarFn       func(descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error)
-	BuscarFn      func(id string) (*domain.ContaFixa, error)
-	ListarFn      func() ([]*domain.ContaFixa, error)
-	AtualizarFn   func(id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error)
+	CriarFn        func(descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error)
+	BuscarFn       func(id string) (*domain.ContaFixa, error)
+	ListarFn       func() ([]*domain.ContaFixa, error)
+	AtualizarFn    func(id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error)
 	AlterarAtivoFn func(id string, ativa bool) (*domain.ContaFixa, error)
 }
 

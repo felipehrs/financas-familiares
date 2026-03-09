@@ -17,10 +17,10 @@ type MockMembroRepository struct {
 	returnError   error
 
 	// rastreamento de chamadas
-	criarChamado    bool
-	inativarChamado bool
+	criarChamado     bool
+	inativarChamado  bool
 	atualizarChamado bool
-	membroRecebido  *domain.Membro
+	membroRecebido   *domain.Membro
 }
 
 func (m *MockMembroRepository) Criar(membro *domain.Membro) (*domain.Membro, error) {

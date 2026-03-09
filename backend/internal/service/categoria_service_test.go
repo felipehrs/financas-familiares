@@ -17,9 +17,9 @@ type MockCategoriaRepository struct {
 	returnError      error
 
 	// rastreamento de chamadas
-	criarChamado    bool
-	atualizarChamado bool
-	excluirChamado  bool
+	criarChamado      bool
+	atualizarChamado  bool
+	excluirChamado    bool
 	categoriaRecebida *domain.Categoria
 }
 

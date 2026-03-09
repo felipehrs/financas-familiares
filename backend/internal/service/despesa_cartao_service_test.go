@@ -12,12 +12,12 @@ import (
 
 // MockDespesaCartaoRepository implementa DespesaCartaoRepository para testes unitários.
 type MockDespesaCartaoRepository struct {
-	returnDespesa    *domain.DespesaCartao
-	returnDespesas   []*domain.DespesaCartao
-	returnError      error
-	criarChamado     bool
-	criarChamadas    int
-	excluirChamado   bool
+	returnDespesa     *domain.DespesaCartao
+	returnDespesas    []*domain.DespesaCartao
+	returnError       error
+	criarChamado      bool
+	criarChamadas     int
+	excluirChamado    bool
 	despesasRecebidas []*domain.DespesaCartao
 }
 

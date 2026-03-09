@@ -12,9 +12,9 @@ import (
 
 // MockRendaVariavelRepository implementa RendaVariavelRepositoryInterface para testes unitários.
 type MockRendaVariavelRepository struct {
-	returnRenda   *domain.RendaVariavel
-	returnRendas  []*domain.RendaVariavel
-	returnError   error
+	returnRenda  *domain.RendaVariavel
+	returnRendas []*domain.RendaVariavel
+	returnError  error
 
 	// rastreamento de chamadas
 	criarChamado     bool

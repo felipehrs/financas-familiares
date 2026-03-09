@@ -16,11 +16,11 @@ import (
 
 // MockMembroService implementa MembroServiceInterface (declarada no handler) para testes.
 type MockMembroService struct {
-	CriarFn      func(nome, relacionamento string) (*domain.Membro, error)
-	BuscarFn     func(id string) (*domain.Membro, error)
-	ListarFn     func() ([]*domain.Membro, error)
-	AtualizarFn  func(id, nome, relacionamento string, ativo bool) (*domain.Membro, error)
-	InativarFn   func(id string) error
+	CriarFn     func(nome, relacionamento string) (*domain.Membro, error)
+	BuscarFn    func(id string) (*domain.Membro, error)
+	ListarFn    func() ([]*domain.Membro, error)
+	AtualizarFn func(id, nome, relacionamento string, ativo bool) (*domain.Membro, error)
+	InativarFn  func(id string) error
 }
 
 func (m *MockMembroService) Criar(nome, relacionamento string) (*domain.Membro, error) {

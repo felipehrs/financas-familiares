@@ -230,10 +230,10 @@ func TestCriarDespesaCartaoHandler_3Parcelas_RetornaArray3Elementos(t *testing.T
 	r := setupDespesaRouter(svc)
 
 	body, _ := json.Marshal(map[string]any{
-		"descricao":        "Notebook",
-		"data_compra":      "2026-03-05",
-		"valor_total":      300.00,
-		"numero_parcelas":  3,
+		"descricao":       "Notebook",
+		"data_compra":     "2026-03-05",
+		"valor_total":     300.00,
+		"numero_parcelas": 3,
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/cartoes/cartao-1/despesas", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

@@ -12,9 +12,9 @@ import (
 
 // MockRendaExtraRepository implementa RendaExtraRepositoryInterface para testes unitários.
 type MockRendaExtraRepository struct {
-	returnRenda   *domain.RendaExtra
-	returnRendas  []*domain.RendaExtra
-	returnError   error
+	returnRenda  *domain.RendaExtra
+	returnRendas []*domain.RendaExtra
+	returnError  error
 
 	// rastreamento de chamadas
 	criarChamado     bool

@@ -12,13 +12,13 @@ import (
 
 // MockDespesaGeralRepository implementa DespesaGeralRepositoryInterface para testes unitários.
 type MockDespesaGeralRepository struct {
-	returnDespesa   *domain.DespesaGeral
-	returnDespesas  []*domain.DespesaGeral
-	returnError     error
+	returnDespesa  *domain.DespesaGeral
+	returnDespesas []*domain.DespesaGeral
+	returnError    error
 
 	// rastreamento de chamadas
-	criarChamado   bool
-	excluirChamado bool
+	criarChamado     bool
+	excluirChamado   bool
 	atualizarChamado bool
 }
 

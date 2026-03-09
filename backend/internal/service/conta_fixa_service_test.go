@@ -12,7 +12,7 @@ import (
 // MockContaFixaRepository implementa ContaFixaRepository para testes unitários.
 // Usa campos de controle para simular respostas do repositório.
 type MockContaFixaRepository struct {
-	returnContaFixa  *domain.ContaFixa
+	returnContaFixa   *domain.ContaFixa
 	returnContasFixas []*domain.ContaFixa
 	returnError       error
 

@@ -16,8 +16,8 @@ import (
 
 // MockAuthService implementa AuthServiceInterface para testes do handler.
 type MockAuthService struct {
-	LoginFn              func(email, senha string) (string, string, error)
-	RefreshTokenFn       func(refreshToken string) (string, error)
+	LoginFn               func(email, senha string) (string, string, error)
+	RefreshTokenFn        func(refreshToken string) (string, error)
 	ValidateAccessTokenFn func(token string) (string, error)
 }
 

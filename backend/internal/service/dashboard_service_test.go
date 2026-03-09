@@ -471,7 +471,7 @@ func TestResumoMensal_RN06_TodosOsTipos(t *testing.T) {
 
 	// Rendas
 	assert.Equal(t, 5000.00, resumo.TotalRendaFixa)
-	assert.Equal(t, 2000.00, resumo.TotalRendaVariavel)  // 1200 + 800
+	assert.Equal(t, 2000.00, resumo.TotalRendaVariavel) // 1200 + 800
 	assert.Equal(t, 500.00, resumo.TotalRendaExtra)
 	assert.Equal(t, 400.00, resumo.TotalRendimentoDistribuido)
 	assert.Equal(t, 7900.00, resumo.TotalRendasOperacionais) // 5000 + 2000 + 500 + 400
@@ -481,10 +481,10 @@ func TestResumoMensal_RN06_TodosOsTipos(t *testing.T) {
 
 	// Despesas
 	assert.Equal(t, 300.00, resumo.TotalFaturaCartoes)
-	assert.Equal(t, 80.00, resumo.TotalAssinaturas)    // 50 + 30
+	assert.Equal(t, 80.00, resumo.TotalAssinaturas) // 50 + 30
 	assert.Equal(t, 200.00, resumo.TotalContasFixas)
 	assert.Equal(t, 250.00, resumo.TotalDespesasGerais) // 150 + 100
-	assert.Equal(t, 830.00, resumo.TotalDespesas)        // 300 + 80 + 200 + 250
+	assert.Equal(t, 830.00, resumo.TotalDespesas)       // 300 + 80 + 200 + 250
 
 	// Saldo
 	assert.Equal(t, 7070.00, resumo.Saldo) // 7900 - 830
