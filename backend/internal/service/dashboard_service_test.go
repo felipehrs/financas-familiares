@@ -582,6 +582,117 @@ func TestDespesasPorCategoria_ErroNoRepositorio(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// ---- Testes de ProjecaoProximosMeses ----
+
+func TestProjecaoProximosMeses_Retorna3Pontos(t *testing.T) {
+	svc := newSvcVazio()
+	projecoes, err := svc.ProjecaoProximosMeses(3)
+	require.NoError(t, err)
+	assert.Len(t, projecoes, 3)
+}
+
+func TestProjecaoProximosMeses_MesesSaoFuturos(t *testing.T) {
+	svc := newSvcVazio()
+	projecoes, err := svc.ProjecaoProximosMeses(3)
+	require.NoError(t, err)
+	agora := time.Now()
+	for _, p := range projecoes {
+		mesP := time.Date(p.Ano, time.Month(p.Mes), 1, 0, 0, 0, 0, time.UTC)
+		mesAtual := time.Date(agora.Year(), agora.Month(), 1, 0, 0, 0, 0, time.UTC)
+		assert.True(t, mesP.After(mesAtual))
+	}
+}
+
+func TestProjecaoProximosMeses_OrdemCronologica(t *testing.T) {
+	svc := newSvcVazio()
+	projecoes, err := svc.ProjecaoProximosMeses(3)
+	require.NoError(t, err)
+	for i := 1; i < len(projecoes); i++ {
+		prev := time.Date(projecoes[i-1].Ano, time.Month(projecoes[i-1].Mes), 1, 0, 0, 0, 0, time.UTC)
+		curr := time.Date(projecoes[i].Ano, time.Month(projecoes[i].Mes), 1, 0, 0, 0, 0, time.UTC)
+		assert.True(t, curr.After(prev))
+	}
+}
+
+func TestProjecaoProximosMeses_SomaRendaFixa(t *testing.T) {
+	dataInicio := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	mockRenda := &MockRendaFixaRepositoryForDashboard{
+		rendas: []*domain.RendaFixa{
+			{ID: "r1", Valor: 5000, DataInicio: dataInicio, DataFim: nil},
+		},
+	}
+	svc := service.NewDashboardService(
+		mockRenda,
+		&MockDespesaCartaoRepositoryForDashboard{},
+		&MockRendaVariavelRepositoryForDashboard{},
+		&MockRendaExtraRepositoryForDashboard{},
+		&MockRendimentoRepositoryForDashboard{},
+		&MockAssinaturaRepositoryForDashboard{},
+		&MockContaFixaRepositoryForDashboard{},
+		&MockDespesaGeralRepositoryForDashboard{},
+		&MockDashboardRepositoryForCategorias{},
+	)
+	projecoes, err := svc.ProjecaoProximosMeses(3)
+	require.NoError(t, err)
+	for _, p := range projecoes {
+		assert.Equal(t, 5000.0, p.TotalRendas)
+	}
+}
+
+func TestProjecaoProximosMeses_SomaDespesas(t *testing.T) {
+	mockDespesa := &MockDespesaCartaoRepositoryForDashboard{
+		despesas: []*domain.DespesaCartao{
+			{ID: "d1", ValorParcela: 300},
+		},
+	}
+	mockAssinatura := &MockAssinaturaRepositoryForDashboard{
+		assinaturas: []*domain.Assinatura{
+			{ID: "a1", Valor: 50},
+		},
+	}
+	mockConta := &MockContaFixaRepositoryForDashboard{
+		contas: []*domain.ContaFixa{
+			{ID: "c1", Valor: 200},
+		},
+	}
+	svc := service.NewDashboardService(
+		&MockRendaFixaRepositoryForDashboard{},
+		mockDespesa,
+		&MockRendaVariavelRepositoryForDashboard{},
+		&MockRendaExtraRepositoryForDashboard{},
+		&MockRendimentoRepositoryForDashboard{},
+		mockAssinatura,
+		mockConta,
+		&MockDespesaGeralRepositoryForDashboard{},
+		&MockDashboardRepositoryForCategorias{},
+	)
+	projecoes, err := svc.ProjecaoProximosMeses(3)
+	require.NoError(t, err)
+	for _, p := range projecoes {
+		assert.Equal(t, 300.0, p.TotalCartoes)
+		assert.Equal(t, 50.0, p.TotalAssinaturas)
+		assert.Equal(t, 200.0, p.TotalContasFixas)
+		assert.Equal(t, 550.0, p.TotalDespesas)
+	}
+}
+
+func TestProjecaoProximosMeses_ErroAssinaturaRepo(t *testing.T) {
+	mockAssinatura := &MockAssinaturaRepositoryForDashboard{err: errors.New("db error")}
+	svc := service.NewDashboardService(
+		&MockRendaFixaRepositoryForDashboard{},
+		&MockDespesaCartaoRepositoryForDashboard{},
+		&MockRendaVariavelRepositoryForDashboard{},
+		&MockRendaExtraRepositoryForDashboard{},
+		&MockRendimentoRepositoryForDashboard{},
+		mockAssinatura,
+		&MockContaFixaRepositoryForDashboard{},
+		&MockDespesaGeralRepositoryForDashboard{},
+		&MockDashboardRepositoryForCategorias{},
+	)
+	_, err := svc.ProjecaoProximosMeses(3)
+	assert.Error(t, err)
+}
+
 // TestResumoMensal_RN08_RendimentoParcialmenteDistribuido — apenas ValorDistribuido entra no saldo,
 // não o valor total do rendimento.
 func TestResumoMensal_RN08_RendimentoParcialmenteDistribuido(t *testing.T) {

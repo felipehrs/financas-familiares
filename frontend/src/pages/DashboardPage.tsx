@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
-import { buscarResumoMensal, buscarCategoriasDespesas, buscarEvolucaoMensal } from '@/api/dashboard'
-import type { ResumoMensal, ResumoCategorias, PontoEvolucao } from '@/types/dashboard'
+import { buscarResumoMensal, buscarCategoriasDespesas, buscarEvolucaoMensal, buscarProjecao } from '@/api/dashboard'
+import type { ResumoMensal, ResumoCategorias, PontoEvolucao, MesProjecao } from '@/types/dashboard'
 import { Card, CardContent } from '@/components/ui/card'
 import { GraficoCategoriaDespesas } from '@/components/GraficoCategoriaDespesas'
 import { GraficoEvolucaoMensal } from '@/components/GraficoEvolucaoMensal'
+import { TabelaProjecao } from '@/components/TabelaProjecao'
 import {
   Users, Tag, CreditCard, TrendingUp, RefreshCcw, Building2,
   ShoppingBag, BarChart2, Gift, PiggyBank, Moon, Sun,
@@ -31,6 +32,9 @@ export function DashboardPage() {
   const [evolucao, setEvolucao] = useState<PontoEvolucao[]>([])
   const [loadingEvolucao, setLoadingEvolucao] = useState(true)
   const [erroEvolucao, setErroEvolucao] = useState<string | null>(null)
+  const [projecao, setProjecao] = useState<MesProjecao[]>([])
+  const [loadingProjecao, setLoadingProjecao] = useState(true)
+  const [erroProjecao, setErroProjecao] = useState<string | null>(null)
 
   async function carregarResumo(mesSelecionado: number, anoSelecionado: number) {
     if (!accessToken) return
@@ -73,6 +77,20 @@ export function DashboardPage() {
     }
   }
 
+  async function carregarProjecao() {
+    if (!accessToken) return
+    setLoadingProjecao(true)
+    setErroProjecao(null)
+    try {
+      const data = await buscarProjecao(accessToken)
+      setProjecao(data)
+    } catch (err) {
+      setErroProjecao(err instanceof Error ? err.message : 'Erro ao carregar projeção')
+    } finally {
+      setLoadingProjecao(false)
+    }
+  }
+
   useEffect(() => {
     void carregarResumo(mes, ano)
     void carregarCategorias(mes, ano)
@@ -81,6 +99,7 @@ export function DashboardPage() {
 
   useEffect(() => {
     void carregarEvolucao()
+    void carregarProjecao()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -313,6 +332,20 @@ export function DashboardPage() {
                 <p className="text-red-600 dark:text-red-400 text-sm" role="alert">{erroEvolucao}</p>
               ) : (
                 <GraficoEvolucaoMensal pontos={evolucao} />
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Seção — Projeção dos Próximos 3 Meses */}
+          <Card>
+            <CardContent className="pt-4">
+              <p className="font-medium mb-4">Projeção dos Próximos 3 Meses</p>
+              {loadingProjecao ? (
+                <p className="text-muted-foreground text-sm">Carregando...</p>
+              ) : erroProjecao ? (
+                <p className="text-red-600 dark:text-red-400 text-sm" role="alert">{erroProjecao}</p>
+              ) : (
+                <TabelaProjecao projecao={projecao} />
               )}
             </CardContent>
           </Card>

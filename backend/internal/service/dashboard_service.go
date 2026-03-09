@@ -296,6 +296,85 @@ func (s *DashboardService) EvolucaoMensal(qtdMeses int) ([]PontoEvolucao, error)
 	return pontos, nil
 }
 
+// MesProjecao representa os totais estimados de um mês futuro.
+type MesProjecao struct {
+	Mes              int     `json:"mes"`
+	Ano              int     `json:"ano"`
+	TotalRendas      float64 `json:"total_rendas"`
+	TotalCartoes     float64 `json:"total_cartoes"`
+	TotalAssinaturas float64 `json:"total_assinaturas"`
+	TotalContasFixas float64 `json:"total_contas_fixas"`
+	TotalDespesas    float64 `json:"total_despesas"`
+	SaldoEstimado    float64 `json:"saldo_estimado"`
+}
+
+// ProjecaoProximosMeses retorna a projeção de rendas e despesas recorrentes
+// para os próximos qtdMeses meses a partir do mês atual.
+// Entram: RendaFixa (com RN10), parcelas de cartão futuras, assinaturas ativas, contas fixas ativas.
+// Não entram: RendaVariavel, RendaExtra, RendimentoInvestimento, DespesaGeral.
+func (s *DashboardService) ProjecaoProximosMeses(qtdMeses int) ([]MesProjecao, error) {
+	// ListarAtivas é independente do mês — buscar uma vez e reusar
+	assinaturas, err := s.assinaturaRepo.ListarAtivas()
+	if err != nil {
+		return nil, err
+	}
+	var totalAssinaturasFixo float64
+	for _, a := range assinaturas {
+		totalAssinaturasFixo += a.Valor
+	}
+
+	contasFixas, err := s.contaFixaRepo.ListarAtivas()
+	if err != nil {
+		return nil, err
+	}
+	var totalContasFixasFixo float64
+	for _, c := range contasFixas {
+		totalContasFixasFixo += c.Valor
+	}
+
+	agora := time.Now()
+	projecoes := make([]MesProjecao, 0, qtdMeses)
+
+	for i := 1; i <= qtdMeses; i++ {
+		mesAlvo := agora.AddDate(0, i, 0)
+		mes := int(mesAlvo.Month())
+		ano := mesAlvo.Year()
+
+		rendas, err := s.rendaRepo.ListarVigentesPorMes(mes, ano)
+		if err != nil {
+			return nil, err
+		}
+		var totalRendas float64
+		for _, r := range rendas {
+			totalRendas += ValorProporcionado(r, mes, ano)
+		}
+
+		despesas, err := s.despesaRepo.ListarPorFaturaGlobal(mes, ano)
+		if err != nil {
+			return nil, err
+		}
+		var totalCartoes float64
+		for _, d := range despesas {
+			totalCartoes += d.ValorParcela
+		}
+
+		totalDespesas := totalCartoes + totalAssinaturasFixo + totalContasFixasFixo
+
+		projecoes = append(projecoes, MesProjecao{
+			Mes:              mes,
+			Ano:              ano,
+			TotalRendas:      totalRendas,
+			TotalCartoes:     totalCartoes,
+			TotalAssinaturas: totalAssinaturasFixo,
+			TotalContasFixas: totalContasFixasFixo,
+			TotalDespesas:    totalDespesas,
+			SaldoEstimado:    totalRendas - totalDespesas,
+		})
+	}
+
+	return projecoes, nil
+}
+
 // DespesasPorCategoria retorna o resumo de despesas agrupadas por categoria para um mês/ano.
 func (s *DashboardService) DespesasPorCategoria(mes, ano int) (*ResumoCategorias, error) {
 	rows, err := s.categoriasRepo.DespesasPorCategoria(mes, ano)

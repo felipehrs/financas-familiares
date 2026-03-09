@@ -8,11 +8,12 @@ vi.mock('@/api/dashboard', () => ({
   buscarResumoMensal: vi.fn(),
   buscarCategoriasDespesas: vi.fn(),
   buscarEvolucaoMensal: vi.fn(),
+  buscarProjecao: vi.fn(),
 }))
 vi.mock('@/hooks/useAuth', () => ({ useAuth: vi.fn(() => ({ accessToken: 'fake-token', logout: vi.fn() })) }))
 vi.mock('@/hooks/useTheme', () => ({ useTheme: vi.fn(() => ({ theme: 'light', toggleTheme: vi.fn() })) }))
 
-import { buscarResumoMensal, buscarCategoriasDespesas, buscarEvolucaoMensal } from '@/api/dashboard'
+import { buscarResumoMensal, buscarCategoriasDespesas, buscarEvolucaoMensal, buscarProjecao } from '@/api/dashboard'
 
 const resumoFixture: ResumoMensal = {
   mes: 3,
@@ -52,6 +53,7 @@ describe('DashboardPage', () => {
       ],
     })
     vi.mocked(buscarEvolucaoMensal).mockResolvedValue([])
+    vi.mocked(buscarProjecao).mockResolvedValue([])
   })
 
   // ─── 1. Exibe os cards com valores formatados após carregar ───────────────

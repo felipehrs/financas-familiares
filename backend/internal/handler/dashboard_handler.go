@@ -15,6 +15,7 @@ type DashboardServiceInterface interface {
 	ResumoMensal(mes, ano int) (*service.ResumoMensal, error)
 	DespesasPorCategoria(mes, ano int) (*service.ResumoCategorias, error)
 	EvolucaoMensal(qtdMeses int) ([]service.PontoEvolucao, error)
+	ProjecaoProximosMeses(qtdMeses int) ([]service.MesProjecao, error)
 }
 
 // DashboardHandler contém os handlers HTTP para o dashboard.
@@ -71,6 +72,17 @@ func (h *DashboardHandler) EvolucaoMensal(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, pontos)
+}
+
+// Projecao retorna a projeção dos próximos 3 meses.
+// GET /api/v1/dashboard/projecao
+func (h *DashboardHandler) Projecao(c *gin.Context) {
+	projecao, err := h.svc.ProjecaoProximosMeses(3)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
+		return
+	}
+	c.JSON(http.StatusOK, projecao)
 }
 
 // DespesasPorCategoria retorna as despesas agrupadas por categoria para um mês/ano.

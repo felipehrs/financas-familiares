@@ -39,3 +39,14 @@ export interface ResumoMensal {
   // Resultado
   saldo: number
 }
+
+export interface MesProjecao {
+  mes: number
+  ano: number
+  total_rendas: number
+  total_cartoes: number
+  total_assinaturas: number
+  total_contas_fixas: number
+  total_despesas: number
+  saldo_estimado: number
+}
