@@ -10,7 +10,7 @@ import { GraficoEvolucaoMensal } from '@/components/GraficoEvolucaoMensal'
 import { TabelaProjecao } from '@/components/TabelaProjecao'
 import {
   Users, Tag, CreditCard, TrendingUp, RefreshCcw, Building2,
-  ShoppingBag, BarChart2, Gift, PiggyBank, Moon, Sun,
+  ShoppingBag, BarChart2, Gift, PiggyBank, Moon, Sun, History,
 } from 'lucide-react'
 
 const formatarMoeda = (valor: number) =>
@@ -146,6 +146,7 @@ export function DashboardPage() {
             { to: '/despesas-gerais', icon: ShoppingBag, label: 'Despesas Gerais', color: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30' },
             { to: '/rendas-variaveis', icon: BarChart2, label: 'Rendas Variáveis', color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30' },
             { to: '/rendas-extras', icon: Gift, label: 'Rendas Extras', color: 'text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/30' },
+            { to: '/rendas/historico', icon: History, label: 'Histórico de Rendas', color: 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/30' },
           ].map(({ to, icon: Icon, label, color }) => (
             <Link
               key={to}

@@ -80,6 +80,7 @@ func main() {
 		despesaGeralRepo,
 		dashboardRepo,
 	)
+	rendaHistoricoSvc := service.NewRendaHistoricoService(rendaFixaRepo, rendaVariavelRepo, rendaExtraRepo, rendimentoRepo)
 
 	// Inicializar handlers
 	authHandler := handler.NewAuthHandler(authService)
@@ -95,6 +96,7 @@ func main() {
 	rendaExtraHandler := handler.NewRendaExtraHandler(rendaExtraSvc)
 	rendimentoHandler := handler.NewRendimentoInvestimentoHandler(rendimentoSvc)
 	dashboardHandler := handler.NewDashboardHandler(dashboardSvc)
+	rendaHistoricoHandler := handler.NewRendaHistoricoHandler(rendaHistoricoSvc)
 
 	// Configurar rotas
 	r := gin.Default()
@@ -197,6 +199,9 @@ func main() {
 			protected.GET("/dashboard/categorias", dashboardHandler.DespesasPorCategoria)
 			protected.GET("/dashboard/evolucao", dashboardHandler.EvolucaoMensal)
 			protected.GET("/dashboard/projecao", dashboardHandler.Projecao)
+
+			// Histórico de rendas
+			protected.GET("/rendas/historico", rendaHistoricoHandler.Historico)
 		}
 	}
 

@@ -13,6 +13,7 @@ import { DespesasGeraisPage } from '@/pages/DespesasGeraisPage'
 import { RendasVariaveisPage } from '@/pages/RendasVariaveisPage'
 import { RendasExtrasPage } from '@/pages/RendasExtrasPage'
 import { RendimentosInvestimentoPage } from '@/pages/RendimentosInvestimentoPage'
+import { RendasHistoricoPage } from '@/pages/RendasHistoricoPage'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
             <Route path="/rendas-variaveis" element={<RendasVariaveisPage />} />
             <Route path="/rendas-extras" element={<RendasExtrasPage />} />
             <Route path="/rendimentos-investimento" element={<RendimentosInvestimentoPage />} />
+            <Route path="/rendas/historico" element={<RendasHistoricoPage />} />
           </Route>
         </Routes>
       </AuthProvider>
