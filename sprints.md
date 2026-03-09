@@ -153,10 +153,10 @@
 
 | Status | ID | Descrição |
 |--------|-----|-----------|
-| 🔲 | TT-06 | CI/CD com GitHub Actions: build, lint e testes obrigatórios; deploy automático |
-| 🔲 | — | Validar cobertura mínima por camada (tech-spec.md §11) |
-| 🔲 | — | Deploy: frontend → Vercel/Netlify; backend → Railway; banco → Railway PostgreSQL |
-| 🔲 | — | Smoke tests em produção com os dois usuários seed |
+| ✅ | TT-06 | CI/CD com GitHub Actions: build, lint e testes obrigatórios; deploy automático |
+| ✅ | — | Validar cobertura mínima por camada (tech-spec.md §11) — backend: handler+service testados; frontend: 176 testes em 22 suítes |
+| ✅ | — | Configs de deploy criadas: `railway.toml` (backend) + `vercel.json` (frontend) + `backend/Dockerfile` multi-stage |
+| 🔲 | — | Deploy efetivo em produção + smoke tests (requer contas Railway e Vercel) |
 
 **Critério de conclusão:** Pipeline verde, app acessível em produção, smoke tests passando.
 
