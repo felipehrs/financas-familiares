@@ -323,13 +323,15 @@
 **Critérios de aceite (RF22 — RN07, RN09):**
 - AC01: A projeção exibe para cada um dos 3 meses seguintes:
   - Rendas fixas ativas (única renda projetada automaticamente — RN07)
-  - Parcelas de cartão a vencer no mês
+  - Parcelas de cartão a vencer no mês (somente as já lançadas)
   - Total de assinaturas ativas
   - Total de contas fixas ativas
   - **Total estimado de despesas**
   - **Saldo estimado** (rendas fixas − despesas estimadas)
 - AC02: Rendas variáveis, extras e rendimentos de investimentos **não** entram nas projeções (RN07, RN09).
 - AC03: O saldo estimado é exibido com indicação visual verde/vermelho.
+
+> ⚠️ **Versão inicial (implementada):** projeção usa somente parcelas, assinaturas e contas fixas com valor nominal. Será aprimorada na US-28 (pior cenário dos últimos 3 meses).
 
 ---
 
@@ -360,6 +362,21 @@
 - AC05: O dashboard e as projeções respeitam automaticamente o período de vigência, sem nenhuma ação manual do usuário.
 - AC06: Rendas com `data_fim` no passado continuam visíveis no histórico, mas não entram em cálculos de meses futuros.
 - AC07: A migration que adiciona `data_inicio` define como valor padrão `created_at` dos registros existentes (retrocompatibilidade); `data_fim` é nullable sem padrão.
+
+---
+
+#### US-28 — Projeção com pior cenário dos últimos 3 meses 🟡
+
+**Como** usuário, **quero** que a projeção dos próximos 3 meses use o pior cenário histórico recente, **para que** eu me planeje de forma conservadora e não seja surpreendido por gastos maiores que o estimado.
+
+**Critérios de aceite (RF22 revisado — RN07 revisado):**
+- AC01: Para **contas fixas**, cada conta ativa usa o **maior valor dos últimos 3 meses** como estimativa; se não houver histórico, usa o valor base cadastrado.
+- AC02: Para **despesas gerais**, usa o **maior total mensal dos últimos 3 meses encerrados** como estimativa para cada mês projetado; se não houver histórico, usa zero.
+- AC03: Para **parcelas de cartão**, usa apenas as parcelas já lançadas com vencimento no mês projetado (sem estimativas de compras futuras) — comportamento já correto.
+- AC04: Para **assinaturas**, usa o valor nominal de cada assinatura ativa — comportamento já correto.
+- AC05: A tabela de projeção exibe uma coluna separada para "Despesas Gerais (est.)" além das colunas já existentes.
+- AC06: O critério "pior caso" é calculado sobre os 3 meses imediatamente anteriores ao mês projetado (não ao mês atual).
+- AC07: Testes unitários cobrem os cenários: com histórico, sem histórico, e histórico parcial (menos de 3 meses).
 
 ---
 

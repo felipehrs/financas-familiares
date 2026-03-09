@@ -288,14 +288,17 @@ Exibir consolidado do mês corrente:
 - Identificar tendências de aumento ou redução
 
 #### RF22 - Projeção de Despesas Futuras
-- Projetar despesas dos próximos 3 meses considerando:
-  - Parcelas de cartão a vencer
-  - Assinaturas ativas
-  - Contas fixas
-- Projetar rendas dos próximos 3 meses considerando rendas fixas ativas
+- Projetar despesas dos próximos 3 meses usando **pior cenário baseado nos 3 meses anteriores** (RN07):
+  - **Parcelas de cartão:** soma das parcelas já lançadas com vencimento no mês projetado
+  - **Assinaturas ativas:** valor nominal de cada assinatura ativa (fixo)
+  - **Contas fixas:** maior valor dos últimos 3 meses para cada conta (pior caso); se sem histórico, usa valor cadastrado
+  - **Despesas gerais:** maior total mensal dos últimos 3 meses (pior caso); se sem histórico, usa zero
+- Projetar rendas dos próximos 3 meses considerando apenas rendas fixas ativas (RN07)
 - Exibir por mês:
-  - Total estimado de cartões (parcelas)
-  - Total de contas fixas + assinaturas
+  - Total estimado de cartões (parcelas já lançadas)
+  - Total de assinaturas ativas
+  - Total estimado de contas fixas (pior caso dos últimos 3 meses)
+  - Total estimado de despesas gerais (pior caso dos últimos 3 meses)
   - **Total geral estimado de despesas**
   - **Total estimado de rendas**
   - **Saldo estimado**
@@ -359,10 +362,25 @@ SALDO_MÊS = (TOTAL_RENDAS_OPERACIONAIS + TOTAL_DISTRIBUÍDO) − TOTAL_DESPESAS
 
 > Rendimentos de investimentos **não distribuídos** são informativos e não impactam o saldo do mês — representam reinvestimento.
 
-### RN07 - Projeção de Rendas Futuras
+### RN07 - Projeção: Pior Cenário dos Últimos 3 Meses
+
+**Rendas projetadas:**
 - Apenas rendas fixas ativas são incluídas automaticamente nas projeções
-- Rendas variáveis e extras não são projetadas (valor desconhecido)
-- A projeção de saldo futuro usa: rendas fixas − despesas projetadas
+- Rendas variáveis, extras e rendimentos de investimentos não são projetados (imprevisíveis — RN09)
+
+**Despesas projetadas (pior cenário):**
+- **Parcelas de cartão:** soma das parcelas já lançadas com `fatura_mes/fatura_ano` igual ao mês projetado; não inclui estimativas de compras futuras
+- **Assinaturas ativas:** valor nominal de cada assinatura ativa (determinístico)
+- **Contas fixas:** para cada conta fixa ativa, usa o maior valor dos últimos 3 meses encerrados antes do mês projetado; se não houver histórico, usa o valor base cadastrado
+- **Despesas gerais:** usa o maior total mensal de despesas gerais dos últimos 3 meses encerrados; se não houver histórico, usa zero
+
+**Fórmula do saldo estimado:**
+```
+SALDO_ESTIMADO = RENDAS_FIXAS
+               − (PARCELAS_CARTAO + ASSINATURAS + CONTAS_FIXAS_PIOR_CASO + DESPESAS_GERAIS_PIOR_CASO)
+```
+
+**Importante:** A projeção é conservadora por design — representa o custo máximo esperado com base no histórico recente. Valores reais podem ser menores.
 
 ### RN09 - Tratamento de Rendimentos de Investimentos
 - Rendimentos de investimentos são sempre registrados com seu valor real recebido.
