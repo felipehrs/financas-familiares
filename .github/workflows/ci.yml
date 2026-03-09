@@ -74,6 +74,13 @@ jobs:
           path: backend/coverage.out
           retention-days: 7
 
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: backend/coverage.out
+          flags: backend
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   # ── Frontend ───────────────────────────────────────────────────────────────
   frontend:
     name: Frontend (React)
@@ -110,6 +117,13 @@ jobs:
           name: frontend-coverage
           path: frontend/coverage/
           retention-days: 7
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: frontend/coverage/lcov.info
+          flags: frontend
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Build
         working-directory: frontend

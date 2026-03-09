@@ -5,6 +5,8 @@
 ![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow?style=flat-square)
 ![Last Commit](https://img.shields.io/github/last-commit/felipehrs/financas-familiares?style=flat-square)
 ![Repo Size](https://img.shields.io/github/repo-size/felipehrs/financas-familiares?style=flat-square)
+[![Backend Coverage](https://codecov.io/gh/felipehrs/financas-familiares/graph/badge.svg?flag=backend)](https://codecov.io/gh/felipehrs/financas-familiares)
+[![Frontend Coverage](https://codecov.io/gh/felipehrs/financas-familiares/graph/badge.svg?flag=frontend)](https://codecov.io/gh/felipehrs/financas-familiares)
 
 ---
 

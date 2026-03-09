@@ -7,6 +7,7 @@
 ![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=flat-square&logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
 ![Vitest](https://img.shields.io/badge/Vitest-4-6E9F18?style=flat-square&logo=vitest&logoColor=white)
+[![Coverage](https://codecov.io/gh/felipehrs/financas-familiares/graph/badge.svg?flag=frontend)](https://codecov.io/gh/felipehrs/financas-familiares)
 
 ---
 

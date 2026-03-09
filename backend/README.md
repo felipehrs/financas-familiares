@@ -7,6 +7,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)
 ![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)
 ![Testify](https://img.shields.io/badge/Testify-TDD-00ADD8?style=flat-square&logo=go&logoColor=white)
+[![Coverage](https://codecov.io/gh/felipehrs/financas-familiares/graph/badge.svg?flag=backend)](https://codecov.io/gh/felipehrs/financas-familiares)
 
 ---
 

@@ -63,7 +63,7 @@ export default defineConfig({
     passWithNoTests: true,
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json-summary', 'html'],
+      reporter: ['text', 'json-summary', 'html', 'lcov'],
       reportsDirectory: './coverage',
       exclude: [
         'src/components/ui/**',
