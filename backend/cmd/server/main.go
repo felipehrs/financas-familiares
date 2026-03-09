@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"net/http"
 
@@ -9,7 +10,11 @@ import (
 	"github.com/felipehrs/financas-familiares/backend/internal/middleware"
 	"github.com/felipehrs/financas-familiares/backend/internal/repository"
 	"github.com/felipehrs/financas-familiares/backend/internal/service"
+	"github.com/felipehrs/financas-familiares/backend/migrations"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 )
@@ -32,6 +37,11 @@ func main() {
 	defer func() { _ = db.Close() }()
 
 	log.Println("conexão com banco de dados estabelecida")
+
+	// Rodar migrations
+	if err := runMigrations(db); err != nil {
+		log.Fatalf("erro ao rodar migrations: %v", err)
+	}
 
 	// Rodar seeds
 	if err := repository.SeedUsuarios(db, &cfg.Seed); err != nil {
@@ -210,4 +220,28 @@ func main() {
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("erro ao iniciar servidor: %v", err)
 	}
+}
+
+func runMigrations(db *sqlx.DB) error {
+	src, err := iofs.New(migrations.FS, ".")
+	if err != nil {
+		return err
+	}
+
+	driver, err := postgres.WithInstance(db.DB, &postgres.Config{})
+	if err != nil {
+		return err
+	}
+
+	m, err := migrate.NewWithInstance("iofs", src, "postgres", driver)
+	if err != nil {
+		return err
+	}
+
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return err
+	}
+
+	log.Println("migrations aplicadas com sucesso")
+	return nil
 }
