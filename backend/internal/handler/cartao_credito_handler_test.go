@@ -16,11 +16,11 @@ import (
 
 // MockCartaoCreditoService implementa CartaoCreditoServiceInterface para testes.
 type MockCartaoCreditoService struct {
-	CriarFn      func(nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error)
-	BuscarFn     func(id string) (*domain.CartaoCredito, error)
-	ListarFn     func() ([]*domain.CartaoCredito, error)
-	AtualizarFn  func(id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error)
-	InativarFn   func(id string) error
+	CriarFn     func(nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error)
+	BuscarFn    func(id string) (*domain.CartaoCredito, error)
+	ListarFn    func() ([]*domain.CartaoCredito, error)
+	AtualizarFn func(id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error)
+	InativarFn  func(id string) error
 }
 
 func (m *MockCartaoCreditoService) Criar(nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error) {
@@ -57,8 +57,6 @@ func setupCartaoRouter(svc handler.CartaoCreditoServiceInterface) *gin.Engine {
 	}
 	return r
 }
-
-func limiteF64(v float64) *float64 { return &v }
 
 // ---- GET /cartoes ----
 

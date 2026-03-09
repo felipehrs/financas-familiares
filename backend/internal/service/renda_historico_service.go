@@ -30,10 +30,10 @@ type RendimentoRepositoryForHistorico interface {
 
 // RendaHistoricoService implementa a lógica de busca e filtro do histórico de rendas.
 type RendaHistoricoService struct {
-	rendaFixaRepo    RendaFixaRepositoryForHistorico
+	rendaFixaRepo     RendaFixaRepositoryForHistorico
 	rendaVariavelRepo RendaVariavelRepositoryForHistorico
-	rendaExtraRepo   RendaExtraRepositoryForHistorico
-	rendimentoRepo   RendimentoRepositoryForHistorico
+	rendaExtraRepo    RendaExtraRepositoryForHistorico
+	rendimentoRepo    RendimentoRepositoryForHistorico
 }
 
 // NewRendaHistoricoService cria uma nova instância do RendaHistoricoService.

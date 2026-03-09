@@ -13,4 +13,4 @@ export interface CriarRendaExtraRequest {
   valor: number
 }
 
-export interface AtualizarRendaExtraRequest extends CriarRendaExtraRequest {}
+export type AtualizarRendaExtraRequest = CriarRendaExtraRequest

@@ -13,7 +13,7 @@ type DespesaGeral struct {
 	Descricao      string
 	Data           time.Time
 	Valor          float64
-	FormaPagamento string // "dinheiro", "debito", "pix"
+	FormaPagamento string  // "dinheiro", "debito", "pix"
 	Observacoes    *string // opcional
 	CreatedAt      time.Time
 	UpdatedAt      time.Time

@@ -17,4 +17,4 @@ export interface CriarRendaVariavelRequest {
   data_recebimento: string
 }
 
-export interface AtualizarRendaVariavelRequest extends CriarRendaVariavelRequest {}
+export type AtualizarRendaVariavelRequest = CriarRendaVariavelRequest

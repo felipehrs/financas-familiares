@@ -9,7 +9,7 @@ import (
 // Para compras parceladas, cada parcela é um registro separado com o mesmo CompraID.
 type DespesaCartao struct {
 	ID             string
-	CompraID       string  // agrupa todas as parcelas da mesma compra
+	CompraID       string // agrupa todas as parcelas da mesma compra
 	CartaoID       string
 	CategoriaID    *string // opcional
 	Descricao      string

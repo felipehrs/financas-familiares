@@ -19,4 +19,4 @@ export interface CriarDespesaGeralRequest {
   observacoes?: string
 }
 
-export interface AtualizarDespesaGeralRequest extends CriarDespesaGeralRequest {}
+export type AtualizarDespesaGeralRequest = CriarDespesaGeralRequest

@@ -22,7 +22,6 @@ import {
   listarMembros,
   criarMembro,
   inativarMembro,
-  atualizarMembro,
 } from '@/offline/membros'
 
 const membrosFixture: Membro[] = [

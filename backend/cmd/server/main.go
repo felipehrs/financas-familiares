@@ -10,8 +10,8 @@ import (
 	"github.com/felipehrs/financas-familiares/backend/internal/repository"
 	"github.com/felipehrs/financas-familiares/backend/internal/service"
 	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/sqlx"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("erro ao conectar ao banco de dados: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	log.Println("conexão com banco de dados estabelecida")
 

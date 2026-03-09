@@ -18,4 +18,7 @@ RUN npm install -g pnpm
 # go-migrate com driver postgres
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
+# golangci-lint
+RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+
 WORKDIR /workspace
