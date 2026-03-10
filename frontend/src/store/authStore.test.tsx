@@ -27,7 +27,6 @@ const REFRESH_TOKEN_KEY = 'refresh_token'
 const TOKEN_EXPIRY_KEY = 'token_expiry'
 
 const FUTURE_EXPIRY = String(Date.now() + 10 * 60 * 1000) // 10 min no futuro
-const PAST_EXPIRY = String(Date.now() - 1000) // já expirado
 
 const mockRefreshResponse = {
   access_token: 'new-access-token',
@@ -157,21 +156,38 @@ describe('AuthProvider — restauração de sessão ao montar (useEffect)', () =
     expect(screen.getByTestId('isAuthenticated').textContent).toBe('false')
   })
 
-  it('deve fazer logout se refresh_token expirou (expiry <= Date.now())', async () => {
-    const spy = vi.spyOn(authApi, 'refreshToken')
+  it('deve restaurar sessão quando access token expirou mas refresh token ainda é válido', async () => {
+    vi.spyOn(authApi, 'refreshToken').mockResolvedValue(mockRefreshResponse)
 
-    localStorage.setItem(REFRESH_TOKEN_KEY, 'expired-token')
-    localStorage.setItem(TOKEN_EXPIRY_KEY, PAST_EXPIRY)
+    localStorage.setItem(REFRESH_TOKEN_KEY, 'valid-refresh-token')
+    // TOKEN_EXPIRY_KEY no passado (access token expirou há 20min)
+    localStorage.setItem(TOKEN_EXPIRY_KEY, String(Date.now() - 20 * 60 * 1000))
 
     renderWithProvider()
 
     await waitFor(() => {
+      expect(screen.getByTestId('isAuthenticated').textContent).toBe('true')
+      expect(screen.getByTestId('accessToken').textContent).toBe('new-access-token')
+    })
+
+    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBe('valid-refresh-token')
+  })
+
+  it('deve fazer logout quando refresh token expirou no servidor (401)', async () => {
+    const expired = new Response(null, { status: 401 })
+    vi.spyOn(authApi, 'refreshToken').mockRejectedValue(expired)
+
+    localStorage.setItem(REFRESH_TOKEN_KEY, 'expired-refresh-token')
+    localStorage.setItem(TOKEN_EXPIRY_KEY, String(Date.now() - 20 * 60 * 1000))
+
+    renderWithProvider()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('isAuthenticated').textContent).toBe('false')
       expect(screen.getByTestId('isRestoringSession').textContent).toBe('false')
     })
 
-    expect(spy).not.toHaveBeenCalled()
     expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBeNull()
-    expect(localStorage.getItem(TOKEN_EXPIRY_KEY)).toBeNull()
   })
 
   it('deve definir isRestoringSession = false se não há refresh_token', async () => {

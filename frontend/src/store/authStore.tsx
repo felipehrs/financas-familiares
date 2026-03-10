@@ -68,9 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function restoreSession() {
       const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
-      const storedExpiry = Number(localStorage.getItem(TOKEN_EXPIRY_KEY))
 
-      if (storedRefreshToken && storedExpiry > Date.now()) {
+      if (storedRefreshToken) {
         try {
           const response = await apiRefreshToken(storedRefreshToken)
           const expiry = Date.now() + response.expires_in * 1000
@@ -84,9 +83,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             logout()
           }
         }
-      } else if (storedRefreshToken && storedExpiry <= Date.now()) {
-        // Refresh token expirou de verdade
-        logout()
       }
 
       setIsRestoringSession(false)
