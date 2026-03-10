@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, act } from '@testing-library/react'
+import { render, renderHook, screen, waitFor, act } from '@testing-library/react'
 import React from 'react'
 import { AuthProvider, useAuthContext } from './authStore'
 import * as authApi from '@/api/auth'
@@ -201,21 +201,13 @@ describe('AuthProvider — refreshIfNeeded (renovação periódica)', () => {
     localStorage.setItem(REFRESH_TOKEN_KEY, 'valid-token')
     localStorage.setItem(TOKEN_EXPIRY_KEY, FUTURE_EXPIRY)
 
-    let capturedCtx!: ReturnType<typeof useAuthContext>
-    function Capture() {
-      capturedCtx = useAuthContext()
-      return null
-    }
-
-    render(
-      <AuthProvider>
-        <Capture />
-      </AuthProvider>,
-    )
+    const { result } = renderHook(() => useAuthContext(), {
+      wrapper: AuthProvider,
+    })
 
     // Espera restauração terminar (primeira chamada, que vai falhar com erro de rede)
     await waitFor(() => {
-      expect(capturedCtx.isRestoringSession).toBe(false)
+      expect(result.current.isRestoringSession).toBe(false)
     })
 
     // tokens devem ainda estar no localStorage (erro de rede não limpa)
@@ -224,7 +216,7 @@ describe('AuthProvider — refreshIfNeeded (renovação periódica)', () => {
     // Chama refreshIfNeeded novamente com erro de rede
     vi.spyOn(authApi, 'refreshToken').mockRejectedValue(new Error('Network error'))
     await act(async () => {
-      await capturedCtx.refreshIfNeeded()
+      await result.current.refreshIfNeeded()
     })
 
     // Tokens não devem ter sido removidos
@@ -239,23 +231,15 @@ describe('AuthProvider — refreshIfNeeded (renovação periódica)', () => {
     localStorage.setItem(REFRESH_TOKEN_KEY, 'valid-token')
     localStorage.setItem(TOKEN_EXPIRY_KEY, FUTURE_EXPIRY)
 
-    let capturedCtx!: ReturnType<typeof useAuthContext>
-    function Capture() {
-      capturedCtx = useAuthContext()
-      return null
-    }
-
-    render(
-      <AuthProvider>
-        <Capture />
-      </AuthProvider>,
-    )
+    const { result } = renderHook(() => useAuthContext(), {
+      wrapper: AuthProvider,
+    })
 
     // Espera restauração terminar (falha de rede: accessToken null, tokens preservados)
     await waitFor(() => {
-      expect(capturedCtx.isRestoringSession).toBe(false)
+      expect(result.current.isRestoringSession).toBe(false)
     })
-    expect(capturedCtx.isAuthenticated).toBe(false)
+    expect(result.current.isAuthenticated).toBe(false)
     expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBe('valid-token')
 
     // Segunda chamada: refreshIfNeeded com 401
@@ -264,10 +248,10 @@ describe('AuthProvider — refreshIfNeeded (renovação periódica)', () => {
     vi.spyOn(authApi, 'refreshToken').mockRejectedValue(unauthorized)
 
     await act(async () => {
-      await capturedCtx.refreshIfNeeded()
+      await result.current.refreshIfNeeded()
     })
 
     expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBeNull()
-    expect(capturedCtx.isAuthenticated).toBe(false)
+    expect(result.current.isAuthenticated).toBe(false)
   })
 })
