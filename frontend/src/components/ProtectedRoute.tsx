@@ -1,6 +1,5 @@
-import { Navigate, Outlet } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
-import { SyncQueueInitializer } from '@/components/SyncQueueInitializer'
+import { Navigate, Outlet } from "react-router-dom"
+import { useAuth } from "@/hooks/useAuth"
 
 export function ProtectedRoute() {
   const { isAuthenticated, isRestoringSession } = useAuth()
@@ -17,9 +16,5 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace />
   }
 
-  return (
-    <SyncQueueInitializer>
-      <Outlet />
-    </SyncQueueInitializer>
-  )
+  return <Outlet />
 }

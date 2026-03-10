@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { BackToDashboard } from '@/components/BackToDashboard'
 import { useAuth } from '@/hooks/useAuth'
 import {
   listarMembros,
@@ -138,7 +137,6 @@ export function MembrosPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      <BackToDashboard />
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Membros da Família</h1>
         {formMode === 'hidden' && (

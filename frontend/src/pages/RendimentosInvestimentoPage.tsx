@@ -3,7 +3,6 @@ import { useForm } from 'react-hook-form'
 import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { BackToDashboard } from '@/components/BackToDashboard'
 import { useAuth } from '@/hooks/useAuth'
 import { listarRendimentos, criarRendimento, atualizarRendimento, excluirRendimento } from '@/offline/rendimentos_investimento'
 import { listarMembros } from '@/api/membros'
@@ -215,7 +214,6 @@ export function RendimentosInvestimentoPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      <BackToDashboard />
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Rendimentos de Investimento</h1>

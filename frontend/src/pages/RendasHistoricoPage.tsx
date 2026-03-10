@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { BackToDashboard } from '@/components/BackToDashboard'
 import { useAuth } from '@/hooks/useAuth'
 import { buscarHistoricoRendas } from '@/api/rendas_historico'
 import { listarMembros } from '@/api/membros'
@@ -132,7 +131,6 @@ export function RendasHistoricoPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <BackToDashboard />
 
       <h1 className="text-2xl font-bold mb-6">Histórico de Rendas</h1>
 

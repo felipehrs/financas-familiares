@@ -3,7 +3,6 @@ import { useForm } from 'react-hook-form'
 import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { BackToDashboard } from '@/components/BackToDashboard'
 import { useAuth } from '@/hooks/useAuth'
 import { listarRendasExtras, criarRendaExtra, atualizarRendaExtra, excluirRendaExtra } from '@/offline/rendas_extras'
 import { listarMembros } from '@/api/membros'
@@ -203,7 +202,6 @@ export function RendasExtrasPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      <BackToDashboard />
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Rendas Extras</h1>

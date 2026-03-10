@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -227,14 +227,9 @@ export function DespesasCartaoPage() {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <Link to="/cartoes" className="text-sm text-muted-foreground hover:underline">
-            ← Voltar para cartões
-          </Link>
-          <h1 className="text-2xl font-bold mt-1">
-            Despesas{cartao ? ` — ${cartao.nome}` : ''}
-          </h1>
-        </div>
+        <h1 className="text-2xl font-bold">
+          Despesas{cartao ? ` — ${cartao.nome}` : ''}
+        </h1>
         {!mostrarForm && (
           <Button onClick={abrirForm}>Nova despesa</Button>
         )}
