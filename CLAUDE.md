@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-This project is in the **specification phase**. The only file currently present is `spec.md`, which contains the full functional specification. No implementation exists yet. All decisions about tech stack, folder structure, and tooling are open.
+Sprints 1–8 are complete. The project is deployed on Vercel (frontend) and Railway (backend). Sprint 9 (security/data isolation) is next.
 
 ## Domain Overview
 
@@ -40,7 +40,7 @@ Investment returns that are **not distributed** (`valor_distribuido = 0`) are in
 
 ## Reference Documents
 
-**For functional requirements and business rules → read `spec.md`:**
+**For functional requirements and business rules → read `docs/produto/spec.md`:**
 - RF01–RF18: functional requirements (members, categories, credit cards, subscriptions, fixed bills, general expenses, income types)
 - RF19–RF22: dashboard (monthly summary, category breakdown, monthly trend chart, 3-month projection)
 - RN01–RN09: business rules
@@ -48,20 +48,20 @@ Investment returns that are **not distributed** (`valor_distribuido = 0`) are in
 - Section 8: dashboard wireframe showing exact layout and calculations
 - Section 10: phased roadmap (MVP → Core → Analytics → Extras)
 
-**For current sprint, what is in progress, and what to implement next → read `sprints.md`:**
+**For current sprint, what is in progress, and what to implement next → read `docs/produto/sprints.md`:**
 - Each sprint has a clear objective, list of items (US/TT), and a done criterion
 - Update item status (🔲 → 🔄 → ✅) as work progresses
 - Always work items in sprint order; do not start a sprint before the previous one is done
 - Register blockers in the sprint section when they occur
-- **After updating sprints.md, stories.md, or spec.md: review all README files (root, backend/, frontend/) and update any outdated information (roadmap, stack, commands, status)**
+- **After updating docs/produto/sprints.md, docs/produto/stories.md, or docs/produto/spec.md: review all README files (root, backend/, frontend/) and update any outdated information (roadmap, stack, commands, status)**
 
-**For implementation order, user stories, and acceptance criteria → read `stories.md`:**
+**For implementation order, user stories, and acceptance criteria → read `docs/produto/stories.md`:**
 - US-01 to US-07: Phase 1 MVP stories (auth, members, categories, credit cards, fixed income, basic dashboard)
 - US-08 to US-18: Phase 2 Core stories (installments, subscriptions, fixed bills, general expenses, full income types, complete dashboard)
 - US-19 to US-21: Phase 3 Analytics stories (charts, projections, income history)
 - TT-01 to TT-06: technical tasks (scaffolding, DB migrations, JWT auth, offline sync, PWA, CI/CD)
 
-**For technical decisions, stack, architecture, and testing strategy → read `tech-spec.md`:**
+**For technical decisions, stack, architecture, and testing strategy → read `docs/tecnico/tech-spec.md`:**
 - Sections 1–4: architecture, frontend stack, backend stack (Go + Gin), database (PostgreSQL)
 - Section 5: authentication (JWT + bcrypt)
 - Section 6: offline sync strategy (IndexedDB queue, last-write-wins)
@@ -69,6 +69,8 @@ Investment returns that are **not distributed** (`valor_distribuido = 0`) are in
 - Section 8: development tooling (pnpm, ESLint, golangci-lint, GitHub Actions)
 - Section 9: rationale for tech choices
 - Section 11: TDD strategy, test tools, coverage targets, and test conventions
+
+**For post-deploy evaluation, known issues, and multi-tenant roadmap → read `docs/tecnico/avaliacao-e-multi-tenant.md`**
 
 ## Tech Stack (decided — see tech-spec.md for details)
 

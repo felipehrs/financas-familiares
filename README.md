@@ -124,10 +124,11 @@ make dev
 
 | Arquivo | Descrição |
 |---------|-----------|
-| [`spec.md`](spec.md) | Especificação funcional completa (RF01–RF22, RN01–RN15, modelo de dados, wireframes) |
-| [`tech-spec.md`](tech-spec.md) | Especificação técnica (stack, arquitetura, autenticação, sync offline, infra) |
-| [`stories.md`](stories.md) | Histórias de usuário com critérios de aceite por fase |
-| [`sprints.md`](sprints.md) | Status detalhado de cada sprint com itens e critérios de conclusão |
+| [`docs/produto/spec.md`](docs/produto/spec.md) | Especificação funcional completa (RF01–RF22, RN01–RN15, modelo de dados, wireframes) |
+| [`docs/produto/stories.md`](docs/produto/stories.md) | Histórias de usuário com critérios de aceite por fase |
+| [`docs/produto/sprints.md`](docs/produto/sprints.md) | Status detalhado de cada sprint com itens e critérios de conclusão |
+| [`docs/tecnico/tech-spec.md`](docs/tecnico/tech-spec.md) | Especificação técnica (stack, arquitetura, autenticação, sync offline, infra) |
+| [`docs/tecnico/avaliacao-e-multi-tenant.md`](docs/tecnico/avaliacao-e-multi-tenant.md) | Avaliação pós-deploy: problemas encontrados e roadmap para multi-tenant |
 
 ---
 
