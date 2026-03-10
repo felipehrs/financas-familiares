@@ -53,6 +53,7 @@ Investment returns that are **not distributed** (`valor_distribuido = 0`) are in
 - Update item status (🔲 → 🔄 → ✅) as work progresses
 - Always work items in sprint order; do not start a sprint before the previous one is done
 - Register blockers in the sprint section when they occur
+- **After updating sprints.md, stories.md, or spec.md: review all README files (root, backend/, frontend/) and update any outdated information (roadmap, stack, commands, status)**
 
 **For implementation order, user stories, and acceptance criteria → read `stories.md`:**
 - US-01 to US-07: Phase 1 MVP stories (auth, members, categories, credit cards, fixed income, basic dashboard)
