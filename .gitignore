@@ -14,3 +14,7 @@ frontend/.env.local
 .DS_Store
 *.env.local
 .ai-jail
+
+# Tools
+.pnpm-store/
+.claude/

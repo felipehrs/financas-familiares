@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(ls -la backend/migrations/*.sql | head -20)"
-    ]
-  }
-}
