@@ -439,6 +439,40 @@
 
 ---
 
+#### TT-07 — Isolamento de dados por usuário 🔴
+
+Atualmente nenhuma tabela possui `usuario_id`, fazendo com que todos os usuários do sistema vejam os dados uns dos outros.
+
+- Adicionar `usuario_id UUID NOT NULL REFERENCES usuarios(id)` a todas as tabelas: `membros`, `categorias`, `cartoes_credito`, `despesas_cartao`, `assinaturas`, `contas_fixas`, `despesas_gerais`, `rendas_fixas`, `rendas_variaveis`, `rendas_extras`, `rendimentos_investimento`
+- Criar migrações para cada tabela (com retrocompatibilidade para seed)
+- Refatorar todos os repositórios para receber e filtrar por `usuario_id` no WHERE de todas as queries
+- Extrair `usuario_id` do JWT em cada handler e passar ao serviço/repositório
+- Ajustar seed de categorias para criar categorias por usuário (não globais)
+- Criar índice em `usuario_id` em cada tabela afetada
+- Testes: cobrir que um usuário não vê dados de outro usuário
+
+---
+
+#### TT-08 — Segurança: CORS restrito e rate limiting 🔴
+
+- Substituir `AllowAllOrigins: true` por whitelist de origens: `http://localhost:5173` em dev e domínio do Vercel em prod (via variável de ambiente `ALLOWED_ORIGINS`)
+- Adicionar rate limiting em `POST /api/v1/auth/login`: máximo 10 tentativas por IP por minuto, resposta 429 com header `Retry-After`
+- Usar biblioteca `github.com/ulule/limiter` ou equivalente
+
+---
+
+#### TT-09 — Índices de performance no banco de dados 🟡
+
+Adicionar índices ausentes identificados nas migrations:
+
+- `deleted_at` em todas as tabelas com soft delete (`membros`, `categorias`, `cartoes_credito`, `despesas_cartao`, `assinaturas`, `contas_fixas`, `despesas_gerais`, `rendas_fixas`, `rendas_variaveis`, `rendas_extras`, `rendimentos_investimento`)
+- `usuario_id` em todas as tabelas (após TT-07)
+- `refresh_tokens(usuario_id)` para busca de tokens por usuário
+- Índice composto em `despesas_cartao(usuario_id, fatura_ano, fatura_mes)`
+- Índice composto em `rendas_fixas(usuario_id, ativo)` para projeções
+
+---
+
 ## Resumo por Fase
 
 | Fase | Stories | Tarefas Técnicas |
@@ -447,7 +481,8 @@
 | 🟡 Core | US-08 a US-18 | TT-04, TT-05 |
 | 🟢 Analytics | US-19 a US-21 | TT-06 |
 | 🟡 Melhoria | US-22 | — |
+| 🔴 Segurança/Infra | — | TT-07, TT-08, TT-09 |
 
 ---
 
-**Total: 22 histórias de usuário + 6 tarefas técnicas**
+**Total: 22 histórias de usuário + 9 tarefas técnicas**

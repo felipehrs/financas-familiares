@@ -1,7 +1,7 @@
 # Sprints — Finanças Familiares
 
 **Referência:** stories.md | spec.md | tech-spec.md
-**Atualizado em:** 07/03/2026 (US-04 concluída)
+**Atualizado em:** 10/03/2026 (Sprint 9 revisada — TT-07, TT-08, TT-09 adicionados)
 
 ---
 
@@ -162,7 +162,25 @@
 
 ---
 
-## Sprint 9 — Melhorias de Usabilidade
+## Sprint 9 — Segurança e Isolamento de Dados
+
+**Objetivo:** Corrigir problemas críticos de segurança identificados na avaliação pós-Sprint 8: isolamento de dados por usuário (atualmente todos os usuários veem os dados uns dos outros), restrição de CORS e rate limiting no login, e índices de performance no banco.
+
+**Itens:**
+
+| Status | ID | Descrição |
+|--------|-----|-----------|
+| 🔲 | TT-07 | Isolamento de dados por usuário: adicionar `usuario_id` em todas as tabelas, refatorar todos os repositórios para filtrar por usuário, ajustar seed de categorias por usuário |
+| 🔲 | TT-08 | Segurança: restringir CORS a origens específicas via `ALLOWED_ORIGINS`; rate limiting em `POST /auth/login` (10 req/min/IP, resposta 429) |
+| 🔲 | TT-09 | Índices de performance: `deleted_at` em todas as tabelas com soft delete, `usuario_id` em todas as tabelas, índice composto em `despesas_cartao(usuario_id, fatura_ano, fatura_mes)` |
+
+**Critério de conclusão:** TT-07 validado com teste de isolamento (usuário A não vê dados do B). CORS restrito a domínios específicos e rate limiting ativo no login com resposta 429. Índices criados e verificados em todas as tabelas afetadas.
+
+**Pré-requisito:** Sprints 1–8 concluídas.
+
+---
+
+## Sprint 10 — Melhorias de Usabilidade
 
 **Objetivo:** Implementar melhorias de UX e de modelagem decididas após a conclusão das sprints 1–8: projeção com pior cenário histórico, contas fixas com valor variável e reajustes, suporte a moeda estrangeira em assinaturas, vinculação de despesa geral a cartão de crédito, e tela centralizada de despesas com formulário dinâmico por tipo.
 
@@ -179,7 +197,7 @@
 
 **Critério de conclusão:** Projeção conservadora usando pior cenário histórico (US-28). Estimativa de conta variável usando max dos últimos 3 meses; valor real substitui estimativa quando lançado. Reajuste aplicado corretamente na linha do tempo. Cotação de moeda estrangeira automática com override manual. Lista centralizada com badges e formulário dinâmico. Testes unitários ≥ 90% cobrindo RN07 revisado, RN11–RN15.
 
-**Pré-requisito:** Sprints 1–8 concluídas.
+**Pré-requisito:** Sprint 9 concluída.
 
 ---
 
@@ -196,4 +214,5 @@
 | 6 | Dashboard completo e offline | US-17, US-18, TT-04, TT-05 |
 | 7 | Analytics e projeções | US-19, US-20, US-21 |
 | 8 | Qualidade e deploy | TT-06 + validações |
-| 9 | Melhorias de usabilidade (pós-deploy) | US-28, US-23, US-24, US-25, US-26, US-27 |
+| 9 | Segurança e isolamento de dados | TT-07, TT-08, TT-09 |
+| 10 | Melhorias de usabilidade | US-28, US-23, US-24, US-25, US-26, US-27 |
