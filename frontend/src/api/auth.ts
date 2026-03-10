@@ -23,18 +23,12 @@ export async function login(data: LoginRequest): Promise<LoginResponse> {
 export async function refreshToken(token: string): Promise<RefreshResponse> {
   const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: token }),
   })
 
-  if (response.status === 401) {
-    throw new Error('Credenciais inválidas')
-  }
-
   if (!response.ok) {
-    throw new Error(`Erro ao renovar token: ${response.statusText}`)
+    throw response
   }
 
   return response.json() as Promise<RefreshResponse>

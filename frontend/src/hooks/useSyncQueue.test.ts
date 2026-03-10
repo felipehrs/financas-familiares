@@ -69,6 +69,7 @@ describe('useSyncQueue', () => {
     vi.mocked(useAuth).mockReturnValue({
       accessToken: null,
       isAuthenticated: false,
+      isRestoringSession: false,
       login: vi.fn(),
       logout: vi.fn(),
       refreshIfNeeded: vi.fn(),
