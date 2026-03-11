@@ -168,11 +168,11 @@
 
 **Itens:**
 
-| Status | ID | Descrição |
-|--------|-----|-----------|
-| 🔲 | TT-07 | Isolamento de dados por usuário: adicionar `usuario_id` em todas as tabelas, refatorar todos os repositórios para filtrar por usuário, ajustar seed de categorias por usuário |
-| 🔲 | TT-08 | Segurança: restringir CORS a origens específicas via `ALLOWED_ORIGINS`; rate limiting em `POST /auth/login` (10 req/min/IP, resposta 429) |
-| 🔲 | TT-09 | Índices de performance: `deleted_at` em todas as tabelas com soft delete, `usuario_id` em todas as tabelas, índice composto em `despesas_cartao(usuario_id, fatura_ano, fatura_mes)` |
+| Seq | Status | ID | Descrição |
+|-----|--------|-----|-----------|
+| 1 | 🔲 | TT-07 | Isolamento de dados por usuário: adicionar `usuario_id` em todas as tabelas, refatorar todos os repositórios para filtrar por usuário, ajustar seed de categorias por usuário |
+| 2 | 🔲 | TT-08 | Segurança: restringir CORS a origens específicas via `ALLOWED_ORIGINS`; rate limiting em `POST /auth/login` (10 req/min/IP, resposta 429) |
+| 3 | 🔲 | TT-09 | Índices de performance: `deleted_at` em todas as tabelas com soft delete, `usuario_id` em todas as tabelas, índice composto em `despesas_cartao(usuario_id, fatura_ano, fatura_mes)` |
 
 **Critério de conclusão:** TT-07 validado com teste de isolamento (usuário A não vê dados do B). CORS restrito a domínios específicos e rate limiting ativo no login com resposta 429. Índices criados e verificados em todas as tabelas afetadas.
 
@@ -186,14 +186,14 @@
 
 **Itens:**
 
-| Status | ID | Descrição |
-|--------|-----|-----------|
-| 🔲 | US-28 | Projeção com pior cenário: contas fixas e despesas gerais usam o maior valor dos últimos 3 meses como estimativa (RF22 revisado, RN07 revisado) |
-| 🔲 | US-23 | Assinaturas em moeda estrangeira: campo `moeda`, busca de cotação via API de câmbio na data de fechamento, cotação manual pelo usuário (RF08a, RN11) |
-| 🔲 | US-24 | Despesa geral com cartão de crédito: campo `cartao_id` quando forma de pagamento = cartão; entrada na fatura via RN01 (RF12 revisado, RN12) |
-| 🔲 | US-25 | Tela centralizada de despesas: lista unificada com badges por tipo abaixo do dashboard; botão "+ Nova Despesa" com seletor de tipo e formulário dinâmico (RF12a, RN13) |
-| 🔲 | US-26 | Contas fixas com valor variável: campo `tipo_valor` (fixo/variável); lançamento mensal do valor real; estimativa automática = máximo dos últimos 3 meses (RF10a, RN14) |
-| 🔲 | US-27 | Reajuste de contas fixas: registro de novo valor com data de vigência; histórico de reajustes; valor correto aplicado automaticamente por mês (RF10b, RN15) |
+| Seq | Status | ID | Descrição |
+|-----|--------|-----|-----------|
+| 1 | 🔲 | US-23 | Assinaturas em moeda estrangeira: campo `moeda`, busca de cotação via API de câmbio na data de fechamento, cotação manual pelo usuário (RF08a, RN11) |
+| 2 | 🔲 | US-24 | Despesa geral com cartão de crédito: campo `cartao_id` quando forma de pagamento = cartão; entrada na fatura via RN01 (RF12 revisado, RN12) |
+| 3 | 🔲 | US-26 | Contas fixas com valor variável: campo `tipo_valor` (fixo/variável); lançamento mensal do valor real; estimativa automática = máximo dos últimos 3 meses (RF10a, RN14) |
+| 4 | 🔲 | US-27 | Reajuste de contas fixas: registro de novo valor com data de vigência; histórico de reajustes; valor correto aplicado automaticamente por mês (RF10b, RN15) |
+| 5 | 🔲 | US-28 | Projeção com pior cenário: contas fixas e despesas gerais usam o maior valor dos últimos 3 meses como estimativa (RF22 revisado, RN07 revisado) — depende de US-26/US-27 |
+| 6 | 🔲 | US-25 | Tela centralizada de despesas: lista unificada com badges por tipo abaixo do dashboard; botão "+ Nova Despesa" com seletor de tipo e formulário dinâmico (RF12a, RN13) |
 
 **Critério de conclusão:** Projeção conservadora usando pior cenário histórico (US-28). Estimativa de conta variável usando max dos últimos 3 meses; valor real substitui estimativa quando lançado. Reajuste aplicado corretamente na linha do tempo. Cotação de moeda estrangeira automática com override manual. Lista centralizada com badges e formulário dinâmico. Testes unitários ≥ 90% cobrindo RN07 revisado, RN11–RN15.
 
