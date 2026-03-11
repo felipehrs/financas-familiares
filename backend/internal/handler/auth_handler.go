@@ -13,7 +13,7 @@ import (
 type AuthServiceInterface interface {
 	Login(email, senha string) (string, string, error)
 	RefreshToken(refreshToken string) (string, error)
-	ValidateAccessToken(token string) (string, error)
+	ValidateAccessToken(token string) (string, string, error)
 }
 
 // AuthHandler contém os handlers HTTP para autenticação.

@@ -44,16 +44,14 @@ func main() {
 		log.Fatalf("erro ao rodar migrations: %v", err)
 	}
 
-	// Rodar seeds
+	// Rodar seeds (SeedUsuarios já chama SeedCategorias internamente)
 	if err := repository.SeedUsuarios(db, &cfg.Seed); err != nil {
 		log.Printf("aviso: erro no seed de usuários: %v", err)
-	}
-	if err := repository.SeedCategorias(db); err != nil {
-		log.Printf("aviso: erro no seed de categorias: %v", err)
 	}
 
 	// Inicializar repositórios
 	authRepo := repository.NewAuthRepository(db)
+	familiaRepo := repository.NewFamiliaRepository(db)
 	membroRepo := repository.NewMembroRepository(db)
 	categoriaRepo := repository.NewCategoriaRepository(db)
 	cartaoRepo := repository.NewCartaoCreditoRepository(db)
@@ -68,7 +66,7 @@ func main() {
 	dashboardRepo := repository.NewDashboardRepository(db)
 
 	// Inicializar serviços
-	authService := service.NewAuthService(authRepo, cfg.JWT.Secret)
+	authService := service.NewAuthService(authRepo, familiaRepo, cfg.JWT.Secret)
 	membroSvc := service.NewMembroService(membroRepo)
 	categoriaSvc := service.NewCategoriaService(categoriaRepo)
 	cartaoSvc := service.NewCartaoCreditoService(cartaoRepo)

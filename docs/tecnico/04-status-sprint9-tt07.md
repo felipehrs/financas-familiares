@@ -83,35 +83,37 @@ Adicionar isolamento de dados por `familia_id` em todas as camadas do backend (m
 - [x] `backend/internal/service/dashboard_service_test.go` — CONCLUÍDO: 9 mocks + chamadas de teste atualizados
 - [x] `backend/internal/service/renda_historico_service_test.go` — CONCLUÍDO: 8 mocks + chamadas de teste atualizados
 
-### Handlers (PENDENTE — todos os 13)
-- [ ] `backend/internal/handler/membro_handler.go`
-- [ ] `backend/internal/handler/categoria_handler.go`
-- [ ] `backend/internal/handler/cartao_credito_handler.go`
-- [ ] `backend/internal/handler/despesa_cartao_handler.go`
-- [ ] `backend/internal/handler/assinatura_handler.go`
-- [ ] `backend/internal/handler/conta_fixa_handler.go`
-- [ ] `backend/internal/handler/despesa_geral_handler.go`
-- [ ] `backend/internal/handler/renda_fixa_handler.go`
-- [ ] `backend/internal/handler/renda_variavel_handler.go`
-- [ ] `backend/internal/handler/renda_extra_handler.go`
-- [ ] `backend/internal/handler/rendimento_investimento_handler.go`
-- [ ] `backend/internal/handler/dashboard_handler.go`
-- [ ] `backend/internal/handler/renda_historico_handler.go`
+### Handlers (CONCLUÍDO)
+- [x] `backend/internal/handler/membro_handler.go`
+- [x] `backend/internal/handler/categoria_handler.go`
+- [x] `backend/internal/handler/cartao_credito_handler.go`
+- [x] `backend/internal/handler/despesa_cartao_handler.go`
+- [x] `backend/internal/handler/assinatura_handler.go`
+- [x] `backend/internal/handler/conta_fixa_handler.go`
+- [x] `backend/internal/handler/despesa_geral_handler.go`
+- [x] `backend/internal/handler/renda_fixa_handler.go`
+- [x] `backend/internal/handler/renda_variavel_handler.go`
+- [x] `backend/internal/handler/renda_extra_handler.go`
+- [x] `backend/internal/handler/rendimento_investimento_handler.go`
+- [x] `backend/internal/handler/dashboard_handler.go`
+- [x] `backend/internal/handler/renda_historico_handler.go`
+- [x] `backend/internal/handler/auth_handler.go` — `ValidateAccessToken` retorna 3 valores
 
 ### Handler testes (PENDENTE — todos os 13)
 - Cada `*_handler_test.go` precisa:
-  1. Assinaturas dos mocks de serviço atualizadas
+  1. Assinaturas dos mocks de serviço atualizadas (ex: `AlterarStatus` em assinatura passa de `(id, status)` para `(familiaID, id, status)`)
   2. `setupRouter` deve injetar `c.Set("familiaID", "familia-teste-uuid")` via middleware fake
+  3. Function literals nos testes devem ter `familiaID string` como primeiro param
 
-### Outros (PENDENTE)
-- [ ] `backend/internal/repository/seed.go` — `SeedCategorias(db, familiaID)`, `SeedUsuarios` cria família
-- [ ] `backend/cmd/server/main.go` — cria `familiaRepo`, passa para `NewAuthService`, ajusta wiring
+### Outros (CONCLUÍDO)
+- [x] `backend/internal/repository/seed.go` — `SeedCategorias(db, familiaID)`, `SeedUsuarios` cria família compartilhada entre user1 (admin) e user2 (membro)
+- [x] `backend/cmd/server/main.go` — cria `familiaRepo`, passa para `NewAuthService`, remove `SeedCategorias` separado
 
 ---
 
-## Próximo passo: Repositories (Step 6)
+## Próximo passo: Handler testes (Step 8)
 
-Todos os 13 repositories precisam adicionar `familiaID string` como primeiro parâmetro e `AND familia_id = $N` nas queries SQL.
+Atualizar os 13 `*_handler_test.go`: assinaturas dos mocks + `setupRouter` com `c.Set("familiaID", "familia-teste-uuid")`.
 
 ---
 
