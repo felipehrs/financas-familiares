@@ -23,7 +23,7 @@ type MockMembroRepository struct {
 	membroRecebido   *domain.Membro
 }
 
-func (m *MockMembroRepository) Criar(membro *domain.Membro) (*domain.Membro, error) {
+func (m *MockMembroRepository) Criar(familiaID string, membro *domain.Membro) (*domain.Membro, error) {
 	m.criarChamado = true
 	m.membroRecebido = membro
 	if m.returnError != nil {
@@ -35,21 +35,21 @@ func (m *MockMembroRepository) Criar(membro *domain.Membro) (*domain.Membro, err
 	return &criado, nil
 }
 
-func (m *MockMembroRepository) BuscarPorID(id string) (*domain.Membro, error) {
+func (m *MockMembroRepository) BuscarPorID(familiaID, id string) (*domain.Membro, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnMembro, nil
 }
 
-func (m *MockMembroRepository) Listar() ([]*domain.Membro, error) {
+func (m *MockMembroRepository) Listar(familiaID string) ([]*domain.Membro, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnMembros, nil
 }
 
-func (m *MockMembroRepository) Atualizar(membro *domain.Membro) (*domain.Membro, error) {
+func (m *MockMembroRepository) Atualizar(familiaID string, membro *domain.Membro) (*domain.Membro, error) {
 	m.atualizarChamado = true
 	m.membroRecebido = membro
 	if m.returnError != nil {
@@ -59,7 +59,7 @@ func (m *MockMembroRepository) Atualizar(membro *domain.Membro) (*domain.Membro,
 	return &atualizado, nil
 }
 
-func (m *MockMembroRepository) Inativar(id string) error {
+func (m *MockMembroRepository) Inativar(familiaID, id string) error {
 	m.inativarChamado = true
 	return m.returnError
 }
@@ -70,7 +70,7 @@ func TestCriarMembro_Sucesso(t *testing.T) {
 	mock := &MockMembroRepository{}
 	svc := service.NewMembroService(mock)
 
-	membro, err := svc.Criar("Ana Lima", "cônjuge")
+	membro, err := svc.Criar("familia-id", "Ana Lima", "cônjuge")
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-gerado-mock", membro.ID)
@@ -85,7 +85,7 @@ func TestCriarMembro_NomeVazio(t *testing.T) {
 	mock := &MockMembroRepository{}
 	svc := service.NewMembroService(mock)
 
-	_, err := svc.Criar("", "cônjuge")
+	_, err := svc.Criar("familia-id", "", "cônjuge")
 
 	assert.ErrorIs(t, err, domain.ErrNomeObrigatorio)
 	assert.False(t, mock.criarChamado, "repositório não deve ser chamado com nome vazio")
@@ -95,7 +95,7 @@ func TestCriarMembro_NomeApenasEspacos(t *testing.T) {
 	mock := &MockMembroRepository{}
 	svc := service.NewMembroService(mock)
 
-	_, err := svc.Criar("   ", "cônjuge")
+	_, err := svc.Criar("familia-id", "   ", "cônjuge")
 
 	assert.ErrorIs(t, err, domain.ErrNomeObrigatorio)
 	assert.False(t, mock.criarChamado)
@@ -113,7 +113,7 @@ func TestBuscarMembro_Sucesso(t *testing.T) {
 	mock := &MockMembroRepository{returnMembro: esperado}
 	svc := service.NewMembroService(mock)
 
-	membro, err := svc.BuscarPorID("uuid-1")
+	membro, err := svc.BuscarPorID("familia-id", "uuid-1")
 
 	require.NoError(t, err)
 	assert.Equal(t, esperado.ID, membro.ID)
@@ -124,7 +124,7 @@ func TestBuscarMembro_NaoEncontrado(t *testing.T) {
 	mock := &MockMembroRepository{returnError: domain.ErrMembroNaoEncontrado}
 	svc := service.NewMembroService(mock)
 
-	_, err := svc.BuscarPorID("uuid-inexistente")
+	_, err := svc.BuscarPorID("familia-id", "uuid-inexistente")
 
 	assert.ErrorIs(t, err, domain.ErrMembroNaoEncontrado)
 }
@@ -139,7 +139,7 @@ func TestListarMembros_Sucesso(t *testing.T) {
 	mock := &MockMembroRepository{returnMembros: membros}
 	svc := service.NewMembroService(mock)
 
-	resultado, err := svc.Listar()
+	resultado, err := svc.Listar("familia-id")
 
 	require.NoError(t, err)
 	assert.Len(t, resultado, 2)
@@ -151,7 +151,7 @@ func TestListarMembros_ListaVazia(t *testing.T) {
 	mock := &MockMembroRepository{returnMembros: []*domain.Membro{}}
 	svc := service.NewMembroService(mock)
 
-	resultado, err := svc.Listar()
+	resultado, err := svc.Listar("familia-id")
 
 	require.NoError(t, err)
 	assert.Empty(t, resultado)
@@ -169,7 +169,7 @@ func TestAtualizarMembro_Sucesso(t *testing.T) {
 	mock := &MockMembroRepository{returnMembro: existente}
 	svc := service.NewMembroService(mock)
 
-	atualizado, err := svc.Atualizar("uuid-1", "Ana Souza", "esposa", true)
+	atualizado, err := svc.Atualizar("familia-id", "uuid-1", "Ana Souza", "esposa", true)
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-1", atualizado.ID)
@@ -182,7 +182,7 @@ func TestAtualizarMembro_NaoEncontrado(t *testing.T) {
 	mock := &MockMembroRepository{returnError: domain.ErrMembroNaoEncontrado}
 	svc := service.NewMembroService(mock)
 
-	_, err := svc.Atualizar("uuid-inexistente", "Nome Qualquer", "", true)
+	_, err := svc.Atualizar("familia-id", "uuid-inexistente", "Nome Qualquer", "", true)
 
 	assert.ErrorIs(t, err, domain.ErrMembroNaoEncontrado)
 }
@@ -192,7 +192,7 @@ func TestAtualizarMembro_NomeVazio(t *testing.T) {
 	mock := &MockMembroRepository{returnMembro: existente}
 	svc := service.NewMembroService(mock)
 
-	_, err := svc.Atualizar("uuid-1", "", "", true)
+	_, err := svc.Atualizar("familia-id", "uuid-1", "", "", true)
 
 	assert.ErrorIs(t, err, domain.ErrNomeObrigatorio)
 	assert.False(t, mock.atualizarChamado)
@@ -205,7 +205,7 @@ func TestInativarMembro_Sucesso(t *testing.T) {
 	mock := &MockMembroRepository{returnMembro: existente}
 	svc := service.NewMembroService(mock)
 
-	err := svc.Inativar("uuid-1")
+	err := svc.Inativar("familia-id", "uuid-1")
 
 	require.NoError(t, err)
 	assert.True(t, mock.inativarChamado)
@@ -215,7 +215,7 @@ func TestInativarMembro_NaoEncontrado(t *testing.T) {
 	mock := &MockMembroRepository{returnError: domain.ErrMembroNaoEncontrado}
 	svc := service.NewMembroService(mock)
 
-	err := svc.Inativar("uuid-inexistente")
+	err := svc.Inativar("familia-id", "uuid-inexistente")
 
 	assert.ErrorIs(t, err, domain.ErrMembroNaoEncontrado)
 }

@@ -9,21 +9,21 @@ import (
 // CartaoCreditoRepository define as operações de persistência necessárias para cartões de crédito.
 // Declarada aqui para evitar import circular entre service e repository.
 type CartaoCreditoRepository interface {
-	Criar(cartao *domain.CartaoCredito) (*domain.CartaoCredito, error)
-	BuscarPorID(id string) (*domain.CartaoCredito, error)
-	Listar() ([]*domain.CartaoCredito, error)
-	Atualizar(cartao *domain.CartaoCredito) (*domain.CartaoCredito, error)
-	Inativar(id string) error
+	Criar(familiaID string, cartao *domain.CartaoCredito) (*domain.CartaoCredito, error)
+	BuscarPorID(familiaID, id string) (*domain.CartaoCredito, error)
+	Listar(familiaID string) ([]*domain.CartaoCredito, error)
+	Atualizar(familiaID string, cartao *domain.CartaoCredito) (*domain.CartaoCredito, error)
+	Inativar(familiaID, id string) error
 }
 
 // CartaoCreditoServiceInterface define os métodos públicos do serviço de cartões de crédito.
 // Redeclarada nos handlers para desacoplamento.
 type CartaoCreditoServiceInterface interface {
-	Criar(nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error)
-	BuscarPorID(id string) (*domain.CartaoCredito, error)
-	Listar() ([]*domain.CartaoCredito, error)
-	Atualizar(id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error)
-	Inativar(id string) error
+	Criar(familiaID, nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error)
+	BuscarPorID(familiaID, id string) (*domain.CartaoCredito, error)
+	Listar(familiaID string) ([]*domain.CartaoCredito, error)
+	Atualizar(familiaID, id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error)
+	Inativar(familiaID, id string) error
 }
 
 // CartaoCreditoService implementa a lógica de negócio para cartões de crédito.
@@ -54,7 +54,7 @@ func validarCartao(nome, membroID string, diaFechamento, diaVencimento int) erro
 
 // Criar cria um novo cartão de crédito.
 // Valida os campos obrigatórios e define Ativo=true por padrão.
-func (s *CartaoCreditoService) Criar(nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error) {
+func (s *CartaoCreditoService) Criar(familiaID, nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error) {
 	if err := validarCartao(nome, membroID, diaFechamento, diaVencimento); err != nil {
 		return nil, err
 	}
@@ -68,28 +68,28 @@ func (s *CartaoCreditoService) Criar(nome, membroID string, diaFechamento, diaVe
 		Ativo:         true,
 	}
 
-	return s.repo.Criar(cartao)
+	return s.repo.Criar(familiaID, cartao)
 }
 
 // BuscarPorID retorna um cartão pelo seu ID.
 // Retorna ErrCartaoNaoEncontrado se não existir.
-func (s *CartaoCreditoService) BuscarPorID(id string) (*domain.CartaoCredito, error) {
-	return s.repo.BuscarPorID(id)
+func (s *CartaoCreditoService) BuscarPorID(familiaID, id string) (*domain.CartaoCredito, error) {
+	return s.repo.BuscarPorID(familiaID, id)
 }
 
 // Listar retorna todos os cartões (ativos e inativos, sem deletados).
-func (s *CartaoCreditoService) Listar() ([]*domain.CartaoCredito, error) {
-	return s.repo.Listar()
+func (s *CartaoCreditoService) Listar(familiaID string) ([]*domain.CartaoCredito, error) {
+	return s.repo.Listar(familiaID)
 }
 
 // Atualizar atualiza os dados de um cartão existente.
 // Valida os campos obrigatórios antes de buscar no repositório.
-func (s *CartaoCreditoService) Atualizar(id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error) {
+func (s *CartaoCreditoService) Atualizar(familiaID, id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error) {
 	if err := validarCartao(nome, membroID, diaFechamento, diaVencimento); err != nil {
 		return nil, err
 	}
 
-	cartao, err := s.repo.BuscarPorID(id)
+	cartao, err := s.repo.BuscarPorID(familiaID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -101,16 +101,16 @@ func (s *CartaoCreditoService) Atualizar(id, nome, membroID string, diaFechament
 	cartao.Limite = limite
 	cartao.Ativo = ativo
 
-	return s.repo.Atualizar(cartao)
+	return s.repo.Atualizar(familiaID, cartao)
 }
 
 // Inativar marca um cartão como inativo (soft delete lógico).
 // Não exclui o registro — apenas seta Ativo=false.
 // Retorna ErrCartaoNaoEncontrado se o ID não existir.
-func (s *CartaoCreditoService) Inativar(id string) error {
-	_, err := s.repo.BuscarPorID(id)
+func (s *CartaoCreditoService) Inativar(familiaID, id string) error {
+	_, err := s.repo.BuscarPorID(familiaID, id)
 	if err != nil {
 		return err
 	}
-	return s.repo.Inativar(id)
+	return s.repo.Inativar(familiaID, id)
 }

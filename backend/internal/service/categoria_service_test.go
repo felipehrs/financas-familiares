@@ -23,7 +23,7 @@ type MockCategoriaRepository struct {
 	categoriaRecebida *domain.Categoria
 }
 
-func (m *MockCategoriaRepository) Criar(categoria *domain.Categoria) (*domain.Categoria, error) {
+func (m *MockCategoriaRepository) Criar(familiaID string, categoria *domain.Categoria) (*domain.Categoria, error) {
 	m.criarChamado = true
 	m.categoriaRecebida = categoria
 	if m.returnError != nil {
@@ -34,21 +34,21 @@ func (m *MockCategoriaRepository) Criar(categoria *domain.Categoria) (*domain.Ca
 	return &criada, nil
 }
 
-func (m *MockCategoriaRepository) Listar() ([]*domain.Categoria, error) {
+func (m *MockCategoriaRepository) Listar(familiaID string) ([]*domain.Categoria, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnCategorias, nil
 }
 
-func (m *MockCategoriaRepository) BuscarPorID(id string) (*domain.Categoria, error) {
+func (m *MockCategoriaRepository) BuscarPorID(familiaID, id string) (*domain.Categoria, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnCategoria, nil
 }
 
-func (m *MockCategoriaRepository) Atualizar(categoria *domain.Categoria) (*domain.Categoria, error) {
+func (m *MockCategoriaRepository) Atualizar(familiaID string, categoria *domain.Categoria) (*domain.Categoria, error) {
 	m.atualizarChamado = true
 	m.categoriaRecebida = categoria
 	if m.returnError != nil {
@@ -58,7 +58,7 @@ func (m *MockCategoriaRepository) Atualizar(categoria *domain.Categoria) (*domai
 	return &atualizada, nil
 }
 
-func (m *MockCategoriaRepository) Excluir(id string) error {
+func (m *MockCategoriaRepository) Excluir(familiaID, id string) error {
 	m.excluirChamado = true
 	return m.returnError
 }
@@ -69,7 +69,7 @@ func TestCriarCategoria_Sucesso(t *testing.T) {
 	mock := &MockCategoriaRepository{}
 	svc := service.NewCategoriaService(mock)
 
-	cat, err := svc.Criar("Alimentação")
+	cat, err := svc.Criar("familia-id", "Alimentação")
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-gerado-mock", cat.ID)
@@ -82,7 +82,7 @@ func TestCriarCategoria_NomeVazio(t *testing.T) {
 	mock := &MockCategoriaRepository{}
 	svc := service.NewCategoriaService(mock)
 
-	_, err := svc.Criar("")
+	_, err := svc.Criar("familia-id", "")
 
 	assert.ErrorIs(t, err, domain.ErrNomeCategoriaObrigatorio)
 	assert.False(t, mock.criarChamado, "repositório não deve ser chamado com nome vazio")
@@ -92,7 +92,7 @@ func TestCriarCategoria_NomeApenasEspacos(t *testing.T) {
 	mock := &MockCategoriaRepository{}
 	svc := service.NewCategoriaService(mock)
 
-	_, err := svc.Criar("   ")
+	_, err := svc.Criar("familia-id", "   ")
 
 	assert.ErrorIs(t, err, domain.ErrNomeCategoriaObrigatorio)
 	assert.False(t, mock.criarChamado, "repositório não deve ser chamado com nome apenas de espaços")
@@ -108,7 +108,7 @@ func TestListarCategorias_Sucesso(t *testing.T) {
 	mock := &MockCategoriaRepository{returnCategorias: categorias}
 	svc := service.NewCategoriaService(mock)
 
-	resultado, err := svc.Listar()
+	resultado, err := svc.Listar("familia-id")
 
 	require.NoError(t, err)
 	assert.Len(t, resultado, 2)
@@ -120,7 +120,7 @@ func TestListarCategorias_ListaVazia(t *testing.T) {
 	mock := &MockCategoriaRepository{returnCategorias: []*domain.Categoria{}}
 	svc := service.NewCategoriaService(mock)
 
-	resultado, err := svc.Listar()
+	resultado, err := svc.Listar("familia-id")
 
 	require.NoError(t, err)
 	assert.Empty(t, resultado)
@@ -136,7 +136,7 @@ func TestAtualizarCategoria_Sucesso(t *testing.T) {
 	mock := &MockCategoriaRepository{returnCategoria: existente}
 	svc := service.NewCategoriaService(mock)
 
-	atualizada, err := svc.Atualizar("uuid-1", "Alimentação e Bebidas")
+	atualizada, err := svc.Atualizar("familia-id", "uuid-1", "Alimentação e Bebidas")
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-1", atualizada.ID)
@@ -149,7 +149,7 @@ func TestAtualizarCategoria_NaoEncontrada(t *testing.T) {
 	mock := &MockCategoriaRepository{returnError: domain.ErrCategoriaNaoEncontrada}
 	svc := service.NewCategoriaService(mock)
 
-	_, err := svc.Atualizar("uuid-inexistente", "Novo Nome")
+	_, err := svc.Atualizar("familia-id", "uuid-inexistente", "Novo Nome")
 
 	assert.ErrorIs(t, err, domain.ErrCategoriaNaoEncontrada)
 	assert.False(t, mock.atualizarChamado, "Atualizar do repositório não deve ser chamado quando não encontrado")
@@ -160,7 +160,7 @@ func TestAtualizarCategoria_NomeVazio(t *testing.T) {
 	mock := &MockCategoriaRepository{returnCategoria: existente}
 	svc := service.NewCategoriaService(mock)
 
-	_, err := svc.Atualizar("uuid-1", "")
+	_, err := svc.Atualizar("familia-id", "uuid-1", "")
 
 	assert.ErrorIs(t, err, domain.ErrNomeCategoriaObrigatorio)
 	assert.False(t, mock.atualizarChamado, "Atualizar do repositório não deve ser chamado com nome vazio")
@@ -173,7 +173,7 @@ func TestExcluirCategoria_Sucesso(t *testing.T) {
 	mock := &MockCategoriaRepository{returnCategoria: existente}
 	svc := service.NewCategoriaService(mock)
 
-	err := svc.Excluir("uuid-1")
+	err := svc.Excluir("familia-id", "uuid-1")
 
 	require.NoError(t, err)
 	assert.True(t, mock.excluirChamado)
@@ -183,7 +183,7 @@ func TestExcluirCategoria_NaoEncontrada(t *testing.T) {
 	mock := &MockCategoriaRepository{returnError: domain.ErrCategoriaNaoEncontrada}
 	svc := service.NewCategoriaService(mock)
 
-	err := svc.Excluir("uuid-inexistente")
+	err := svc.Excluir("familia-id", "uuid-inexistente")
 
 	assert.ErrorIs(t, err, domain.ErrCategoriaNaoEncontrada)
 	assert.False(t, mock.excluirChamado, "Excluir do repositório não deve ser chamado quando não encontrado")
@@ -202,7 +202,7 @@ func TestExcluirCategoria_ComVinculos(t *testing.T) {
 	mockComVinculos := &MockCategoriaRepositoryComVinculos{returnCategoria: existente}
 	svcComVinculos := service.NewCategoriaService(mockComVinculos)
 
-	err := svcComVinculos.Excluir("uuid-1")
+	err := svcComVinculos.Excluir("familia-id", "uuid-1")
 
 	assert.ErrorIs(t, err, domain.ErrCategoriaComVinculos)
 	assert.True(t, mockComVinculos.excluirChamado)
@@ -217,23 +217,23 @@ type MockCategoriaRepositoryComVinculos struct {
 	excluirChamado  bool
 }
 
-func (m *MockCategoriaRepositoryComVinculos) Criar(categoria *domain.Categoria) (*domain.Categoria, error) {
+func (m *MockCategoriaRepositoryComVinculos) Criar(familiaID string, categoria *domain.Categoria) (*domain.Categoria, error) {
 	return nil, nil
 }
 
-func (m *MockCategoriaRepositoryComVinculos) Listar() ([]*domain.Categoria, error) {
+func (m *MockCategoriaRepositoryComVinculos) Listar(familiaID string) ([]*domain.Categoria, error) {
 	return nil, nil
 }
 
-func (m *MockCategoriaRepositoryComVinculos) BuscarPorID(id string) (*domain.Categoria, error) {
+func (m *MockCategoriaRepositoryComVinculos) BuscarPorID(familiaID, id string) (*domain.Categoria, error) {
 	return m.returnCategoria, nil
 }
 
-func (m *MockCategoriaRepositoryComVinculos) Atualizar(categoria *domain.Categoria) (*domain.Categoria, error) {
+func (m *MockCategoriaRepositoryComVinculos) Atualizar(familiaID string, categoria *domain.Categoria) (*domain.Categoria, error) {
 	return nil, nil
 }
 
-func (m *MockCategoriaRepositoryComVinculos) Excluir(id string) error {
+func (m *MockCategoriaRepositoryComVinculos) Excluir(familiaID, id string) error {
 	m.excluirChamado = true
 	return domain.ErrCategoriaComVinculos
 }

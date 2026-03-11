@@ -21,7 +21,7 @@ type MockCartaoCreditoRepository struct {
 	cartaoRecebido   *domain.CartaoCredito
 }
 
-func (m *MockCartaoCreditoRepository) Criar(cartao *domain.CartaoCredito) (*domain.CartaoCredito, error) {
+func (m *MockCartaoCreditoRepository) Criar(familiaID string, cartao *domain.CartaoCredito) (*domain.CartaoCredito, error) {
 	m.criarChamado = true
 	m.cartaoRecebido = cartao
 	if m.returnError != nil {
@@ -32,21 +32,21 @@ func (m *MockCartaoCreditoRepository) Criar(cartao *domain.CartaoCredito) (*doma
 	return &criado, nil
 }
 
-func (m *MockCartaoCreditoRepository) BuscarPorID(id string) (*domain.CartaoCredito, error) {
+func (m *MockCartaoCreditoRepository) BuscarPorID(familiaID, id string) (*domain.CartaoCredito, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnCartao, nil
 }
 
-func (m *MockCartaoCreditoRepository) Listar() ([]*domain.CartaoCredito, error) {
+func (m *MockCartaoCreditoRepository) Listar(familiaID string) ([]*domain.CartaoCredito, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnCartoes, nil
 }
 
-func (m *MockCartaoCreditoRepository) Atualizar(cartao *domain.CartaoCredito) (*domain.CartaoCredito, error) {
+func (m *MockCartaoCreditoRepository) Atualizar(familiaID string, cartao *domain.CartaoCredito) (*domain.CartaoCredito, error) {
 	m.atualizarChamado = true
 	m.cartaoRecebido = cartao
 	if m.returnError != nil {
@@ -56,7 +56,7 @@ func (m *MockCartaoCreditoRepository) Atualizar(cartao *domain.CartaoCredito) (*
 	return &atualizado, nil
 }
 
-func (m *MockCartaoCreditoRepository) Inativar(id string) error {
+func (m *MockCartaoCreditoRepository) Inativar(familiaID, id string) error {
 	m.inativarChamado = true
 	return m.returnError
 }
@@ -69,7 +69,7 @@ func TestCriarCartao_Sucesso(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{}
 	svc := service.NewCartaoCreditoService(mock)
 
-	cartao, err := svc.Criar("Nubank", "membro-1", 10, 17, limitePtr(5000))
+	cartao, err := svc.Criar("familia-id", "Nubank", "membro-1", 10, 17, limitePtr(5000))
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-gerado-mock", cartao.ID)
@@ -85,7 +85,7 @@ func TestCriarCartao_SemLimite(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{}
 	svc := service.NewCartaoCreditoService(mock)
 
-	cartao, err := svc.Criar("Inter", "membro-1", 5, 12, nil)
+	cartao, err := svc.Criar("familia-id", "Inter", "membro-1", 5, 12, nil)
 
 	require.NoError(t, err)
 	assert.Nil(t, cartao.Limite)
@@ -95,7 +95,7 @@ func TestCriarCartao_NomeVazio(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{}
 	svc := service.NewCartaoCreditoService(mock)
 
-	_, err := svc.Criar("", "membro-1", 10, 17, nil)
+	_, err := svc.Criar("familia-id", "", "membro-1", 10, 17, nil)
 
 	assert.ErrorIs(t, err, domain.ErrNomeCartaoObrigatorio)
 	assert.False(t, mock.criarChamado)
@@ -105,7 +105,7 @@ func TestCriarCartao_NomeApenasEspacos(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{}
 	svc := service.NewCartaoCreditoService(mock)
 
-	_, err := svc.Criar("   ", "membro-1", 10, 17, nil)
+	_, err := svc.Criar("familia-id", "   ", "membro-1", 10, 17, nil)
 
 	assert.ErrorIs(t, err, domain.ErrNomeCartaoObrigatorio)
 	assert.False(t, mock.criarChamado)
@@ -115,7 +115,7 @@ func TestCriarCartao_MembroIDVazio(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{}
 	svc := service.NewCartaoCreditoService(mock)
 
-	_, err := svc.Criar("Nubank", "", 10, 17, nil)
+	_, err := svc.Criar("familia-id", "Nubank", "", 10, 17, nil)
 
 	assert.ErrorIs(t, err, domain.ErrMembroIDObrigatorio)
 	assert.False(t, mock.criarChamado)
@@ -125,11 +125,11 @@ func TestCriarCartao_DiaFechamentoInvalido(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{}
 	svc := service.NewCartaoCreditoService(mock)
 
-	_, err := svc.Criar("Nubank", "membro-1", 0, 17, nil)
+	_, err := svc.Criar("familia-id", "Nubank", "membro-1", 0, 17, nil)
 
 	assert.ErrorIs(t, err, domain.ErrDiaFechamentoInvalido)
 
-	_, err = svc.Criar("Nubank", "membro-1", 32, 17, nil)
+	_, err = svc.Criar("familia-id", "Nubank", "membro-1", 32, 17, nil)
 
 	assert.ErrorIs(t, err, domain.ErrDiaFechamentoInvalido)
 	assert.False(t, mock.criarChamado)
@@ -139,11 +139,11 @@ func TestCriarCartao_DiaVencimentoInvalido(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{}
 	svc := service.NewCartaoCreditoService(mock)
 
-	_, err := svc.Criar("Nubank", "membro-1", 10, 0, nil)
+	_, err := svc.Criar("familia-id", "Nubank", "membro-1", 10, 0, nil)
 
 	assert.ErrorIs(t, err, domain.ErrDiaVencimentoInvalido)
 
-	_, err = svc.Criar("Nubank", "membro-1", 10, 32, nil)
+	_, err = svc.Criar("familia-id", "Nubank", "membro-1", 10, 32, nil)
 
 	assert.ErrorIs(t, err, domain.ErrDiaVencimentoInvalido)
 	assert.False(t, mock.criarChamado)
@@ -163,7 +163,7 @@ func TestBuscarCartao_Sucesso(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{returnCartao: esperado}
 	svc := service.NewCartaoCreditoService(mock)
 
-	cartao, err := svc.BuscarPorID("uuid-1")
+	cartao, err := svc.BuscarPorID("familia-id", "uuid-1")
 
 	require.NoError(t, err)
 	assert.Equal(t, esperado.ID, cartao.ID)
@@ -174,7 +174,7 @@ func TestBuscarCartao_NaoEncontrado(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{returnError: domain.ErrCartaoNaoEncontrado}
 	svc := service.NewCartaoCreditoService(mock)
 
-	_, err := svc.BuscarPorID("uuid-inexistente")
+	_, err := svc.BuscarPorID("familia-id", "uuid-inexistente")
 
 	assert.ErrorIs(t, err, domain.ErrCartaoNaoEncontrado)
 }
@@ -189,7 +189,7 @@ func TestListarCartoes_Sucesso(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{returnCartoes: cartoes}
 	svc := service.NewCartaoCreditoService(mock)
 
-	resultado, err := svc.Listar()
+	resultado, err := svc.Listar("familia-id")
 
 	require.NoError(t, err)
 	assert.Len(t, resultado, 2)
@@ -199,7 +199,7 @@ func TestListarCartoes_ListaVazia(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{returnCartoes: []*domain.CartaoCredito{}}
 	svc := service.NewCartaoCreditoService(mock)
 
-	resultado, err := svc.Listar()
+	resultado, err := svc.Listar("familia-id")
 
 	require.NoError(t, err)
 	assert.Empty(t, resultado)
@@ -219,7 +219,7 @@ func TestAtualizarCartao_Sucesso(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{returnCartao: existente}
 	svc := service.NewCartaoCreditoService(mock)
 
-	atualizado, err := svc.Atualizar("uuid-1", "Nubank Gold", "membro-1", 15, 20, limitePtr(8000), true)
+	atualizado, err := svc.Atualizar("familia-id", "uuid-1", "Nubank Gold", "membro-1", 15, 20, limitePtr(8000), true)
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-1", atualizado.ID)
@@ -232,7 +232,7 @@ func TestAtualizarCartao_NaoEncontrado(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{returnError: domain.ErrCartaoNaoEncontrado}
 	svc := service.NewCartaoCreditoService(mock)
 
-	_, err := svc.Atualizar("uuid-inexistente", "Nubank", "membro-1", 10, 17, nil, true)
+	_, err := svc.Atualizar("familia-id", "uuid-inexistente", "Nubank", "membro-1", 10, 17, nil, true)
 
 	assert.ErrorIs(t, err, domain.ErrCartaoNaoEncontrado)
 }
@@ -242,7 +242,7 @@ func TestAtualizarCartao_NomeVazio(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{returnCartao: existente}
 	svc := service.NewCartaoCreditoService(mock)
 
-	_, err := svc.Atualizar("uuid-1", "", "membro-1", 10, 17, nil, true)
+	_, err := svc.Atualizar("familia-id", "uuid-1", "", "membro-1", 10, 17, nil, true)
 
 	assert.ErrorIs(t, err, domain.ErrNomeCartaoObrigatorio)
 	assert.False(t, mock.atualizarChamado)
@@ -255,7 +255,7 @@ func TestInativarCartao_Sucesso(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{returnCartao: existente}
 	svc := service.NewCartaoCreditoService(mock)
 
-	err := svc.Inativar("uuid-1")
+	err := svc.Inativar("familia-id", "uuid-1")
 
 	require.NoError(t, err)
 	assert.True(t, mock.inativarChamado)
@@ -265,7 +265,7 @@ func TestInativarCartao_NaoEncontrado(t *testing.T) {
 	mock := &MockCartaoCreditoRepository{returnError: domain.ErrCartaoNaoEncontrado}
 	svc := service.NewCartaoCreditoService(mock)
 
-	err := svc.Inativar("uuid-inexistente")
+	err := svc.Inativar("familia-id", "uuid-inexistente")
 
 	assert.ErrorIs(t, err, domain.ErrCartaoNaoEncontrado)
 }

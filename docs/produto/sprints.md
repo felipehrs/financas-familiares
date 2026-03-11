@@ -170,9 +170,10 @@
 
 | Seq | Status | ID | Descrição |
 |-----|--------|-----|-----------|
-| 1 | 🔲 | TT-07 | Isolamento de dados por usuário: adicionar `usuario_id` em todas as tabelas, refatorar todos os repositórios para filtrar por usuário, ajustar seed de categorias por usuário |
-| 2 | 🔲 | TT-08 | Segurança: restringir CORS a origens específicas via `ALLOWED_ORIGINS`; rate limiting em `POST /auth/login` (10 req/min/IP, resposta 429) |
-| 3 | 🔲 | TT-09 | Índices de performance: `deleted_at` em todas as tabelas com soft delete, `usuario_id` em todas as tabelas, índice composto em `despesas_cartao(usuario_id, fatura_ano, fatura_mes)` |
+| 1 | 🔲 | TT-07 | Infraestrutura Multi-Tenant: tabelas `familias`, colunas `familia_id`, alteração JWT e Middleware |
+| 2 | 🔲 | TT-10 | Refatoração para Isolamento: filtrar 15+ repositórios e handlers por `familia_id` |
+| 3 | 🔲 | TT-08 | Segurança: restringir CORS a origens específicas; rate limiting em `POST /auth/login` |
+| 4 | 🔲 | TT-09 | Índices de performance: `deleted_at` em todas as tabelas, `familia_id` em todas as tabelas, índice composto em `despesas_cartao` |
 
 **Critério de conclusão:** TT-07 validado com teste de isolamento (usuário A não vê dados do B). CORS restrito a domínios específicos e rate limiting ativo no login com resposta 429. Índices criados e verificados em todas as tabelas afetadas.
 
@@ -214,5 +215,5 @@
 | 6 | Dashboard completo e offline | US-17, US-18, TT-04, TT-05 |
 | 7 | Analytics e projeções | US-19, US-20, US-21 |
 | 8 | Qualidade e deploy | TT-06 + validações |
-| 9 | Segurança e isolamento de dados | TT-07, TT-08, TT-09 |
+| 9 | Segurança e isolamento | TT-07, TT-10, TT-08, TT-09 |
 | 10 | Melhorias de usabilidade | US-28, US-23, US-24, US-25, US-26, US-27 |

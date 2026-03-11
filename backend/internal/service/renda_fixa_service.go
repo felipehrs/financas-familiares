@@ -10,25 +10,25 @@ import (
 // RendaFixaRepository define as operações de persistência necessárias para rendas fixas.
 // Declarada aqui para evitar import circular entre service e repository.
 type RendaFixaRepository interface {
-	Criar(r *domain.RendaFixa) (*domain.RendaFixa, error)
-	BuscarPorID(id string) (*domain.RendaFixa, error)
-	Listar() ([]*domain.RendaFixa, error)
-	ListarAtivas() ([]*domain.RendaFixa, error)
-	ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error)
-	Atualizar(r *domain.RendaFixa) (*domain.RendaFixa, error)
-	Inativar(id string) error
+	Criar(familiaID string, r *domain.RendaFixa) (*domain.RendaFixa, error)
+	BuscarPorID(familiaID, id string) (*domain.RendaFixa, error)
+	Listar(familiaID string) ([]*domain.RendaFixa, error)
+	ListarAtivas(familiaID string) ([]*domain.RendaFixa, error)
+	ListarVigentesPorMes(familiaID string, mes, ano int) ([]*domain.RendaFixa, error)
+	Atualizar(familiaID string, r *domain.RendaFixa) (*domain.RendaFixa, error)
+	Inativar(familiaID, id string) error
 }
 
 // RendaFixaServiceInterface define os métodos públicos do serviço de rendas fixas.
 // Redeclarada nos handlers para desacoplamento.
 type RendaFixaServiceInterface interface {
-	Criar(descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
-	BuscarPorID(id string) (*domain.RendaFixa, error)
-	Listar() ([]*domain.RendaFixa, error)
-	ListarAtivas() ([]*domain.RendaFixa, error)
-	ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error)
-	Atualizar(id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
-	Inativar(id string) error
+	Criar(familiaID, descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
+	BuscarPorID(familiaID, id string) (*domain.RendaFixa, error)
+	Listar(familiaID string) ([]*domain.RendaFixa, error)
+	ListarAtivas(familiaID string) ([]*domain.RendaFixa, error)
+	ListarVigentesPorMes(familiaID string, mes, ano int) ([]*domain.RendaFixa, error)
+	Atualizar(familiaID, id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
+	Inativar(familiaID, id string) error
 }
 
 // RendaFixaService implementa a lógica de negócio para rendas fixas.
@@ -62,7 +62,7 @@ func validarRendaFixa(descricao, membroID string, valor float64, diaRecebimento 
 
 // Criar cria uma nova renda fixa.
 // Valida os campos obrigatórios e define Ativa=true por padrão.
-func (s *RendaFixaService) Criar(descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
+func (s *RendaFixaService) Criar(familiaID, descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
 	if err := validarRendaFixa(descricao, membroID, valor, diaRecebimento, dataInicio); err != nil {
 		return nil, err
 	}
@@ -77,39 +77,39 @@ func (s *RendaFixaService) Criar(descricao, membroID string, valor float64, diaR
 		DataFim:        dataFim,
 	}
 
-	return s.repo.Criar(renda)
+	return s.repo.Criar(familiaID, renda)
 }
 
 // BuscarPorID retorna uma renda fixa pelo seu ID.
 // Retorna ErrRendaFixaNaoEncontrada se não existir.
-func (s *RendaFixaService) BuscarPorID(id string) (*domain.RendaFixa, error) {
-	return s.repo.BuscarPorID(id)
+func (s *RendaFixaService) BuscarPorID(familiaID, id string) (*domain.RendaFixa, error) {
+	return s.repo.BuscarPorID(familiaID, id)
 }
 
 // Listar retorna todas as rendas fixas (ativas e inativas, sem deletadas).
-func (s *RendaFixaService) Listar() ([]*domain.RendaFixa, error) {
-	return s.repo.Listar()
+func (s *RendaFixaService) Listar(familiaID string) ([]*domain.RendaFixa, error) {
+	return s.repo.Listar(familiaID)
 }
 
 // ListarAtivas retorna apenas as rendas fixas ativas (para cálculo de saldo e projeções).
-func (s *RendaFixaService) ListarAtivas() ([]*domain.RendaFixa, error) {
-	return s.repo.ListarAtivas()
+func (s *RendaFixaService) ListarAtivas(familiaID string) ([]*domain.RendaFixa, error) {
+	return s.repo.ListarAtivas(familiaID)
 }
 
 // ListarVigentesPorMes retorna as rendas fixas vigentes em um dado mês/ano.
 // Uma renda é vigente se: data_inicio <= mês/ano AND (data_fim IS NULL OR data_fim >= mês/ano).
-func (s *RendaFixaService) ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error) {
-	return s.repo.ListarVigentesPorMes(mes, ano)
+func (s *RendaFixaService) ListarVigentesPorMes(familiaID string, mes, ano int) ([]*domain.RendaFixa, error) {
+	return s.repo.ListarVigentesPorMes(familiaID, mes, ano)
 }
 
 // Atualizar atualiza os dados de uma renda fixa existente.
 // Valida os campos obrigatórios antes de buscar no repositório.
-func (s *RendaFixaService) Atualizar(id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
+func (s *RendaFixaService) Atualizar(familiaID, id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
 	if err := validarRendaFixa(descricao, membroID, valor, diaRecebimento, dataInicio); err != nil {
 		return nil, err
 	}
 
-	renda, err := s.repo.BuscarPorID(id)
+	renda, err := s.repo.BuscarPorID(familiaID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -122,16 +122,16 @@ func (s *RendaFixaService) Atualizar(id, descricao, membroID string, valor float
 	renda.DataInicio = dataInicio
 	renda.DataFim = dataFim
 
-	return s.repo.Atualizar(renda)
+	return s.repo.Atualizar(familiaID, renda)
 }
 
 // Inativar marca uma renda fixa como inativa (soft delete lógico).
 // Não exclui o registro — apenas seta Ativa=false.
 // Retorna ErrRendaFixaNaoEncontrada se o ID não existir.
-func (s *RendaFixaService) Inativar(id string) error {
-	_, err := s.repo.BuscarPorID(id)
+func (s *RendaFixaService) Inativar(familiaID, id string) error {
+	_, err := s.repo.BuscarPorID(familiaID, id)
 	if err != nil {
 		return err
 	}
-	return s.repo.Inativar(id)
+	return s.repo.Inativar(familiaID, id)
 }

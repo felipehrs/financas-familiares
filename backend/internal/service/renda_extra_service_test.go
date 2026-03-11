@@ -22,7 +22,7 @@ type MockRendaExtraRepository struct {
 	atualizarChamado bool
 }
 
-func (m *MockRendaExtraRepository) Criar(r *domain.RendaExtra) (*domain.RendaExtra, error) {
+func (m *MockRendaExtraRepository) Criar(familiaID string, r *domain.RendaExtra) (*domain.RendaExtra, error) {
 	m.criarChamado = true
 	if m.returnError != nil {
 		return nil, m.returnError
@@ -32,28 +32,28 @@ func (m *MockRendaExtraRepository) Criar(r *domain.RendaExtra) (*domain.RendaExt
 	return &criado, nil
 }
 
-func (m *MockRendaExtraRepository) BuscarPorID(id string) (*domain.RendaExtra, error) {
+func (m *MockRendaExtraRepository) BuscarPorID(familiaID, id string) (*domain.RendaExtra, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnRenda, nil
 }
 
-func (m *MockRendaExtraRepository) Listar() ([]*domain.RendaExtra, error) {
+func (m *MockRendaExtraRepository) Listar(familiaID string) ([]*domain.RendaExtra, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnRendas, nil
 }
 
-func (m *MockRendaExtraRepository) ListarPorMes(mes, ano int) ([]*domain.RendaExtra, error) {
+func (m *MockRendaExtraRepository) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaExtra, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnRendas, nil
 }
 
-func (m *MockRendaExtraRepository) Atualizar(r *domain.RendaExtra) (*domain.RendaExtra, error) {
+func (m *MockRendaExtraRepository) Atualizar(familiaID string, r *domain.RendaExtra) (*domain.RendaExtra, error) {
 	m.atualizarChamado = true
 	if m.returnError != nil {
 		return nil, m.returnError
@@ -62,7 +62,7 @@ func (m *MockRendaExtraRepository) Atualizar(r *domain.RendaExtra) (*domain.Rend
 	return &atualizado, nil
 }
 
-func (m *MockRendaExtraRepository) Excluir(id string) error {
+func (m *MockRendaExtraRepository) Excluir(familiaID, id string) error {
 	m.excluirChamado = true
 	return m.returnError
 }
@@ -76,7 +76,7 @@ func TestCriarRendaExtra_Sucesso(t *testing.T) {
 	mock := &MockRendaExtraRepository{}
 	svc := service.NewRendaExtraService(mock)
 
-	renda, err := svc.Criar("Bônus março", "membro-1", dataRecebimentoRendaExtraValida, 2000.00)
+	renda, err := svc.Criar("familia-id", "Bônus março", "membro-1", dataRecebimentoRendaExtraValida, 2000.00)
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-gerado-mock", renda.ID)
@@ -90,7 +90,7 @@ func TestCriarRendaExtra_SemDescricao(t *testing.T) {
 	mock := &MockRendaExtraRepository{}
 	svc := service.NewRendaExtraService(mock)
 
-	_, err := svc.Criar("", "membro-1", dataRecebimentoRendaExtraValida, 2000.00)
+	_, err := svc.Criar("familia-id", "", "membro-1", dataRecebimentoRendaExtraValida, 2000.00)
 
 	assert.ErrorIs(t, err, domain.ErrDescricaoRendaExtraObrigatoria)
 	assert.False(t, mock.criarChamado, "repositório não deve ser chamado com descrição vazia")
@@ -100,7 +100,7 @@ func TestCriarRendaExtra_SemMembroID(t *testing.T) {
 	mock := &MockRendaExtraRepository{}
 	svc := service.NewRendaExtraService(mock)
 
-	_, err := svc.Criar("Bônus março", "", dataRecebimentoRendaExtraValida, 2000.00)
+	_, err := svc.Criar("familia-id", "Bônus março", "", dataRecebimentoRendaExtraValida, 2000.00)
 
 	assert.ErrorIs(t, err, domain.ErrMembroIDRendaExtraObrigatorio)
 	assert.False(t, mock.criarChamado)
@@ -110,7 +110,7 @@ func TestCriarRendaExtra_ValorZero(t *testing.T) {
 	mock := &MockRendaExtraRepository{}
 	svc := service.NewRendaExtraService(mock)
 
-	_, err := svc.Criar("Bônus março", "membro-1", dataRecebimentoRendaExtraValida, 0)
+	_, err := svc.Criar("familia-id", "Bônus março", "membro-1", dataRecebimentoRendaExtraValida, 0)
 
 	assert.ErrorIs(t, err, domain.ErrValorRendaExtraInvalido)
 	assert.False(t, mock.criarChamado)
@@ -120,7 +120,7 @@ func TestCriarRendaExtra_ValorNegativo(t *testing.T) {
 	mock := &MockRendaExtraRepository{}
 	svc := service.NewRendaExtraService(mock)
 
-	_, err := svc.Criar("Bônus março", "membro-1", dataRecebimentoRendaExtraValida, -100.00)
+	_, err := svc.Criar("familia-id", "Bônus março", "membro-1", dataRecebimentoRendaExtraValida, -100.00)
 
 	assert.ErrorIs(t, err, domain.ErrValorRendaExtraInvalido)
 	assert.False(t, mock.criarChamado)
@@ -130,7 +130,7 @@ func TestCriarRendaExtra_DataRecebimentoZero(t *testing.T) {
 	mock := &MockRendaExtraRepository{}
 	svc := service.NewRendaExtraService(mock)
 
-	_, err := svc.Criar("Bônus março", "membro-1", time.Time{}, 2000.00)
+	_, err := svc.Criar("familia-id", "Bônus março", "membro-1", time.Time{}, 2000.00)
 
 	assert.ErrorIs(t, err, domain.ErrDataRecebimentoRendaExtraObrigatoria)
 	assert.False(t, mock.criarChamado)
@@ -149,7 +149,7 @@ func TestBuscarPorIDRendaExtra_Existente(t *testing.T) {
 	mock := &MockRendaExtraRepository{returnRenda: existente}
 	svc := service.NewRendaExtraService(mock)
 
-	resultado, err := svc.BuscarPorID("uuid-1")
+	resultado, err := svc.BuscarPorID("familia-id", "uuid-1")
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-1", resultado.ID)
@@ -160,7 +160,7 @@ func TestBuscarPorIDRendaExtra_Inexistente(t *testing.T) {
 	mock := &MockRendaExtraRepository{returnError: domain.ErrRendaExtraNaoEncontrada}
 	svc := service.NewRendaExtraService(mock)
 
-	_, err := svc.BuscarPorID("uuid-inexistente")
+	_, err := svc.BuscarPorID("familia-id", "uuid-inexistente")
 
 	assert.ErrorIs(t, err, domain.ErrRendaExtraNaoEncontrada)
 }
@@ -175,7 +175,7 @@ func TestListarRendasExtras_RetornaLista(t *testing.T) {
 	mock := &MockRendaExtraRepository{returnRendas: rendas}
 	svc := service.NewRendaExtraService(mock)
 
-	resultado, err := svc.Listar()
+	resultado, err := svc.Listar("familia-id")
 
 	require.NoError(t, err)
 	assert.Len(t, resultado, 2)
@@ -193,7 +193,7 @@ func TestListarRendasExtrasPorMes_RetornaListaFiltrada(t *testing.T) {
 	mock := &MockRendaExtraRepository{returnRendas: rendas}
 	svc := service.NewRendaExtraService(mock)
 
-	resultado, err := svc.ListarPorMes(3, 2026)
+	resultado, err := svc.ListarPorMes("familia-id", 3, 2026)
 
 	require.NoError(t, err)
 	assert.Len(t, resultado, 2)
@@ -206,7 +206,7 @@ func TestExcluirRendaExtra_Existente(t *testing.T) {
 	mock := &MockRendaExtraRepository{returnRenda: existente}
 	svc := service.NewRendaExtraService(mock)
 
-	err := svc.Excluir("uuid-1")
+	err := svc.Excluir("familia-id", "uuid-1")
 
 	require.NoError(t, err)
 	assert.True(t, mock.excluirChamado)
@@ -216,7 +216,7 @@ func TestExcluirRendaExtra_Inexistente(t *testing.T) {
 	mock := &MockRendaExtraRepository{returnError: domain.ErrRendaExtraNaoEncontrada}
 	svc := service.NewRendaExtraService(mock)
 
-	err := svc.Excluir("uuid-inexistente")
+	err := svc.Excluir("familia-id", "uuid-inexistente")
 
 	assert.ErrorIs(t, err, domain.ErrRendaExtraNaoEncontrada)
 	assert.False(t, mock.excluirChamado)

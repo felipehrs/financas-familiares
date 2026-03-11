@@ -2,9 +2,10 @@
 
 ## Índice
 1. [Visão Geral e Sequência de Execução](#1-visão-geral-e-sequência-de-execução)
-2. [TT-07: Isolamento de Dados por Família](#2-tt-07-isolamento-de-dados-por-família)
-3. [TT-08: CORS Restrito e Rate Limiting no Login](#3-tt-08-cors-restrito-e-rate-limiting-no-login)
-4. [TT-09: Índices de Performance](#4-tt-09-índices-de-performance)
+2. [TT-07: Infraestrutura de Multi-Tenant (Banco, JWT e Middleware)](#2-tt-07-infraestrutura-de-multi-tenant-banco-jwt-e-middleware)
+3. [TT-10: Refatoração de Repositórios e Handlers (Isolamento)](#3-tt-10-refatoração-de-repositórios-e-handlers-isolamento)
+4. [TT-08: CORS Restrito e Rate Limiting no Login](#4-tt-08-cors-restrito-e-rate-limiting-no-login)
+5. [TT-09: Índices de Performance](#5-tt-09-índices-de-performance)
 5. [Critério de Conclusão](#5-critério-de-conclusão)
 6. [Arquivos Modificados por Item](#6-arquivos-modificados-por-item)
 
@@ -12,13 +13,15 @@
 
 ## 1. Visão Geral e Sequência de Execução
 
-### Por que TT-07 → TT-08 → TT-09?
+### Por que TT-07 → TT-10 → TT-08 → TT-09?
 
-**TT-07 primeiro** porque é o problema de segurança mais crítico: sem isolamento, qualquer usuário autenticado lê e modifica dados de qualquer outro. Além disso, o TT-09 depende do TT-07: os índices em `familia_id` só fazem sentido depois que a coluna existir.
+**TT-07 primeiro** porque define a infraestrutura base (banco, JWT, middleware). Sem a coluna `familia_id`, nada mais funciona.
 
-**TT-08 segundo** porque é independente do banco de dados (opera na camada de middleware HTTP). Pode ser feito em paralelo com TT-07, mas sequencialmente é mais simples.
+**TT-10 segundo** porque implementa o isolamento real em todas as queries. É o item mais volumoso e depende da infra do TT-07.
 
-**TT-09 por último** porque os índices em `familia_id` dependem da migration do TT-07 estar aplicada.
+**TT-08 terceiro** porque é independente do banco de dados (opera na camada de middleware HTTP).
+
+**TT-09 por último** porque os índices em `familia_id` dependem da conclusão da migration e da refatoração.
 
 ### Por que `familia_id` e não `usuario_id`?
 
@@ -31,7 +34,7 @@ O domínio do produto é **finanças familiares** — múltiplos usuários da me
 
 ---
 
-## 2. TT-07: Isolamento de Dados por Família
+## 2. TT-07: Infraestrutura de Multi-Tenant (Banco, JWT e Middleware)
 
 ### 2.1 Análise do Estado Atual
 
@@ -373,7 +376,7 @@ if !ok {
 fid := familiaID.(string)
 ```
 
-Função auxiliar recomendada em `handler/helpers.go`:
+Function auxiliar recomendada em `handler/helpers.go`:
 
 ```go
 func getFamiliaID(c *gin.Context) (string, bool) {
@@ -386,7 +389,14 @@ func getFamiliaID(c *gin.Context) (string, bool) {
 }
 ```
 
-### 2.5 Refatoração dos Repositórios
+---
+
+## 3. TT-10: Refatoração de Repositórios e Handlers (Isolamento)
+
+### 3.1 Escopo da Refatoração
+O isolamento agora é aplicado em todas as camadas de dados. Todas as interfaces e implementações de repositório precisam ser atualizadas para exigir `familiaID`.
+
+### 3.2 Refatoração dos Repositórios
 
 O padrão de refatoração é idêntico ao anterior, mas o parâmetro muda de `usuarioID` para `familiaID` — e a semântica muda: agora todos os membros da família veem os mesmos dados.
 
@@ -470,7 +480,7 @@ func (r *MembroRepository) BuscarPorID(familiaID, id string) (*domain.Membro, er
 
 > Adicionar `familia_id = $2` no `BuscarPorID` garante que um usuário de outra família não acessa o registro mesmo que adivinhe o UUID.
 
-#### 2.5.3 Casos especiais
+#### 3.3 Casos especiais
 
 **`categorias` — Excluir:** verificação de vínculos também filtra por `familia_id`:
 ```sql
@@ -491,7 +501,7 @@ SELECT COUNT(*) FROM (
 
 **`dashboard_repository.go` — DespesasPorCategoria:** assinatura muda para `DespesasPorCategoria(familiaID string, mes, ano int)`.
 
-### 2.6 Refatoração dos Handlers
+### 3.4 Refatoração dos Handlers
 
 #### Lista completa de handlers
 
@@ -511,7 +521,7 @@ SELECT COUNT(*) FROM (
 | `dashboard_handler.go` | `ResumoMensal`, `DespesasPorCategoria`, `EvolucaoMensal`, `Projecao` |
 | `renda_historico_handler.go` | `Historico` |
 
-### 2.7 Ajuste do DashboardService
+### 3.5 Ajuste do DashboardService
 
 ```go
 // Antes:
@@ -523,7 +533,7 @@ func (s *DashboardService) ResumoMensal(familiaID string, mes, ano int) (*Resumo
 
 O mesmo se aplica a `EvolucaoMensal`, `ProjecaoProximosMeses` e `DespesasPorCategoria`.
 
-### 2.8 Ajuste do Seed
+### 3.6 Ajuste do Seed
 
 **Novo repositório: `familia_repository.go`** com método `BuscarFamiliaPorUsuario(usuarioID string) (string, error)` — usado pelo AuthService no login.
 
@@ -574,82 +584,11 @@ if err := SeedCategorias(db, familiaID); err != nil {
 
 **Importante:** os dois usuários de seed de dev devem ser vinculados à **mesma família** para testar a colaboração entre membros. Ajustar o seed para que o segundo usuário entre como `membro` da família do primeiro.
 
-### 2.9 Teste de Isolamento
+### 3.7 Teste de Isolamento e Unitários
 
-```go
-//go:build integration
-// +build integration
+**Teste de Integração:** `TestIsolamentoFamilias` e `TestIsolamentoBuscarPorID` (ver spec completa no original).
 
-package repository_test
-
-// TestIsolamentoFamilias verifica que a família A não vê dados da família B.
-func TestIsolamentoFamilias(t *testing.T) {
-    db := conectarBancoDeTeste(t)
-    defer limparBanco(t, db)
-
-    // Criar duas famílias independentes
-    fidA := criarFamilia(t, db, "Família A")
-    fidB := criarFamilia(t, db, "Família B")
-
-    repo := repository.NewMembroRepository(db)
-
-    // Família A cria um membro
-    _, err := repo.Criar(fidA, &domain.Membro{Nome: "Ana"})
-    require.NoError(t, err)
-
-    // Família B cria um membro
-    _, err = repo.Criar(fidB, &domain.Membro{Nome: "Bruno"})
-    require.NoError(t, err)
-
-    // Família A só vê seus dados
-    membrosA, err := repo.Listar(fidA)
-    require.NoError(t, err)
-    assert.Len(t, membrosA, 1)
-    assert.Equal(t, "Ana", membrosA[0].Nome)
-
-    // Família B só vê seus dados
-    membrosB, err := repo.Listar(fidB)
-    require.NoError(t, err)
-    assert.Len(t, membrosB, 1)
-    assert.Equal(t, "Bruno", membrosB[0].Nome)
-}
-
-// TestIsolamentoBuscarPorID verifica que família A não acessa registro da família B por ID.
-func TestIsolamentoBuscarPorID(t *testing.T) {
-    db := conectarBancoDeTeste(t)
-    defer limparBanco(t, db)
-
-    fidA := criarFamilia(t, db, "Família A")
-    fidB := criarFamilia(t, db, "Família B")
-
-    repo := repository.NewMembroRepository(db)
-
-    membroB, err := repo.Criar(fidB, &domain.Membro{Nome: "Bruno"})
-    require.NoError(t, err)
-
-    // Família A tenta acessar membro da família B
-    _, err = repo.BuscarPorID(fidA, membroB.ID)
-    assert.ErrorIs(t, err, domain.ErrMembroNaoEncontrado,
-        "família A não deve enxergar membro da família B")
-}
-```
-
-### 2.10 Ajuste dos Testes Unitários
-
-**Injetar `familiaID` no contexto nos testes de handler:**
-```go
-func setupMembroRouter(svc handler.MembroServiceInterface) *gin.Engine {
-    gin.SetMode(gin.TestMode)
-    r := gin.New()
-    r.Use(func(c *gin.Context) {
-        c.Set("userID", "usuario-teste-uuid")
-        c.Set("familiaID", "familia-teste-uuid") // NOVO
-        c.Next()
-    })
-    h := handler.NewMembroHandler(svc)
-    // ... registrar rotas
-}
-```
+**Testes Unitários:** Injetar `familiaID` no contexto nos testes de handler via setup do router.
 
 ---
 
@@ -918,26 +857,27 @@ DROP INDEX IF EXISTS idx_familias_deleted_at;
 
 ## 5. Critério de Conclusão
 
-### TT-07 — Isolamento de dados por família
+### TT-07 — Infraestrutura de Multi-Tenant
 
-- [ ] Migration `000017` aplicada sem erros em banco limpo e em banco com dados existentes
-- [ ] Migration `000017` down funciona corretamente (apaga `familias`, `familia_usuarios` e remove colunas)
-- [ ] Tabelas `familias` e `familia_usuarios` criadas corretamente
+- [ ] Migration `000017` aplicada sem erros (criação de `familias` e colunas `familia_id`)
+- [ ] Migration `000017` down funciona corretamente
 - [ ] JWT inclui `familia_id` nas claims
 - [ ] Middleware extrai `familia_id` do token e disponibiliza como `"familiaID"` no contexto Gin
 - [ ] `FamiliaRepository.BuscarFamiliaPorUsuario` implementado e usado pelo AuthService
+- [ ] `SeedUsuarios` cria família e vincula usuários (seed base modificado)
+
+### TT-10 — Isolamento de dados por família
+
 - [ ] Todos os repositórios (11 + dashboard) filtram por `familia_id`
 - [ ] Todas as interfaces de repositório em `service/` atualizadas
 - [ ] Todos os services passam `familiaID` para o repositório
 - [ ] Todos os handlers extraem `"familiaID"` do contexto
 - [ ] `SeedCategorias` recebe `familiaID` e insere com `familia_id`
-- [ ] `SeedUsuarios` cria família e chama `SeedCategorias` para cada usuário de seed
-- [ ] Os dois usuários de seed compartilham a mesma família (testam colaboração)
-- [ ] Constraint `UNIQUE(familia_id, nome)` em categorias substituiu `UNIQUE(nome)` global
-- [ ] Todos os testes unitários compilam e passam (mocks atualizados com `familiaID`)
+- [ ] Contours `UNIQUE(familia_id, nome)` em categorias ativo
+- [ ] Todos os testes unitários compilam e passam (mocks atualizados)
 - [ ] Teste de integração `TestIsolamentoFamilias` passa
 - [ ] Teste de integração `TestIsolamentoBuscarPorID` passa
-- [ ] `go build ./...` sem erros
+- [ ] `go build ./...` sem erros (isolamento completo)
 
 ### TT-08 — CORS + Rate Limiting
 
@@ -964,60 +904,29 @@ DROP INDEX IF EXISTS idx_familias_deleted_at;
 
 ## 6. Arquivos Modificados por Item
 
-### TT-07
+### TT-07 (Infra)
 
 | Arquivo | Tipo de Mudança |
 |---|---|
 | `backend/migrations/000017_add_familia_isolation.up.sql` | **Novo** |
 | `backend/migrations/000017_add_familia_isolation.down.sql` | **Novo** |
 | `backend/internal/domain/auth.go` | Modificado: adicionar `FamiliaID` nas Claims do JWT |
-| `backend/internal/domain/familia.go` | **Novo**: struct `Familia`, `FamiliaUsuario`, erros de domínio |
-| `backend/internal/repository/familia_repository.go` | **Novo**: `BuscarFamiliaPorUsuario`, `Criar`, `VincularUsuario` |
-| `backend/internal/middleware/auth.go` | Modificado: extrair `familia_id` do token e setar `"familiaID"` no contexto |
-| `backend/internal/service/auth_service.go` | Modificado: buscar `familiaID` ao fazer login e incluir no JWT |
-| `backend/internal/handler/helpers.go` | **Novo**: funções `getFamiliaID`, `getUsuarioID` |
-| `backend/internal/repository/membro_repository.go` | Modificado: `familiaID` em todos os métodos |
-| `backend/internal/repository/categoria_repository.go` | Modificado: idem |
-| `backend/internal/repository/cartao_credito_repository.go` | Modificado: idem |
-| `backend/internal/repository/despesa_cartao_repository.go` | Modificado: idem |
-| `backend/internal/repository/assinatura_repository.go` | Modificado: idem |
-| `backend/internal/repository/conta_fixa_repository.go` | Modificado: idem |
-| `backend/internal/repository/despesa_geral_repository.go` | Modificado: idem |
-| `backend/internal/repository/renda_fixa_repository.go` | Modificado: idem |
-| `backend/internal/repository/renda_variavel_repository.go` | Modificado: idem |
-| `backend/internal/repository/renda_extra_repository.go` | Modificado: idem |
-| `backend/internal/repository/rendimento_investimento_repository.go` | Modificado: idem |
-| `backend/internal/repository/dashboard_repository.go` | Modificado: `familiaID` em `DespesasPorCategoria` |
-| `backend/internal/repository/seed.go` | Modificado: criar família no seed; `SeedCategorias` recebe `familiaID` |
-| `backend/internal/service/membro_service.go` | Modificado: interfaces e métodos com `familiaID` |
-| `backend/internal/service/categoria_service.go` | Modificado: idem |
-| `backend/internal/service/cartao_credito_service.go` | Modificado: idem |
-| `backend/internal/service/despesa_cartao_service.go` | Modificado: idem |
-| `backend/internal/service/assinatura_service.go` | Modificado: idem |
-| `backend/internal/service/conta_fixa_service.go` | Modificado: idem |
-| `backend/internal/service/despesa_geral_service.go` | Modificado: idem |
-| `backend/internal/service/renda_fixa_service.go` | Modificado: idem |
-| `backend/internal/service/renda_variavel_service.go` | Modificado: idem |
-| `backend/internal/service/renda_extra_service.go` | Modificado: idem |
-| `backend/internal/service/rendimento_investimento_service.go` | Modificado: idem |
-| `backend/internal/service/dashboard_service.go` | Modificado: `familiaID` em todos os métodos e interfaces `*ForDashboard` |
-| `backend/internal/service/renda_historico_service.go` | Modificado: idem |
-| `backend/internal/handler/membro_handler.go` | Modificado: extrair `familiaID`; atualizar interface local |
-| `backend/internal/handler/categoria_handler.go` | Modificado: idem |
-| `backend/internal/handler/cartao_credito_handler.go` | Modificado: idem |
-| `backend/internal/handler/despesa_cartao_handler.go` | Modificado: idem |
-| `backend/internal/handler/assinatura_handler.go` | Modificado: idem |
-| `backend/internal/handler/conta_fixa_handler.go` | Modificado: idem |
-| `backend/internal/handler/despesa_geral_handler.go` | Modificado: idem |
-| `backend/internal/handler/renda_fixa_handler.go` | Modificado: idem |
-| `backend/internal/handler/renda_variavel_handler.go` | Modificado: idem |
-| `backend/internal/handler/renda_extra_handler.go` | Modificado: idem |
-| `backend/internal/handler/rendimento_investimento_handler.go` | Modificado: idem |
-| `backend/internal/handler/dashboard_handler.go` | Modificado: idem |
-| `backend/internal/handler/renda_historico_handler.go` | Modificado: idem |
-| `backend/internal/handler/*_handler_test.go` (todos) | Modificado: mocks e `setupRouter` com injeção de `familiaID` |
-| `backend/internal/repository/isolamento_test.go` | **Novo**: teste de integração de isolamento por família |
-| `backend/cmd/server/main.go` | Modificado: remover chamada separada a `SeedCategorias` |
+| `backend/internal/domain/familia.go` | **Novo**: struct `Familia`, `FamiliaUsuario` |
+| `backend/internal/repository/familia_repository.go` | **Novo**: `BuscarFamiliaPorUsuario` |
+| `backend/internal/middleware/auth.go` | Modificado: extrair `familia_id` do token |
+| `backend/internal/service/auth_service.go` | Modificado: buscar `familiaID` no login |
+| `backend/internal/handler/helpers.go` | **Novo**: função `getFamiliaID` |
+
+### TT-10 (Refatoração)
+
+| Arquivo | Tipo de Mudança |
+|---|---|
+| `backend/internal/repository/*_repository.go` | Modificado: `familiaID` em todos os métodos |
+| `backend/internal/service/*_service.go` | Modificado: repasse de `familiaID` |
+| `backend/internal/handler/*_handler.go` | Modificado: extração de `familiaID` |
+| `backend/internal/repository/seed.go` | Modificado: `SeedCategorias` por família |
+| `backend/internal/repository/isolamento_test.go` | **Novo**: testes de integração |
+| `backend/internal/handler/*_handler_test.go` | Modificado: mocks com `familiaID` |
 
 ### TT-08
 

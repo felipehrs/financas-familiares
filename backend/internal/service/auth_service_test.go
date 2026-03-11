@@ -61,6 +61,19 @@ func (m *MockAuthRepository) RevokeRefreshToken(tokenHash string) error {
 	return nil
 }
 
+// MockFamiliaRepository implementa FamiliaRepository para testes unitários.
+type MockFamiliaRepository struct {
+	familiaID string
+	err       error
+}
+
+func (m *MockFamiliaRepository) BuscarFamiliaPorUsuario(usuarioID string) (string, error) {
+	if m.err != nil {
+		return "", m.err
+	}
+	return m.familiaID, nil
+}
+
 // helpers
 
 func hashSHA256(token string) string {
@@ -82,12 +95,16 @@ func criarUsuarioComSenha(t *testing.T, repo *MockAuthRepository, email, senha s
 	return u
 }
 
+func newMockFamiliaRepo() *MockFamiliaRepository {
+	return &MockFamiliaRepository{familiaID: "familia-teste-uuid"}
+}
+
 // ---- Testes ----
 
 func TestLogin_Sucesso(t *testing.T) {
 	repo := newMockRepo()
 	criarUsuarioComSenha(t, repo, "user@example.com", "senha123")
-	svc := service.NewAuthService(repo, "segredo-jwt-teste")
+	svc := service.NewAuthService(repo, newMockFamiliaRepo(), "segredo-jwt-teste")
 
 	accessToken, refreshToken, err := svc.Login("user@example.com", "senha123")
 
@@ -98,7 +115,7 @@ func TestLogin_Sucesso(t *testing.T) {
 
 func TestLogin_EmailInvalido(t *testing.T) {
 	repo := newMockRepo()
-	svc := service.NewAuthService(repo, "segredo-jwt-teste")
+	svc := service.NewAuthService(repo, newMockFamiliaRepo(), "segredo-jwt-teste")
 
 	_, _, err := svc.Login("naoexiste@example.com", "qualquersenha")
 
@@ -108,7 +125,7 @@ func TestLogin_EmailInvalido(t *testing.T) {
 func TestLogin_SenhaInvalida(t *testing.T) {
 	repo := newMockRepo()
 	criarUsuarioComSenha(t, repo, "user@example.com", "senha-correta")
-	svc := service.NewAuthService(repo, "segredo-jwt-teste")
+	svc := service.NewAuthService(repo, newMockFamiliaRepo(), "segredo-jwt-teste")
 
 	_, _, err := svc.Login("user@example.com", "senha-errada")
 
@@ -119,7 +136,7 @@ func TestLogin_SenhaInvalida(t *testing.T) {
 func TestRefreshToken_Sucesso(t *testing.T) {
 	repo := newMockRepo()
 	criarUsuarioComSenha(t, repo, "user@example.com", "senha123")
-	svc := service.NewAuthService(repo, "segredo-jwt-teste")
+	svc := service.NewAuthService(repo, newMockFamiliaRepo(), "segredo-jwt-teste")
 
 	_, refreshToken, err := svc.Login("user@example.com", "senha123")
 	require.NoError(t, err)
@@ -132,7 +149,7 @@ func TestRefreshToken_Sucesso(t *testing.T) {
 
 func TestRefreshToken_Invalido(t *testing.T) {
 	repo := newMockRepo()
-	svc := service.NewAuthService(repo, "segredo-jwt-teste")
+	svc := service.NewAuthService(repo, newMockFamiliaRepo(), "segredo-jwt-teste")
 
 	_, err := svc.RefreshToken("token-que-nao-existe")
 
@@ -142,7 +159,7 @@ func TestRefreshToken_Invalido(t *testing.T) {
 func TestRefreshToken_Expirado(t *testing.T) {
 	repo := newMockRepo()
 	criarUsuarioComSenha(t, repo, "user@example.com", "senha123")
-	svc := service.NewAuthService(repo, "segredo-jwt-teste")
+	svc := service.NewAuthService(repo, newMockFamiliaRepo(), "segredo-jwt-teste")
 
 	// inserir manualmente um refresh token já expirado no mock
 	tokenRaw := "refresh-token-expirado"
@@ -162,7 +179,7 @@ func TestRefreshToken_Expirado(t *testing.T) {
 func TestRefreshToken_Revogado(t *testing.T) {
 	repo := newMockRepo()
 	criarUsuarioComSenha(t, repo, "user@example.com", "senha123")
-	svc := service.NewAuthService(repo, "segredo-jwt-teste")
+	svc := service.NewAuthService(repo, newMockFamiliaRepo(), "segredo-jwt-teste")
 
 	_, refreshToken, err := svc.Login("user@example.com", "senha123")
 	require.NoError(t, err)
@@ -180,35 +197,36 @@ func TestRefreshToken_Revogado(t *testing.T) {
 func TestValidateAccessToken_Sucesso(t *testing.T) {
 	repo := newMockRepo()
 	criarUsuarioComSenha(t, repo, "user@example.com", "senha123")
-	svc := service.NewAuthService(repo, "segredo-jwt-teste")
+	svc := service.NewAuthService(repo, newMockFamiliaRepo(), "segredo-jwt-teste")
 
 	accessToken, _, err := svc.Login("user@example.com", "senha123")
 	require.NoError(t, err)
 
-	usuarioID, err := svc.ValidateAccessToken(accessToken)
+	usuarioID, familiaID, err := svc.ValidateAccessToken(accessToken)
 
 	require.NoError(t, err)
 	assert.Equal(t, "usuario-id-1", usuarioID)
+	assert.Equal(t, "familia-teste-uuid", familiaID)
 }
 
 func TestValidateAccessToken_Expirado(t *testing.T) {
 	repo := newMockRepo()
-	svc := service.NewAuthService(repo, "segredo-jwt-teste")
+	svc := service.NewAuthService(repo, newMockFamiliaRepo(), "segredo-jwt-teste")
 
 	// criar token já expirado
-	expiredToken, err := service.CriarAccessTokenComExpiracao("usuario-id-1", "segredo-jwt-teste", time.Now().Add(-1*time.Minute))
+	expiredToken, err := service.CriarAccessTokenComExpiracao("usuario-id-1", "familia-teste-uuid", "segredo-jwt-teste", time.Now().Add(-1*time.Minute))
 	require.NoError(t, err)
 
-	_, err = svc.ValidateAccessToken(expiredToken)
+	_, _, err = svc.ValidateAccessToken(expiredToken)
 
 	assert.ErrorIs(t, err, domain.ErrTokenExpirado)
 }
 
 func TestValidateAccessToken_Invalido(t *testing.T) {
 	repo := newMockRepo()
-	svc := service.NewAuthService(repo, "segredo-jwt-teste")
+	svc := service.NewAuthService(repo, newMockFamiliaRepo(), "segredo-jwt-teste")
 
-	_, err := svc.ValidateAccessToken("token.invalido.qualquer")
+	_, _, err := svc.ValidateAccessToken("token.invalido.qualquer")
 
 	assert.ErrorIs(t, err, domain.ErrTokenInvalido)
 }

@@ -22,7 +22,7 @@ type MockDespesaGeralRepository struct {
 	atualizarChamado bool
 }
 
-func (m *MockDespesaGeralRepository) Criar(d *domain.DespesaGeral) (*domain.DespesaGeral, error) {
+func (m *MockDespesaGeralRepository) Criar(familiaID string, d *domain.DespesaGeral) (*domain.DespesaGeral, error) {
 	m.criarChamado = true
 	if m.returnError != nil {
 		return nil, m.returnError
@@ -32,28 +32,28 @@ func (m *MockDespesaGeralRepository) Criar(d *domain.DespesaGeral) (*domain.Desp
 	return &criado, nil
 }
 
-func (m *MockDespesaGeralRepository) BuscarPorID(id string) (*domain.DespesaGeral, error) {
+func (m *MockDespesaGeralRepository) BuscarPorID(familiaID, id string) (*domain.DespesaGeral, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnDespesa, nil
 }
 
-func (m *MockDespesaGeralRepository) Listar() ([]*domain.DespesaGeral, error) {
+func (m *MockDespesaGeralRepository) Listar(familiaID string) ([]*domain.DespesaGeral, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnDespesas, nil
 }
 
-func (m *MockDespesaGeralRepository) ListarPorMes(mes, ano int) ([]*domain.DespesaGeral, error) {
+func (m *MockDespesaGeralRepository) ListarPorMes(familiaID string, mes, ano int) ([]*domain.DespesaGeral, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnDespesas, nil
 }
 
-func (m *MockDespesaGeralRepository) Atualizar(d *domain.DespesaGeral) (*domain.DespesaGeral, error) {
+func (m *MockDespesaGeralRepository) Atualizar(familiaID string, d *domain.DespesaGeral) (*domain.DespesaGeral, error) {
 	m.atualizarChamado = true
 	if m.returnError != nil {
 		return nil, m.returnError
@@ -62,7 +62,7 @@ func (m *MockDespesaGeralRepository) Atualizar(d *domain.DespesaGeral) (*domain.
 	return &atualizado, nil
 }
 
-func (m *MockDespesaGeralRepository) Excluir(id string) error {
+func (m *MockDespesaGeralRepository) Excluir(familiaID, id string) error {
 	m.excluirChamado = true
 	return m.returnError
 }
@@ -76,7 +76,7 @@ func TestCriarDespesaGeral_Sucesso(t *testing.T) {
 	mock := &MockDespesaGeralRepository{}
 	svc := service.NewDespesaGeralService(mock)
 
-	despesa, err := svc.Criar("membro-1", nil, "Mercado", dataValida, 250.00, "pix", nil)
+	despesa, err := svc.Criar("familia-id", "membro-1", nil, "Mercado", dataValida, 250.00, "pix", nil)
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-gerado-mock", despesa.ID)
@@ -91,7 +91,7 @@ func TestCriarDespesaGeral_SemDescricao(t *testing.T) {
 	mock := &MockDespesaGeralRepository{}
 	svc := service.NewDespesaGeralService(mock)
 
-	_, err := svc.Criar("membro-1", nil, "", dataValida, 250.00, "pix", nil)
+	_, err := svc.Criar("familia-id", "membro-1", nil, "", dataValida, 250.00, "pix", nil)
 
 	assert.ErrorIs(t, err, domain.ErrDescricaoDespesaGeralObrigatoria)
 	assert.False(t, mock.criarChamado, "repositório não deve ser chamado com descrição vazia")
@@ -101,7 +101,7 @@ func TestCriarDespesaGeral_SemMembroID(t *testing.T) {
 	mock := &MockDespesaGeralRepository{}
 	svc := service.NewDespesaGeralService(mock)
 
-	_, err := svc.Criar("", nil, "Mercado", dataValida, 250.00, "pix", nil)
+	_, err := svc.Criar("familia-id", "", nil, "Mercado", dataValida, 250.00, "pix", nil)
 
 	assert.ErrorIs(t, err, domain.ErrMembroIDDespesaGeralObrigatorio)
 	assert.False(t, mock.criarChamado)
@@ -111,7 +111,7 @@ func TestCriarDespesaGeral_ValorZero(t *testing.T) {
 	mock := &MockDespesaGeralRepository{}
 	svc := service.NewDespesaGeralService(mock)
 
-	_, err := svc.Criar("membro-1", nil, "Mercado", dataValida, 0, "pix", nil)
+	_, err := svc.Criar("familia-id", "membro-1", nil, "Mercado", dataValida, 0, "pix", nil)
 
 	assert.ErrorIs(t, err, domain.ErrValorDespesaGeralInvalido)
 	assert.False(t, mock.criarChamado)
@@ -121,7 +121,7 @@ func TestCriarDespesaGeral_ValorNegativo(t *testing.T) {
 	mock := &MockDespesaGeralRepository{}
 	svc := service.NewDespesaGeralService(mock)
 
-	_, err := svc.Criar("membro-1", nil, "Mercado", dataValida, -10.00, "pix", nil)
+	_, err := svc.Criar("familia-id", "membro-1", nil, "Mercado", dataValida, -10.00, "pix", nil)
 
 	assert.ErrorIs(t, err, domain.ErrValorDespesaGeralInvalido)
 	assert.False(t, mock.criarChamado)
@@ -131,7 +131,7 @@ func TestCriarDespesaGeral_SemData(t *testing.T) {
 	mock := &MockDespesaGeralRepository{}
 	svc := service.NewDespesaGeralService(mock)
 
-	_, err := svc.Criar("membro-1", nil, "Mercado", time.Time{}, 250.00, "pix", nil)
+	_, err := svc.Criar("familia-id", "membro-1", nil, "Mercado", time.Time{}, 250.00, "pix", nil)
 
 	assert.ErrorIs(t, err, domain.ErrDataDespesaGeralObrigatoria)
 	assert.False(t, mock.criarChamado)
@@ -141,7 +141,7 @@ func TestCriarDespesaGeral_SemFormaPagamento(t *testing.T) {
 	mock := &MockDespesaGeralRepository{}
 	svc := service.NewDespesaGeralService(mock)
 
-	_, err := svc.Criar("membro-1", nil, "Mercado", dataValida, 250.00, "", nil)
+	_, err := svc.Criar("familia-id", "membro-1", nil, "Mercado", dataValida, 250.00, "", nil)
 
 	assert.ErrorIs(t, err, domain.ErrFormaPagamentoDespesaGeralObrigatoria)
 	assert.False(t, mock.criarChamado)
@@ -161,7 +161,7 @@ func TestBuscarPorIDDespesaGeral_Existente(t *testing.T) {
 	mock := &MockDespesaGeralRepository{returnDespesa: existente}
 	svc := service.NewDespesaGeralService(mock)
 
-	resultado, err := svc.BuscarPorID("uuid-1")
+	resultado, err := svc.BuscarPorID("familia-id", "uuid-1")
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-1", resultado.ID)
@@ -172,7 +172,7 @@ func TestBuscarPorIDDespesaGeral_Inexistente(t *testing.T) {
 	mock := &MockDespesaGeralRepository{returnError: domain.ErrDespesaGeralNaoEncontrada}
 	svc := service.NewDespesaGeralService(mock)
 
-	_, err := svc.BuscarPorID("uuid-inexistente")
+	_, err := svc.BuscarPorID("familia-id", "uuid-inexistente")
 
 	assert.ErrorIs(t, err, domain.ErrDespesaGeralNaoEncontrada)
 }
@@ -187,7 +187,7 @@ func TestListarDespesasGerais_RetornaLista(t *testing.T) {
 	mock := &MockDespesaGeralRepository{returnDespesas: despesas}
 	svc := service.NewDespesaGeralService(mock)
 
-	resultado, err := svc.Listar()
+	resultado, err := svc.Listar("familia-id")
 
 	require.NoError(t, err)
 	assert.Len(t, resultado, 2)
@@ -205,7 +205,7 @@ func TestListarDespesasGeraisPorMes_RetornaApenasMesAno(t *testing.T) {
 	mock := &MockDespesaGeralRepository{returnDespesas: despesas}
 	svc := service.NewDespesaGeralService(mock)
 
-	resultado, err := svc.ListarPorMes(3, 2026)
+	resultado, err := svc.ListarPorMes("familia-id", 3, 2026)
 
 	require.NoError(t, err)
 	assert.Len(t, resultado, 2)
@@ -218,7 +218,7 @@ func TestExcluirDespesaGeral_Existente(t *testing.T) {
 	mock := &MockDespesaGeralRepository{returnDespesa: existente}
 	svc := service.NewDespesaGeralService(mock)
 
-	err := svc.Excluir("uuid-1")
+	err := svc.Excluir("familia-id", "uuid-1")
 
 	require.NoError(t, err)
 	assert.True(t, mock.excluirChamado)
@@ -228,7 +228,7 @@ func TestExcluirDespesaGeral_Inexistente(t *testing.T) {
 	mock := &MockDespesaGeralRepository{returnError: domain.ErrDespesaGeralNaoEncontrada}
 	svc := service.NewDespesaGeralService(mock)
 
-	err := svc.Excluir("uuid-inexistente")
+	err := svc.Excluir("familia-id", "uuid-inexistente")
 
 	assert.ErrorIs(t, err, domain.ErrDespesaGeralNaoEncontrada)
 	assert.False(t, mock.excluirChamado)

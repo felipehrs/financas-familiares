@@ -11,26 +11,26 @@ import (
 // DespesaCartaoRepository define as operações de persistência necessárias para despesas de cartão.
 // Declarada aqui para evitar import circular entre service e repository.
 type DespesaCartaoRepository interface {
-	Criar(d *domain.DespesaCartao) (*domain.DespesaCartao, error)
-	ListarPorCartao(cartaoID string) ([]*domain.DespesaCartao, error)
-	ListarPorFatura(cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error)
-	BuscarPorID(id string) (*domain.DespesaCartao, error)
-	Excluir(id string) error
+	Criar(familiaID string, d *domain.DespesaCartao) (*domain.DespesaCartao, error)
+	ListarPorCartao(familiaID, cartaoID string) ([]*domain.DespesaCartao, error)
+	ListarPorFatura(familiaID, cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error)
+	BuscarPorID(familiaID, id string) (*domain.DespesaCartao, error)
+	Excluir(familiaID, id string) error
 }
 
 // CartaoRepositoryForDespesa define os métodos de cartão que o service de despesas precisa.
 type CartaoRepositoryForDespesa interface {
-	BuscarPorID(id string) (*domain.CartaoCredito, error)
+	BuscarPorID(familiaID, id string) (*domain.CartaoCredito, error)
 }
 
 // DespesaCartaoServiceInterface define os métodos públicos do serviço de despesas de cartão.
 // Redeclarada nos handlers para desacoplamento.
 type DespesaCartaoServiceInterface interface {
-	Criar(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error)
-	ListarPorCartao(cartaoID string) ([]*domain.DespesaCartao, error)
-	ListarPorFatura(cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error)
-	BuscarPorID(id string) (*domain.DespesaCartao, error)
-	Excluir(id string) error
+	Criar(familiaID, cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error)
+	ListarPorCartao(familiaID, cartaoID string) ([]*domain.DespesaCartao, error)
+	ListarPorFatura(familiaID, cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error)
+	BuscarPorID(familiaID, id string) (*domain.DespesaCartao, error)
+	Excluir(familiaID, id string) error
 }
 
 // DespesaCartaoService implementa a lógica de negócio para despesas de cartão de crédito.
@@ -67,7 +67,7 @@ func proximaFatura(mes, ano int) (int, int) {
 // Valida os campos obrigatórios, busca o cartão para obter DiaFechamento,
 // calcula a fatura inicial via RN01 e distribui as parcelas por mês.
 // Retorna slice com todas as parcelas criadas.
-func (s *DespesaCartaoService) Criar(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
+func (s *DespesaCartaoService) Criar(familiaID, cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
 	if strings.TrimSpace(cartaoID) == "" {
 		return nil, domain.ErrCartaoIDObrigatorio
 	}
@@ -81,7 +81,7 @@ func (s *DespesaCartaoService) Criar(cartaoID, descricao string, categoriaID *st
 		return nil, domain.ErrNumeroParcelas
 	}
 
-	cartao, err := s.cartaoRepo.BuscarPorID(cartaoID)
+	cartao, err := s.cartaoRepo.BuscarPorID(familiaID, cartaoID)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (s *DespesaCartaoService) Criar(cartaoID, descricao string, categoriaID *st
 			FaturaAno:      faturaAno,
 		}
 
-		criada, err := s.repo.Criar(despesa)
+		criada, err := s.repo.Criar(familiaID, despesa)
 		if err != nil {
 			return nil, err
 		}
@@ -120,27 +120,27 @@ func (s *DespesaCartaoService) Criar(cartaoID, descricao string, categoriaID *st
 }
 
 // ListarPorCartao retorna todas as despesas de um cartão (sem deletadas).
-func (s *DespesaCartaoService) ListarPorCartao(cartaoID string) ([]*domain.DespesaCartao, error) {
-	return s.repo.ListarPorCartao(cartaoID)
+func (s *DespesaCartaoService) ListarPorCartao(familiaID, cartaoID string) ([]*domain.DespesaCartao, error) {
+	return s.repo.ListarPorCartao(familiaID, cartaoID)
 }
 
 // ListarPorFatura retorna as despesas de um cartão filtradas por mês/ano de fatura.
-func (s *DespesaCartaoService) ListarPorFatura(cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error) {
-	return s.repo.ListarPorFatura(cartaoID, mes, ano)
+func (s *DespesaCartaoService) ListarPorFatura(familiaID, cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error) {
+	return s.repo.ListarPorFatura(familiaID, cartaoID, mes, ano)
 }
 
 // BuscarPorID retorna uma despesa pelo seu ID.
 // Retorna ErrDespesaCartaoNaoEncontrada se não existir.
-func (s *DespesaCartaoService) BuscarPorID(id string) (*domain.DespesaCartao, error) {
-	return s.repo.BuscarPorID(id)
+func (s *DespesaCartaoService) BuscarPorID(familiaID, id string) (*domain.DespesaCartao, error) {
+	return s.repo.BuscarPorID(familiaID, id)
 }
 
 // Excluir remove (soft delete) uma despesa de cartão pelo ID.
 // Retorna ErrDespesaCartaoNaoEncontrada se não existir.
-func (s *DespesaCartaoService) Excluir(id string) error {
-	_, err := s.repo.BuscarPorID(id)
+func (s *DespesaCartaoService) Excluir(familiaID, id string) error {
+	_, err := s.repo.BuscarPorID(familiaID, id)
 	if err != nil {
 		return err
 	}
-	return s.repo.Excluir(id)
+	return s.repo.Excluir(familiaID, id)
 }

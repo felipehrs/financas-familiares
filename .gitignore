@@ -18,3 +18,4 @@ frontend/.env.local
 # Tools
 .pnpm-store/
 .claude/
+.pnpm-store/

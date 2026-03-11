@@ -21,7 +21,7 @@ type MockDespesaCartaoRepository struct {
 	despesasRecebidas []*domain.DespesaCartao
 }
 
-func (m *MockDespesaCartaoRepository) Criar(d *domain.DespesaCartao) (*domain.DespesaCartao, error) {
+func (m *MockDespesaCartaoRepository) Criar(familiaID string, d *domain.DespesaCartao) (*domain.DespesaCartao, error) {
 	m.criarChamado = true
 	m.criarChamadas++
 	m.despesasRecebidas = append(m.despesasRecebidas, d)
@@ -33,28 +33,28 @@ func (m *MockDespesaCartaoRepository) Criar(d *domain.DespesaCartao) (*domain.De
 	return &criada, nil
 }
 
-func (m *MockDespesaCartaoRepository) ListarPorCartao(cartaoID string) ([]*domain.DespesaCartao, error) {
+func (m *MockDespesaCartaoRepository) ListarPorCartao(familiaID, cartaoID string) ([]*domain.DespesaCartao, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnDespesas, nil
 }
 
-func (m *MockDespesaCartaoRepository) ListarPorFatura(cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error) {
+func (m *MockDespesaCartaoRepository) ListarPorFatura(familiaID, cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnDespesas, nil
 }
 
-func (m *MockDespesaCartaoRepository) BuscarPorID(id string) (*domain.DespesaCartao, error) {
+func (m *MockDespesaCartaoRepository) BuscarPorID(familiaID, id string) (*domain.DespesaCartao, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnDespesa, nil
 }
 
-func (m *MockDespesaCartaoRepository) Excluir(id string) error {
+func (m *MockDespesaCartaoRepository) Excluir(familiaID, id string) error {
 	m.excluirChamado = true
 	return m.returnError
 }
@@ -65,7 +65,7 @@ type MockCartaoRepositoryForDespesa struct {
 	returnError  error
 }
 
-func (m *MockCartaoRepositoryForDespesa) BuscarPorID(id string) (*domain.CartaoCredito, error) {
+func (m *MockCartaoRepositoryForDespesa) BuscarPorID(familiaID, id string) (*domain.CartaoCredito, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
@@ -92,7 +92,7 @@ func TestCriarDespesaCartao_CompraDiaIgualFechamento_FaturaCorrentemesAtual(t *t
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
-	resultado, err := svc.Criar("cartao-1", "Supermercado", nil, dataCompra, 150.00, 1)
+	resultado, err := svc.Criar("familia-id", "cartao-1", "Supermercado", nil, dataCompra, 150.00, 1)
 
 	require.NoError(t, err)
 	require.Len(t, resultado, 1)
@@ -113,7 +113,7 @@ func TestCriarDespesaCartao_CompraDiaMenorFechamento_FaturaAtual(t *testing.T) {
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC)
-	resultado, err := svc.Criar("cartao-1", "Restaurante", nil, dataCompra, 80.00, 1)
+	resultado, err := svc.Criar("familia-id", "cartao-1", "Restaurante", nil, dataCompra, 80.00, 1)
 
 	require.NoError(t, err)
 	require.Len(t, resultado, 1)
@@ -128,7 +128,7 @@ func TestCriarDespesaCartao_CompraDiaMaiorFechamento_FaturaProximoMes(t *testing
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)
-	resultado, err := svc.Criar("cartao-1", "Eletrônico", nil, dataCompra, 500.00, 1)
+	resultado, err := svc.Criar("familia-id", "cartao-1", "Eletrônico", nil, dataCompra, 500.00, 1)
 
 	require.NoError(t, err)
 	require.Len(t, resultado, 1)
@@ -143,7 +143,7 @@ func TestCriarDespesaCartao_DezembroDiaMaiorFechamento_FaturaJaneiroProximoAno(t
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 12, 20, 0, 0, 0, 0, time.UTC)
-	resultado, err := svc.Criar("cartao-1", "Natal", nil, dataCompra, 300.00, 1)
+	resultado, err := svc.Criar("familia-id", "cartao-1", "Natal", nil, dataCompra, 300.00, 1)
 
 	require.NoError(t, err)
 	require.Len(t, resultado, 1)
@@ -157,7 +157,7 @@ func TestCriarDespesaCartao_CartaoNaoEncontrado(t *testing.T) {
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
-	_, err := svc.Criar("cartao-inexistente", "Supermercado", nil, dataCompra, 150.00, 1)
+	_, err := svc.Criar("familia-id", "cartao-inexistente", "Supermercado", nil, dataCompra, 150.00, 1)
 
 	assert.ErrorIs(t, err, domain.ErrCartaoNaoEncontrado)
 	assert.False(t, despesaRepo.criarChamado)
@@ -169,7 +169,7 @@ func TestCriarDespesaCartao_CartaoIDVazio(t *testing.T) {
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
-	_, err := svc.Criar("", "Supermercado", nil, dataCompra, 150.00, 1)
+	_, err := svc.Criar("familia-id", "", "Supermercado", nil, dataCompra, 150.00, 1)
 
 	assert.ErrorIs(t, err, domain.ErrCartaoIDObrigatorio)
 	assert.False(t, despesaRepo.criarChamado)
@@ -181,7 +181,7 @@ func TestCriarDespesaCartao_DescricaoVazia(t *testing.T) {
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
-	_, err := svc.Criar("cartao-1", "", nil, dataCompra, 150.00, 1)
+	_, err := svc.Criar("familia-id", "cartao-1", "", nil, dataCompra, 150.00, 1)
 
 	assert.ErrorIs(t, err, domain.ErrDescricaoObrigatoria)
 	assert.False(t, despesaRepo.criarChamado)
@@ -193,7 +193,7 @@ func TestCriarDespesaCartao_DescricaoApenasEspacos(t *testing.T) {
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
-	_, err := svc.Criar("cartao-1", "   ", nil, dataCompra, 150.00, 1)
+	_, err := svc.Criar("familia-id", "cartao-1", "   ", nil, dataCompra, 150.00, 1)
 
 	assert.ErrorIs(t, err, domain.ErrDescricaoObrigatoria)
 }
@@ -204,7 +204,7 @@ func TestCriarDespesaCartao_ValorZero(t *testing.T) {
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
-	_, err := svc.Criar("cartao-1", "Supermercado", nil, dataCompra, 0, 1)
+	_, err := svc.Criar("familia-id", "cartao-1", "Supermercado", nil, dataCompra, 0, 1)
 
 	assert.ErrorIs(t, err, domain.ErrValorTotalInvalido)
 	assert.False(t, despesaRepo.criarChamado)
@@ -216,7 +216,7 @@ func TestCriarDespesaCartao_ValorNegativo(t *testing.T) {
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
-	_, err := svc.Criar("cartao-1", "Supermercado", nil, dataCompra, -50.00, 1)
+	_, err := svc.Criar("familia-id", "cartao-1", "Supermercado", nil, dataCompra, -50.00, 1)
 
 	assert.ErrorIs(t, err, domain.ErrValorTotalInvalido)
 }
@@ -227,7 +227,7 @@ func TestCriarDespesaCartao_NumeroParcelas0_RetornaErrNumeroParcelas(t *testing.
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
-	_, err := svc.Criar("cartao-1", "Supermercado", nil, dataCompra, 150.00, 0)
+	_, err := svc.Criar("familia-id", "cartao-1", "Supermercado", nil, dataCompra, 150.00, 0)
 
 	assert.ErrorIs(t, err, domain.ErrNumeroParcelas)
 	assert.False(t, despesaRepo.criarChamado)
@@ -239,7 +239,7 @@ func TestCriarDespesaCartao_NumeroParcelas_Negativo_RetornaErrNumeroParcelas(t *
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
-	_, err := svc.Criar("cartao-1", "Supermercado", nil, dataCompra, 150.00, -1)
+	_, err := svc.Criar("familia-id", "cartao-1", "Supermercado", nil, dataCompra, 150.00, -1)
 
 	assert.ErrorIs(t, err, domain.ErrNumeroParcelas)
 	assert.False(t, despesaRepo.criarChamado)
@@ -252,7 +252,7 @@ func TestCriarDespesaCartao_ComCategoriaID(t *testing.T) {
 
 	catID := "cat-uuid-1"
 	dataCompra := time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC)
-	resultado, err := svc.Criar("cartao-1", "Mercado", &catID, dataCompra, 200.00, 1)
+	resultado, err := svc.Criar("familia-id", "cartao-1", "Mercado", &catID, dataCompra, 200.00, 1)
 
 	require.NoError(t, err)
 	require.Len(t, resultado, 1)
@@ -269,7 +269,7 @@ func TestCriarDespesaParcelada_2x_CriaDuasRows_FaturaCorreta(t *testing.T) {
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC)
-	resultado, err := svc.Criar("cartao-1", "Notebook", nil, dataCompra, 300.00, 2)
+	resultado, err := svc.Criar("familia-id", "cartao-1", "Notebook", nil, dataCompra, 300.00, 2)
 
 	require.NoError(t, err)
 	require.Len(t, resultado, 2)
@@ -300,7 +300,7 @@ func TestCriarDespesaParcelada_3x_ViradaDeAno(t *testing.T) {
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 11, 20, 0, 0, 0, 0, time.UTC)
-	resultado, err := svc.Criar("cartao-1", "TV", nil, dataCompra, 3000.00, 3)
+	resultado, err := svc.Criar("familia-id", "cartao-1", "TV", nil, dataCompra, 3000.00, 3)
 
 	require.NoError(t, err)
 	require.Len(t, resultado, 3)
@@ -330,7 +330,7 @@ func TestCriarDespesaParcelada_1x_ComportaIgualAVista(t *testing.T) {
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC)
-	resultado, err := svc.Criar("cartao-1", "Supermercado", nil, dataCompra, 150.00, 1)
+	resultado, err := svc.Criar("familia-id", "cartao-1", "Supermercado", nil, dataCompra, 150.00, 1)
 
 	require.NoError(t, err)
 	require.Len(t, resultado, 1)
@@ -348,7 +348,7 @@ func TestCriarDespesaParcelada_ErroNoRepo_RetornaErro(t *testing.T) {
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
 	dataCompra := time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC)
-	_, err := svc.Criar("cartao-1", "TV", nil, dataCompra, 3000.00, 3)
+	_, err := svc.Criar("familia-id", "cartao-1", "TV", nil, dataCompra, 3000.00, 3)
 
 	assert.Error(t, err)
 }
@@ -364,7 +364,7 @@ func TestListarDespesasPorCartao_RetornaLista(t *testing.T) {
 	cartaoRepo := &MockCartaoRepositoryForDespesa{}
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
-	resultado, err := svc.ListarPorCartao("cartao-1")
+	resultado, err := svc.ListarPorCartao("familia-id", "cartao-1")
 
 	require.NoError(t, err)
 	assert.Len(t, resultado, 2)
@@ -375,7 +375,7 @@ func TestListarDespesasPorCartao_ListaVazia(t *testing.T) {
 	cartaoRepo := &MockCartaoRepositoryForDespesa{}
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
-	resultado, err := svc.ListarPorCartao("cartao-1")
+	resultado, err := svc.ListarPorCartao("familia-id", "cartao-1")
 
 	require.NoError(t, err)
 	assert.Empty(t, resultado)
@@ -391,7 +391,7 @@ func TestListarDespesasPorFatura_RetornaListaFiltrada(t *testing.T) {
 	cartaoRepo := &MockCartaoRepositoryForDespesa{}
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
-	resultado, err := svc.ListarPorFatura("cartao-1", 3, 2026)
+	resultado, err := svc.ListarPorFatura("familia-id", "cartao-1", 3, 2026)
 
 	require.NoError(t, err)
 	assert.Len(t, resultado, 1)
@@ -407,7 +407,7 @@ func TestExcluirDespesaCartao_Sucesso(t *testing.T) {
 	cartaoRepo := &MockCartaoRepositoryForDespesa{}
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
-	err := svc.Excluir("d-1")
+	err := svc.Excluir("familia-id", "d-1")
 
 	require.NoError(t, err)
 	assert.True(t, despesaRepo.excluirChamado)
@@ -418,7 +418,7 @@ func TestExcluirDespesaCartao_NaoEncontrada(t *testing.T) {
 	cartaoRepo := &MockCartaoRepositoryForDespesa{}
 	svc := service.NewDespesaCartaoService(despesaRepo, cartaoRepo)
 
-	err := svc.Excluir("d-inexistente")
+	err := svc.Excluir("familia-id", "d-inexistente")
 
 	assert.ErrorIs(t, err, domain.ErrDespesaCartaoNaoEncontrada)
 	assert.False(t, despesaRepo.excluirChamado)
