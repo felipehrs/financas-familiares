@@ -11,10 +11,10 @@ import (
 // CategoriaServiceInterface define os métodos do service usados pelo handler.
 // Redeclarada aqui para desacoplar o pacote handler do service sem importação circular.
 type CategoriaServiceInterface interface {
-	Criar(nome string) (*domain.Categoria, error)
-	Listar() ([]*domain.Categoria, error)
-	Atualizar(id, nome string) (*domain.Categoria, error)
-	Excluir(id string) error
+	Criar(familiaID, nome string) (*domain.Categoria, error)
+	Listar(familiaID string) ([]*domain.Categoria, error)
+	Atualizar(familiaID, id, nome string) (*domain.Categoria, error)
+	Excluir(familiaID, id string) error
 }
 
 // CategoriaHandler contém os handlers HTTP para categorias.
@@ -51,7 +51,12 @@ type atualizarCategoriaRequest struct {
 // Listar retorna todas as categorias.
 // GET /api/v1/categorias
 func (h *CategoriaHandler) Listar(c *gin.Context) {
-	categorias, err := h.svc.Listar()
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
+	categorias, err := h.svc.Listar(familiaID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
@@ -68,13 +73,18 @@ func (h *CategoriaHandler) Listar(c *gin.Context) {
 // Criar cria uma nova categoria.
 // POST /api/v1/categorias
 func (h *CategoriaHandler) Criar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	var req criarCategoriaRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
 		return
 	}
 
-	cat, err := h.svc.Criar(req.Nome)
+	cat, err := h.svc.Criar(familiaID, req.Nome)
 	if err != nil {
 		if errors.Is(err, domain.ErrNomeCategoriaObrigatorio) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -90,6 +100,11 @@ func (h *CategoriaHandler) Criar(c *gin.Context) {
 // Atualizar atualiza o nome de uma categoria existente.
 // PUT /api/v1/categorias/:id
 func (h *CategoriaHandler) Atualizar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
 	var req atualizarCategoriaRequest
@@ -98,7 +113,7 @@ func (h *CategoriaHandler) Atualizar(c *gin.Context) {
 		return
 	}
 
-	cat, err := h.svc.Atualizar(id, req.Nome)
+	cat, err := h.svc.Atualizar(familiaID, id, req.Nome)
 	if err != nil {
 		if errors.Is(err, domain.ErrCategoriaNaoEncontrada) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -119,9 +134,14 @@ func (h *CategoriaHandler) Atualizar(c *gin.Context) {
 // DELETE /api/v1/categorias/:id
 // Retorna 409 Conflict se a categoria tiver registros vinculados.
 func (h *CategoriaHandler) Excluir(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	if err := h.svc.Excluir(id); err != nil {
+	if err := h.svc.Excluir(familiaID, id); err != nil {
 		if errors.Is(err, domain.ErrCategoriaNaoEncontrada) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return

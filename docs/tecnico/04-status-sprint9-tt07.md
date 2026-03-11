@@ -30,20 +30,20 @@ Adicionar isolamento de dados por `familia_id` em todas as camadas do backend (m
 ### Domain (CONCLUÍDO)
 - [x] `backend/internal/domain/familia.go` — criado (`Familia` struct, `ErrFamiliaNaoEncontrada`)
 
-### Repository (PARCIALMENTE CONCLUÍDO)
+### Repository (CONCLUÍDO)
 - [x] `backend/internal/repository/familia_repository.go` — criado (`BuscarFamiliaPorUsuario`)
-- [ ] `backend/internal/repository/membro_repository.go` — PENDENTE
-- [ ] `backend/internal/repository/categoria_repository.go` — PENDENTE
-- [ ] `backend/internal/repository/cartao_credito_repository.go` — PENDENTE
-- [ ] `backend/internal/repository/despesa_cartao_repository.go` — PENDENTE (atenção: `ListarPorFaturaGlobal` → renomear para receber `familiaID`)
-- [ ] `backend/internal/repository/assinatura_repository.go` — PENDENTE
-- [ ] `backend/internal/repository/conta_fixa_repository.go` — PENDENTE
-- [ ] `backend/internal/repository/despesa_geral_repository.go` — PENDENTE
-- [ ] `backend/internal/repository/renda_fixa_repository.go` — PENDENTE
-- [ ] `backend/internal/repository/renda_variavel_repository.go` — PENDENTE
-- [ ] `backend/internal/repository/renda_extra_repository.go` — PENDENTE
-- [ ] `backend/internal/repository/rendimento_investimento_repository.go` — PENDENTE
-- [ ] `backend/internal/repository/dashboard_repository.go` — PENDENTE (UNION ALL com `familia_id` em cada branch)
+- [x] `backend/internal/repository/membro_repository.go` — `familiaID` em todos os métodos, INSERT inclui `familia_id`, WHERE com `AND familia_id = $N`
+- [x] `backend/internal/repository/categoria_repository.go` — idem; `Excluir` sub-queries usam `id=$1, familiaID=$2` em cada branch
+- [x] `backend/internal/repository/cartao_credito_repository.go` — `familiaID` em todos os métodos
+- [x] `backend/internal/repository/despesa_cartao_repository.go` — `ListarPorFaturaGlobal(familiaID, mes, ano)`: `WHERE familia_id=$1 AND fatura_mes=$2 AND fatura_ano=$3`
+- [x] `backend/internal/repository/assinatura_repository.go` — `ListarAtivas(familiaID)`, `AlterarStatus(familiaID, id, status)`
+- [x] `backend/internal/repository/conta_fixa_repository.go` — `ListarAtivas(familiaID)`, `AlterarAtivo(familiaID, id, ativa)`
+- [x] `backend/internal/repository/despesa_geral_repository.go` — `ListarPorMes(familiaID, mes, ano)`, `Atualizar(familiaID, d)`
+- [x] `backend/internal/repository/renda_fixa_repository.go` — `ListarAtivas(familiaID)`, `ListarVigentesPorMes(familiaID, mes, ano)`, `Inativar(familiaID, id)`
+- [x] `backend/internal/repository/renda_variavel_repository.go` — `ListarPorMes(familiaID, mes, ano)`
+- [x] `backend/internal/repository/renda_extra_repository.go` — `ListarPorMes(familiaID, mes, ano)`
+- [x] `backend/internal/repository/rendimento_investimento_repository.go` — `ListarPorMes(familiaID, mes, ano)`
+- [x] `backend/internal/repository/dashboard_repository.go` — `DespesasPorCategoria(familiaID, mes, ano)`: $1=familiaID, $2=mes, $3=ano em todo o UNION ALL
 
 ### Middleware (CONCLUÍDO)
 - [x] `backend/internal/middleware/auth.go` — atualizado (`ValidateAccessToken` agora retorna `usuarioID, familiaID, err`; seta `"familiaID"` no contexto)
@@ -64,10 +64,10 @@ Adicionar isolamento de dados por `familia_id` em todas as camadas do backend (m
 - [x] `backend/internal/service/renda_variavel_service.go`
 - [x] `backend/internal/service/renda_extra_service.go`
 - [x] `backend/internal/service/rendimento_investimento_service.go`
-- [ ] `backend/internal/service/dashboard_service.go` — PENDENTE (ver detalhe abaixo)
-- [ ] `backend/internal/service/renda_historico_service.go` — PENDENTE (ver detalhe abaixo)
+- [x] `backend/internal/service/dashboard_service.go` — CONCLUÍDO: interfaces + 4 métodos públicos com `familiaID`
+- [x] `backend/internal/service/renda_historico_service.go` — CONCLUÍDO: interfaces + `BuscarHistorico` com `familiaID`
 
-### Service — testes (PARCIALMENTE CONCLUÍDO)
+### Service — testes (CONCLUÍDO)
 - [x] `backend/internal/service/auth_service_test.go`
 - [x] `backend/internal/service/membro_service_test.go`
 - [x] `backend/internal/service/categoria_service_test.go`
@@ -79,9 +79,9 @@ Adicionar isolamento de dados por `familia_id` em todas as camadas do backend (m
 - [x] `backend/internal/service/renda_fixa_service_test.go`
 - [x] `backend/internal/service/renda_variavel_service_test.go`
 - [x] `backend/internal/service/renda_extra_service_test.go`
-- [ ] `backend/internal/service/rendimento_investimento_service_test.go` — **INTERROMPIDO NO MEIO** (mocks atualizados, mas as chamadas de teste ainda precisam ser atualizadas — ver seção abaixo)
-- [ ] `backend/internal/service/dashboard_service_test.go` — PENDENTE
-- [ ] `backend/internal/service/renda_historico_service_test.go` — PENDENTE
+- [x] `backend/internal/service/rendimento_investimento_service_test.go` — CONCLUÍDO: mocks e chamadas de teste atualizados
+- [x] `backend/internal/service/dashboard_service_test.go` — CONCLUÍDO: 9 mocks + chamadas de teste atualizados
+- [x] `backend/internal/service/renda_historico_service_test.go` — CONCLUÍDO: 8 mocks + chamadas de teste atualizados
 
 ### Handlers (PENDENTE — todos os 13)
 - [ ] `backend/internal/handler/membro_handler.go`
@@ -109,18 +109,9 @@ Adicionar isolamento de dados por `familia_id` em todas as camadas do backend (m
 
 ---
 
-## Próximo arquivo a continuar: rendimento_investimento_service_test.go
+## Próximo passo: Repositories (Step 6)
 
-O arquivo já teve os **mocks atualizados** (`Criar`, `BuscarPorID`, `Listar`, `ListarPorMes`, `Atualizar`, `Excluir` todos com `familiaID` como primeiro param), mas as **chamadas de teste ainda estão com a assinatura antiga**. Continuar a partir de:
-
-```go
-// TestCriarRendimentoInvestimento_SucessoSemValorDistribuido
-rendimento, err := svc.Criar("Rendimento CDB", "membro-1", ...)
-// → deve ser:
-rendimento, err := svc.Criar("familia-id", "Rendimento CDB", "membro-1", ...)
-```
-
-Padrão: prefixar `"familia-id"` a todas as chamadas de `svc.Criar`, `svc.BuscarPorID`, `svc.Listar`, `svc.ListarPorMes`, `svc.Atualizar`, `svc.Excluir` no arquivo de teste.
+Todos os 13 repositories precisam adicionar `familiaID string` como primeiro parâmetro e `AND familia_id = $N` nas queries SQL.
 
 ---
 

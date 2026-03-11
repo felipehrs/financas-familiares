@@ -17,7 +17,7 @@ type MockRendaFixaRepositoryForDashboard struct {
 	err    error
 }
 
-func (m *MockRendaFixaRepositoryForDashboard) ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error) {
+func (m *MockRendaFixaRepositoryForDashboard) ListarVigentesPorMes(familiaID string, mes, ano int) ([]*domain.RendaFixa, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -30,7 +30,7 @@ type MockDespesaCartaoRepositoryForDashboard struct {
 	err      error
 }
 
-func (m *MockDespesaCartaoRepositoryForDashboard) ListarPorFaturaGlobal(mes, ano int) ([]*domain.DespesaCartao, error) {
+func (m *MockDespesaCartaoRepositoryForDashboard) ListarPorFaturaGlobal(familiaID string, mes, ano int) ([]*domain.DespesaCartao, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -43,7 +43,7 @@ type MockRendaVariavelRepositoryForDashboard struct {
 	err    error
 }
 
-func (m *MockRendaVariavelRepositoryForDashboard) ListarPorMes(mes, ano int) ([]*domain.RendaVariavel, error) {
+func (m *MockRendaVariavelRepositoryForDashboard) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaVariavel, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -56,7 +56,7 @@ type MockRendaExtraRepositoryForDashboard struct {
 	err    error
 }
 
-func (m *MockRendaExtraRepositoryForDashboard) ListarPorMes(mes, ano int) ([]*domain.RendaExtra, error) {
+func (m *MockRendaExtraRepositoryForDashboard) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaExtra, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -69,7 +69,7 @@ type MockRendimentoRepositoryForDashboard struct {
 	err         error
 }
 
-func (m *MockRendimentoRepositoryForDashboard) ListarPorMes(mes, ano int) ([]*domain.RendimentoInvestimento, error) {
+func (m *MockRendimentoRepositoryForDashboard) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendimentoInvestimento, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -82,7 +82,7 @@ type MockAssinaturaRepositoryForDashboard struct {
 	err         error
 }
 
-func (m *MockAssinaturaRepositoryForDashboard) ListarAtivas() ([]*domain.Assinatura, error) {
+func (m *MockAssinaturaRepositoryForDashboard) ListarAtivas(familiaID string) ([]*domain.Assinatura, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -95,7 +95,7 @@ type MockContaFixaRepositoryForDashboard struct {
 	err    error
 }
 
-func (m *MockContaFixaRepositoryForDashboard) ListarAtivas() ([]*domain.ContaFixa, error) {
+func (m *MockContaFixaRepositoryForDashboard) ListarAtivas(familiaID string) ([]*domain.ContaFixa, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -108,7 +108,7 @@ type MockDespesaGeralRepositoryForDashboard struct {
 	err      error
 }
 
-func (m *MockDespesaGeralRepositoryForDashboard) ListarPorMes(mes, ano int) ([]*domain.DespesaGeral, error) {
+func (m *MockDespesaGeralRepositoryForDashboard) ListarPorMes(familiaID string, mes, ano int) ([]*domain.DespesaGeral, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -121,7 +121,7 @@ type MockDashboardRepositoryForCategorias struct {
 	err  error
 }
 
-func (m *MockDashboardRepositoryForCategorias) DespesasPorCategoria(mes, ano int) ([]domain.CategoriaTotalRaw, error) {
+func (m *MockDashboardRepositoryForCategorias) DespesasPorCategoria(familiaID string, mes, ano int) ([]domain.CategoriaTotalRaw, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -185,14 +185,14 @@ func newSvcVazio() *service.DashboardService {
 
 func TestEvolucaoMensal_Retorna12Pontos(t *testing.T) {
 	svc := newSvcVazio()
-	pontos, err := svc.EvolucaoMensal(12)
+	pontos, err := svc.EvolucaoMensal("familia-id", 12)
 	require.NoError(t, err)
 	assert.Len(t, pontos, 12)
 }
 
 func TestEvolucaoMensal_OrdemCronologica(t *testing.T) {
 	svc := newSvcVazio()
-	pontos, err := svc.EvolucaoMensal(12)
+	pontos, err := svc.EvolucaoMensal("familia-id", 12)
 	require.NoError(t, err)
 	// Verificar que cada ponto é posterior ao anterior
 	for i := 1; i < len(pontos); i++ {
@@ -204,7 +204,7 @@ func TestEvolucaoMensal_OrdemCronologica(t *testing.T) {
 
 func TestEvolucaoMensal_UltimoMesEhAtual(t *testing.T) {
 	svc := newSvcVazio()
-	pontos, err := svc.EvolucaoMensal(12)
+	pontos, err := svc.EvolucaoMensal("familia-id", 12)
 	require.NoError(t, err)
 	agora := time.Now()
 	ultimo := pontos[len(pontos)-1]
@@ -225,7 +225,7 @@ func TestEvolucaoMensal_ErroPropaganado(t *testing.T) {
 		&MockDespesaGeralRepositoryForDashboard{},
 		&MockDashboardRepositoryForCategorias{},
 	)
-	_, err := svc.EvolucaoMensal(12)
+	_, err := svc.EvolucaoMensal("familia-id", 12)
 	assert.Error(t, err)
 }
 
@@ -246,7 +246,7 @@ func TestResumoMensal_ComRendasEDespesas(t *testing.T) {
 	}
 	svc := newSvcSimples(rendaRepo, despesaRepo)
 
-	resumo, err := svc.ResumoMensal(3, 2026)
+	resumo, err := svc.ResumoMensal("familia-id", 3, 2026)
 
 	require.NoError(t, err)
 	assert.Equal(t, 3, resumo.Mes)
@@ -269,7 +269,7 @@ func TestResumoMensal_SemDespesas(t *testing.T) {
 	}
 	svc := newSvcSimples(rendaRepo, despesaRepo)
 
-	resumo, err := svc.ResumoMensal(3, 2026)
+	resumo, err := svc.ResumoMensal("familia-id", 3, 2026)
 
 	require.NoError(t, err)
 	assert.Equal(t, 3000.00, resumo.TotalRendaFixa)
@@ -288,7 +288,7 @@ func TestResumoMensal_SemRendas(t *testing.T) {
 	}
 	svc := newSvcSimples(rendaRepo, despesaRepo)
 
-	resumo, err := svc.ResumoMensal(3, 2026)
+	resumo, err := svc.ResumoMensal("familia-id", 3, 2026)
 
 	require.NoError(t, err)
 	assert.Equal(t, 0.0, resumo.TotalRendaFixa)
@@ -302,7 +302,7 @@ func TestResumoMensal_ErroNoRepoDeRendas(t *testing.T) {
 	despesaRepo := &MockDespesaCartaoRepositoryForDashboard{}
 	svc := newSvcSimples(rendaRepo, despesaRepo)
 
-	resumo, err := svc.ResumoMensal(3, 2026)
+	resumo, err := svc.ResumoMensal("familia-id", 3, 2026)
 
 	assert.Nil(t, resumo)
 	assert.ErrorIs(t, err, erroEsperado)
@@ -318,7 +318,7 @@ func TestResumoMensal_ErroNoRepoDeDespesas(t *testing.T) {
 	despesaRepo := &MockDespesaCartaoRepositoryForDashboard{err: erroEsperado}
 	svc := newSvcSimples(rendaRepo, despesaRepo)
 
-	resumo, err := svc.ResumoMensal(3, 2026)
+	resumo, err := svc.ResumoMensal("familia-id", 3, 2026)
 
 	assert.Nil(t, resumo)
 	assert.ErrorIs(t, err, erroEsperado)
@@ -403,7 +403,7 @@ func TestResumoMensal_ComProporcionalidade(t *testing.T) {
 	}
 	svc := newSvcSimples(rendaRepo, despesaRepo)
 
-	resumo, err := svc.ResumoMensal(3, 2026)
+	resumo, err := svc.ResumoMensal("familia-id", 3, 2026)
 
 	require.NoError(t, err)
 	esperado := 15000.00 * 24.0 / 31.0
@@ -463,7 +463,7 @@ func TestResumoMensal_RN06_TodosOsTipos(t *testing.T) {
 		&MockDashboardRepositoryForCategorias{},
 	)
 
-	resumo, err := svc.ResumoMensal(3, 2026)
+	resumo, err := svc.ResumoMensal("familia-id", 3, 2026)
 
 	require.NoError(t, err)
 	assert.Equal(t, 3, resumo.Mes)
@@ -513,7 +513,7 @@ func TestResumoMensal_RN08_RendimentoNaoDistribuidoNaoEntreNoSaldo(t *testing.T)
 		&MockDashboardRepositoryForCategorias{},
 	)
 
-	resumo, err := svc.ResumoMensal(3, 2026)
+	resumo, err := svc.ResumoMensal("familia-id", 3, 2026)
 
 	require.NoError(t, err)
 	// Rendimento total é informativo
@@ -536,7 +536,7 @@ func TestDespesasPorCategoria_MultiplasCategorias(t *testing.T) {
 	}
 	svc := newSvcCategorias(mockCat)
 
-	resumo, err := svc.DespesasPorCategoria(3, 2026)
+	resumo, err := svc.DespesasPorCategoria("familia-id", 3, 2026)
 
 	require.NoError(t, err)
 	assert.Equal(t, 1000.0, resumo.TotalDespesas)
@@ -555,7 +555,7 @@ func TestDespesasPorCategoria_SemCategoria(t *testing.T) {
 	}
 	svc := newSvcCategorias(mockCat)
 
-	resumo, err := svc.DespesasPorCategoria(3, 2026)
+	resumo, err := svc.DespesasPorCategoria("familia-id", 3, 2026)
 
 	require.NoError(t, err)
 	assert.Equal(t, "Sem categoria", resumo.Categorias[0].Nome)
@@ -566,7 +566,7 @@ func TestDespesasPorCategoria_SemDespesas(t *testing.T) {
 	mockCat := &MockDashboardRepositoryForCategorias{rows: []domain.CategoriaTotalRaw{}}
 	svc := newSvcCategorias(mockCat)
 
-	resumo, err := svc.DespesasPorCategoria(3, 2026)
+	resumo, err := svc.DespesasPorCategoria("familia-id", 3, 2026)
 
 	require.NoError(t, err)
 	assert.Equal(t, 0.0, resumo.TotalDespesas)
@@ -577,7 +577,7 @@ func TestDespesasPorCategoria_ErroNoRepositorio(t *testing.T) {
 	mockCat := &MockDashboardRepositoryForCategorias{err: errors.New("db error")}
 	svc := newSvcCategorias(mockCat)
 
-	_, err := svc.DespesasPorCategoria(3, 2026)
+	_, err := svc.DespesasPorCategoria("familia-id", 3, 2026)
 
 	assert.Error(t, err)
 }
@@ -586,14 +586,14 @@ func TestDespesasPorCategoria_ErroNoRepositorio(t *testing.T) {
 
 func TestProjecaoProximosMeses_Retorna3Pontos(t *testing.T) {
 	svc := newSvcVazio()
-	projecoes, err := svc.ProjecaoProximosMeses(3)
+	projecoes, err := svc.ProjecaoProximosMeses("familia-id", 3)
 	require.NoError(t, err)
 	assert.Len(t, projecoes, 3)
 }
 
 func TestProjecaoProximosMeses_MesesSaoFuturos(t *testing.T) {
 	svc := newSvcVazio()
-	projecoes, err := svc.ProjecaoProximosMeses(3)
+	projecoes, err := svc.ProjecaoProximosMeses("familia-id", 3)
 	require.NoError(t, err)
 	agora := time.Now()
 	for _, p := range projecoes {
@@ -605,7 +605,7 @@ func TestProjecaoProximosMeses_MesesSaoFuturos(t *testing.T) {
 
 func TestProjecaoProximosMeses_OrdemCronologica(t *testing.T) {
 	svc := newSvcVazio()
-	projecoes, err := svc.ProjecaoProximosMeses(3)
+	projecoes, err := svc.ProjecaoProximosMeses("familia-id", 3)
 	require.NoError(t, err)
 	for i := 1; i < len(projecoes); i++ {
 		prev := time.Date(projecoes[i-1].Ano, time.Month(projecoes[i-1].Mes), 1, 0, 0, 0, 0, time.UTC)
@@ -632,7 +632,7 @@ func TestProjecaoProximosMeses_SomaRendaFixa(t *testing.T) {
 		&MockDespesaGeralRepositoryForDashboard{},
 		&MockDashboardRepositoryForCategorias{},
 	)
-	projecoes, err := svc.ProjecaoProximosMeses(3)
+	projecoes, err := svc.ProjecaoProximosMeses("familia-id", 3)
 	require.NoError(t, err)
 	for _, p := range projecoes {
 		assert.Equal(t, 5000.0, p.TotalRendas)
@@ -666,7 +666,7 @@ func TestProjecaoProximosMeses_SomaDespesas(t *testing.T) {
 		&MockDespesaGeralRepositoryForDashboard{},
 		&MockDashboardRepositoryForCategorias{},
 	)
-	projecoes, err := svc.ProjecaoProximosMeses(3)
+	projecoes, err := svc.ProjecaoProximosMeses("familia-id", 3)
 	require.NoError(t, err)
 	for _, p := range projecoes {
 		assert.Equal(t, 300.0, p.TotalCartoes)
@@ -689,7 +689,7 @@ func TestProjecaoProximosMeses_ErroAssinaturaRepo(t *testing.T) {
 		&MockDespesaGeralRepositoryForDashboard{},
 		&MockDashboardRepositoryForCategorias{},
 	)
-	_, err := svc.ProjecaoProximosMeses(3)
+	_, err := svc.ProjecaoProximosMeses("familia-id", 3)
 	assert.Error(t, err)
 }
 
@@ -716,7 +716,7 @@ func TestResumoMensal_RN08_RendimentoParcialmenteDistribuido(t *testing.T) {
 		&MockDashboardRepositoryForCategorias{},
 	)
 
-	resumo, err := svc.ResumoMensal(3, 2026)
+	resumo, err := svc.ResumoMensal("familia-id", 3, 2026)
 
 	require.NoError(t, err)
 	// Rendimento total é informativo

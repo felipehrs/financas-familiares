@@ -13,12 +13,12 @@ import (
 // RendaExtraServiceInterface define os métodos do service usados pelo handler.
 // Redeclarada aqui para desacoplar o pacote handler do service sem importação circular.
 type RendaExtraServiceInterface interface {
-	Criar(descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error)
-	BuscarPorID(id string) (*domain.RendaExtra, error)
-	Listar() ([]*domain.RendaExtra, error)
-	ListarPorMes(mes, ano int) ([]*domain.RendaExtra, error)
-	Atualizar(id, descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error)
-	Excluir(id string) error
+	Criar(familiaID, descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error)
+	BuscarPorID(familiaID, id string) (*domain.RendaExtra, error)
+	Listar(familiaID string) ([]*domain.RendaExtra, error)
+	ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaExtra, error)
+	Atualizar(familiaID, id, descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error)
+	Excluir(familiaID, id string) error
 }
 
 // RendaExtraHandler contém os handlers HTTP para rendas extras.
@@ -82,6 +82,11 @@ func rendaExtraErroParaHTTP(c *gin.Context, err error) {
 // GET /api/v1/rendas-extras
 // GET /api/v1/rendas-extras?mes=3&ano=2026
 func (h *RendaExtraHandler) Listar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	mesStr := c.Query("mes")
 	anoStr := c.Query("ano")
 
@@ -97,7 +102,7 @@ func (h *RendaExtraHandler) Listar(c *gin.Context) {
 			return
 		}
 
-		rendas, err := h.svc.ListarPorMes(mes, ano)
+		rendas, err := h.svc.ListarPorMes(familiaID, mes, ano)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 			return
@@ -111,7 +116,7 @@ func (h *RendaExtraHandler) Listar(c *gin.Context) {
 		return
 	}
 
-	rendas, err := h.svc.Listar()
+	rendas, err := h.svc.Listar(familiaID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
@@ -127,6 +132,11 @@ func (h *RendaExtraHandler) Listar(c *gin.Context) {
 // Criar cria uma nova renda extra.
 // POST /api/v1/rendas-extras
 func (h *RendaExtraHandler) Criar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	var req criarRendaExtraRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
@@ -143,7 +153,7 @@ func (h *RendaExtraHandler) Criar(c *gin.Context) {
 		dataRecebimento = parsed
 	}
 
-	renda, err := h.svc.Criar(req.Descricao, req.MembroID, dataRecebimento, req.Valor)
+	renda, err := h.svc.Criar(familiaID, req.Descricao, req.MembroID, dataRecebimento, req.Valor)
 	if err != nil {
 		rendaExtraErroParaHTTP(c, err)
 		return
@@ -155,9 +165,14 @@ func (h *RendaExtraHandler) Criar(c *gin.Context) {
 // BuscarPorID retorna uma renda extra pelo seu ID.
 // GET /api/v1/rendas-extras/:id
 func (h *RendaExtraHandler) BuscarPorID(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	renda, err := h.svc.BuscarPorID(id)
+	renda, err := h.svc.BuscarPorID(familiaID, id)
 	if err != nil {
 		rendaExtraErroParaHTTP(c, err)
 		return
@@ -169,6 +184,11 @@ func (h *RendaExtraHandler) BuscarPorID(c *gin.Context) {
 // Atualizar atualiza os dados de uma renda extra existente.
 // PUT /api/v1/rendas-extras/:id
 func (h *RendaExtraHandler) Atualizar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
 	var req atualizarRendaExtraRequest
@@ -187,7 +207,7 @@ func (h *RendaExtraHandler) Atualizar(c *gin.Context) {
 		dataRecebimento = parsed
 	}
 
-	renda, err := h.svc.Atualizar(id, req.Descricao, req.MembroID, dataRecebimento, req.Valor)
+	renda, err := h.svc.Atualizar(familiaID, id, req.Descricao, req.MembroID, dataRecebimento, req.Valor)
 	if err != nil {
 		rendaExtraErroParaHTTP(c, err)
 		return
@@ -199,9 +219,14 @@ func (h *RendaExtraHandler) Atualizar(c *gin.Context) {
 // Excluir realiza o soft-delete de uma renda extra.
 // DELETE /api/v1/rendas-extras/:id
 func (h *RendaExtraHandler) Excluir(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	if err := h.svc.Excluir(id); err != nil {
+	if err := h.svc.Excluir(familiaID, id); err != nil {
 		rendaExtraErroParaHTTP(c, err)
 		return
 	}

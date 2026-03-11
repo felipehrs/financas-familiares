@@ -10,7 +10,7 @@ import (
 
 // RendaHistoricoServiceInterface define os métodos do service usados pelo handler de histórico de rendas.
 type RendaHistoricoServiceInterface interface {
-	BuscarHistorico(filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error)
+	BuscarHistorico(familiaID string, filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error)
 }
 
 // RendaHistoricoHandler contém os handlers HTTP para o histórico de rendas.
@@ -26,6 +26,11 @@ func NewRendaHistoricoHandler(svc RendaHistoricoServiceInterface) *RendaHistoric
 // Historico retorna o histórico e resumo de rendas com filtros opcionais.
 // GET /api/v1/rendas/historico?tipo=fixa|variavel|extra|investimento&membro_id=...&mes=1-12&ano=2001+
 func (h *RendaHistoricoHandler) Historico(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	var filtro domain.FiltroHistoricoRendas
 
 	// Filtro: tipo
@@ -63,7 +68,7 @@ func (h *RendaHistoricoHandler) Historico(c *gin.Context) {
 		filtro.Ano = v
 	}
 
-	historico, err := h.svc.BuscarHistorico(filtro)
+	historico, err := h.svc.BuscarHistorico(familiaID, filtro)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return

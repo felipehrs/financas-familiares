@@ -42,13 +42,13 @@ func (r cartaoCreditoRow) toDomain() *domain.CartaoCredito {
 }
 
 // Criar persiste um novo cartão de crédito no banco e retorna o registro criado (com ID gerado).
-func (r *CartaoCreditoRepository) Criar(cartao *domain.CartaoCredito) (*domain.CartaoCredito, error) {
+func (r *CartaoCreditoRepository) Criar(familiaID string, cartao *domain.CartaoCredito) (*domain.CartaoCredito, error) {
 	var row cartaoCreditoRow
 	err := r.db.QueryRowx(`
-		INSERT INTO cartoes_credito (nome, membro_id, dia_fechamento, dia_vencimento, limite, ativo)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO cartoes_credito (familia_id, nome, membro_id, dia_fechamento, dia_vencimento, limite, ativo)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, nome, membro_id, dia_fechamento, dia_vencimento, limite, ativo
-	`, cartao.Nome, cartao.MembroID, cartao.DiaFechamento, cartao.DiaVencimento, cartao.Limite, cartao.Ativo).StructScan(&row)
+	`, familiaID, cartao.Nome, cartao.MembroID, cartao.DiaFechamento, cartao.DiaVencimento, cartao.Limite, cartao.Ativo).StructScan(&row)
 	if err != nil {
 		return nil, err
 	}
@@ -57,13 +57,13 @@ func (r *CartaoCreditoRepository) Criar(cartao *domain.CartaoCredito) (*domain.C
 
 // BuscarPorID busca um cartão pelo seu UUID.
 // Retorna domain.ErrCartaoNaoEncontrado se não existir ou estiver soft-deleted.
-func (r *CartaoCreditoRepository) BuscarPorID(id string) (*domain.CartaoCredito, error) {
+func (r *CartaoCreditoRepository) BuscarPorID(familiaID, id string) (*domain.CartaoCredito, error) {
 	var row cartaoCreditoRow
 	err := r.db.QueryRowx(`
 		SELECT id, nome, membro_id, dia_fechamento, dia_vencimento, limite, ativo
 		FROM cartoes_credito
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id).StructScan(&row)
+		WHERE id = $1 AND familia_id = $2 AND deleted_at IS NULL
+	`, id, familiaID).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrCartaoNaoEncontrado
@@ -74,14 +74,14 @@ func (r *CartaoCreditoRepository) BuscarPorID(id string) (*domain.CartaoCredito,
 }
 
 // Listar retorna todos os cartões não excluídos (ativos e inativos).
-func (r *CartaoCreditoRepository) Listar() ([]*domain.CartaoCredito, error) {
+func (r *CartaoCreditoRepository) Listar(familiaID string) ([]*domain.CartaoCredito, error) {
 	var rows []cartaoCreditoRow
 	err := r.db.Select(&rows, `
 		SELECT id, nome, membro_id, dia_fechamento, dia_vencimento, limite, ativo
 		FROM cartoes_credito
-		WHERE deleted_at IS NULL
+		WHERE familia_id = $1 AND deleted_at IS NULL
 		ORDER BY nome ASC
-	`)
+	`, familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -94,14 +94,14 @@ func (r *CartaoCreditoRepository) Listar() ([]*domain.CartaoCredito, error) {
 }
 
 // Atualizar atualiza os dados de um cartão existente e retorna o registro atualizado.
-func (r *CartaoCreditoRepository) Atualizar(cartao *domain.CartaoCredito) (*domain.CartaoCredito, error) {
+func (r *CartaoCreditoRepository) Atualizar(familiaID string, cartao *domain.CartaoCredito) (*domain.CartaoCredito, error) {
 	var row cartaoCreditoRow
 	err := r.db.QueryRowx(`
 		UPDATE cartoes_credito
-		SET nome = $2, membro_id = $3, dia_fechamento = $4, dia_vencimento = $5, limite = $6, ativo = $7, updated_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
+		SET nome = $3, membro_id = $4, dia_fechamento = $5, dia_vencimento = $6, limite = $7, ativo = $8, updated_at = NOW()
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
 		RETURNING id, nome, membro_id, dia_fechamento, dia_vencimento, limite, ativo
-	`, cartao.ID, cartao.Nome, cartao.MembroID, cartao.DiaFechamento, cartao.DiaVencimento, cartao.Limite, cartao.Ativo).StructScan(&row)
+	`, familiaID, cartao.ID, cartao.Nome, cartao.MembroID, cartao.DiaFechamento, cartao.DiaVencimento, cartao.Limite, cartao.Ativo).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrCartaoNaoEncontrado
@@ -112,12 +112,12 @@ func (r *CartaoCreditoRepository) Atualizar(cartao *domain.CartaoCredito) (*doma
 }
 
 // Inativar marca um cartão como inativo sem excluir o registro.
-func (r *CartaoCreditoRepository) Inativar(id string) error {
+func (r *CartaoCreditoRepository) Inativar(familiaID, id string) error {
 	result, err := r.db.Exec(`
 		UPDATE cartoes_credito
 		SET ativo = FALSE, updated_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id)
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
+	`, familiaID, id)
 	if err != nil {
 		return err
 	}

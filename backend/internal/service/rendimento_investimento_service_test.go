@@ -22,7 +22,7 @@ type MockRendimentoInvestimentoRepository struct {
 	atualizarChamado bool
 }
 
-func (m *MockRendimentoInvestimentoRepository) Criar(r *domain.RendimentoInvestimento) (*domain.RendimentoInvestimento, error) {
+func (m *MockRendimentoInvestimentoRepository) Criar(familiaID string, r *domain.RendimentoInvestimento) (*domain.RendimentoInvestimento, error) {
 	m.criarChamado = true
 	if m.returnError != nil {
 		return nil, m.returnError
@@ -32,28 +32,28 @@ func (m *MockRendimentoInvestimentoRepository) Criar(r *domain.RendimentoInvesti
 	return &criado, nil
 }
 
-func (m *MockRendimentoInvestimentoRepository) BuscarPorID(id string) (*domain.RendimentoInvestimento, error) {
+func (m *MockRendimentoInvestimentoRepository) BuscarPorID(familiaID, id string) (*domain.RendimentoInvestimento, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnRendimento, nil
 }
 
-func (m *MockRendimentoInvestimentoRepository) Listar() ([]*domain.RendimentoInvestimento, error) {
+func (m *MockRendimentoInvestimentoRepository) Listar(familiaID string) ([]*domain.RendimentoInvestimento, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnRendimentos, nil
 }
 
-func (m *MockRendimentoInvestimentoRepository) ListarPorMes(mes, ano int) ([]*domain.RendimentoInvestimento, error) {
+func (m *MockRendimentoInvestimentoRepository) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendimentoInvestimento, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnRendimentos, nil
 }
 
-func (m *MockRendimentoInvestimentoRepository) Atualizar(r *domain.RendimentoInvestimento) (*domain.RendimentoInvestimento, error) {
+func (m *MockRendimentoInvestimentoRepository) Atualizar(familiaID string, r *domain.RendimentoInvestimento) (*domain.RendimentoInvestimento, error) {
 	m.atualizarChamado = true
 	if m.returnError != nil {
 		return nil, m.returnError
@@ -62,7 +62,7 @@ func (m *MockRendimentoInvestimentoRepository) Atualizar(r *domain.RendimentoInv
 	return &atualizado, nil
 }
 
-func (m *MockRendimentoInvestimentoRepository) Excluir(id string) error {
+func (m *MockRendimentoInvestimentoRepository) Excluir(familiaID, id string) error {
 	m.excluirChamado = true
 	return m.returnError
 }
@@ -76,7 +76,7 @@ func TestCriarRendimentoInvestimento_SucessoSemValorDistribuido(t *testing.T) {
 	mock := &MockRendimentoInvestimentoRepository{}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	rendimento, err := svc.Criar("Rendimento CDB", "membro-1", dataRendimentoValida, 1000.00, 0)
+	rendimento, err := svc.Criar("familia-id", "Rendimento CDB", "membro-1", dataRendimentoValida, 1000.00, 0)
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-gerado-mock", rendimento.ID)
@@ -91,7 +91,7 @@ func TestCriarRendimentoInvestimento_SucessoComValorDistribuidoParcial(t *testin
 	mock := &MockRendimentoInvestimentoRepository{}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	rendimento, err := svc.Criar("Rendimento LCI", "membro-1", dataRendimentoValida, 2000.00, 500.00)
+	rendimento, err := svc.Criar("familia-id", "Rendimento LCI", "membro-1", dataRendimentoValida, 2000.00, 500.00)
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-gerado-mock", rendimento.ID)
@@ -104,7 +104,7 @@ func TestCriarRendimentoInvestimento_SemDescricao(t *testing.T) {
 	mock := &MockRendimentoInvestimentoRepository{}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	_, err := svc.Criar("", "membro-1", dataRendimentoValida, 1000.00, 0)
+	_, err := svc.Criar("familia-id", "", "membro-1", dataRendimentoValida, 1000.00, 0)
 
 	assert.ErrorIs(t, err, domain.ErrDescricaoRendimentoObrigatoria)
 	assert.False(t, mock.criarChamado, "repositório não deve ser chamado com descrição vazia")
@@ -114,7 +114,7 @@ func TestCriarRendimentoInvestimento_SemMembroID(t *testing.T) {
 	mock := &MockRendimentoInvestimentoRepository{}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	_, err := svc.Criar("Rendimento CDB", "", dataRendimentoValida, 1000.00, 0)
+	_, err := svc.Criar("familia-id", "Rendimento CDB", "", dataRendimentoValida, 1000.00, 0)
 
 	assert.ErrorIs(t, err, domain.ErrMembroIDRendimentoObrigatorio)
 	assert.False(t, mock.criarChamado)
@@ -124,7 +124,7 @@ func TestCriarRendimentoInvestimento_ValorZero(t *testing.T) {
 	mock := &MockRendimentoInvestimentoRepository{}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	_, err := svc.Criar("Rendimento CDB", "membro-1", dataRendimentoValida, 0, 0)
+	_, err := svc.Criar("familia-id", "Rendimento CDB", "membro-1", dataRendimentoValida, 0, 0)
 
 	assert.ErrorIs(t, err, domain.ErrValorRendimentoInvalido)
 	assert.False(t, mock.criarChamado)
@@ -134,7 +134,7 @@ func TestCriarRendimentoInvestimento_ValorNegativo(t *testing.T) {
 	mock := &MockRendimentoInvestimentoRepository{}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	_, err := svc.Criar("Rendimento CDB", "membro-1", dataRendimentoValida, -100.00, 0)
+	_, err := svc.Criar("familia-id", "Rendimento CDB", "membro-1", dataRendimentoValida, -100.00, 0)
 
 	assert.ErrorIs(t, err, domain.ErrValorRendimentoInvalido)
 	assert.False(t, mock.criarChamado)
@@ -144,7 +144,7 @@ func TestCriarRendimentoInvestimento_DataZero(t *testing.T) {
 	mock := &MockRendimentoInvestimentoRepository{}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	_, err := svc.Criar("Rendimento CDB", "membro-1", time.Time{}, 1000.00, 0)
+	_, err := svc.Criar("familia-id", "Rendimento CDB", "membro-1", time.Time{}, 1000.00, 0)
 
 	assert.ErrorIs(t, err, domain.ErrDataRendimentoObrigatoria)
 	assert.False(t, mock.criarChamado)
@@ -154,7 +154,7 @@ func TestCriarRendimentoInvestimento_ValorDistribuidoMaiorQueValor(t *testing.T)
 	mock := &MockRendimentoInvestimentoRepository{}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	_, err := svc.Criar("Rendimento CDB", "membro-1", dataRendimentoValida, 1000.00, 1500.00)
+	_, err := svc.Criar("familia-id", "Rendimento CDB", "membro-1", dataRendimentoValida, 1000.00, 1500.00)
 
 	assert.ErrorIs(t, err, domain.ErrValorDistribuidoInvalido)
 	assert.False(t, mock.criarChamado)
@@ -164,7 +164,7 @@ func TestCriarRendimentoInvestimento_ValorDistribuidoNegativo(t *testing.T) {
 	mock := &MockRendimentoInvestimentoRepository{}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	_, err := svc.Criar("Rendimento CDB", "membro-1", dataRendimentoValida, 1000.00, -50.00)
+	_, err := svc.Criar("familia-id", "Rendimento CDB", "membro-1", dataRendimentoValida, 1000.00, -50.00)
 
 	assert.ErrorIs(t, err, domain.ErrValorDistribuidoInvalido)
 	assert.False(t, mock.criarChamado)
@@ -184,7 +184,7 @@ func TestBuscarPorIDRendimentoInvestimento_Existente(t *testing.T) {
 	mock := &MockRendimentoInvestimentoRepository{returnRendimento: existente}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	resultado, err := svc.BuscarPorID("uuid-1")
+	resultado, err := svc.BuscarPorID("familia-id", "uuid-1")
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-1", resultado.ID)
@@ -195,7 +195,7 @@ func TestBuscarPorIDRendimentoInvestimento_Inexistente(t *testing.T) {
 	mock := &MockRendimentoInvestimentoRepository{returnError: domain.ErrRendimentoInvestimentoNaoEncontrado}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	_, err := svc.BuscarPorID("uuid-inexistente")
+	_, err := svc.BuscarPorID("familia-id", "uuid-inexistente")
 
 	assert.ErrorIs(t, err, domain.ErrRendimentoInvestimentoNaoEncontrado)
 }
@@ -210,7 +210,7 @@ func TestListarRendimentosInvestimento_RetornaLista(t *testing.T) {
 	mock := &MockRendimentoInvestimentoRepository{returnRendimentos: rendimentos}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	resultado, err := svc.Listar()
+	resultado, err := svc.Listar("familia-id")
 
 	require.NoError(t, err)
 	assert.Len(t, resultado, 2)
@@ -228,7 +228,7 @@ func TestListarRendimentosInvestimentoPorMes_RetornaListaFiltrada(t *testing.T) 
 	mock := &MockRendimentoInvestimentoRepository{returnRendimentos: rendimentos}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	resultado, err := svc.ListarPorMes(3, 2026)
+	resultado, err := svc.ListarPorMes("familia-id", 3, 2026)
 
 	require.NoError(t, err)
 	assert.Len(t, resultado, 2)
@@ -241,7 +241,7 @@ func TestExcluirRendimentoInvestimento_Existente(t *testing.T) {
 	mock := &MockRendimentoInvestimentoRepository{returnRendimento: existente}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	err := svc.Excluir("uuid-1")
+	err := svc.Excluir("familia-id", "uuid-1")
 
 	require.NoError(t, err)
 	assert.True(t, mock.excluirChamado)
@@ -251,7 +251,7 @@ func TestExcluirRendimentoInvestimento_Inexistente(t *testing.T) {
 	mock := &MockRendimentoInvestimentoRepository{returnError: domain.ErrRendimentoInvestimentoNaoEncontrado}
 	svc := service.NewRendimentoInvestimentoService(mock)
 
-	err := svc.Excluir("uuid-inexistente")
+	err := svc.Excluir("familia-id", "uuid-inexistente")
 
 	assert.ErrorIs(t, err, domain.ErrRendimentoInvestimentoNaoEncontrado)
 	assert.False(t, mock.excluirChamado)

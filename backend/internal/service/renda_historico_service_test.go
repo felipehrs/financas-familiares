@@ -18,14 +18,14 @@ type MockRendaFixaRepoForHistorico struct {
 	err    error
 }
 
-func (m *MockRendaFixaRepoForHistorico) Listar() ([]*domain.RendaFixa, error) {
+func (m *MockRendaFixaRepoForHistorico) Listar(familiaID string) ([]*domain.RendaFixa, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	return m.rendas, nil
 }
 
-func (m *MockRendaFixaRepoForHistorico) ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error) {
+func (m *MockRendaFixaRepoForHistorico) ListarVigentesPorMes(familiaID string, mes, ano int) ([]*domain.RendaFixa, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -37,14 +37,14 @@ type MockRendaVariavelRepoForHistorico struct {
 	err    error
 }
 
-func (m *MockRendaVariavelRepoForHistorico) Listar() ([]*domain.RendaVariavel, error) {
+func (m *MockRendaVariavelRepoForHistorico) Listar(familiaID string) ([]*domain.RendaVariavel, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	return m.rendas, nil
 }
 
-func (m *MockRendaVariavelRepoForHistorico) ListarPorMes(mes, ano int) ([]*domain.RendaVariavel, error) {
+func (m *MockRendaVariavelRepoForHistorico) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaVariavel, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -56,14 +56,14 @@ type MockRendaExtraRepoForHistorico struct {
 	err    error
 }
 
-func (m *MockRendaExtraRepoForHistorico) Listar() ([]*domain.RendaExtra, error) {
+func (m *MockRendaExtraRepoForHistorico) Listar(familiaID string) ([]*domain.RendaExtra, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	return m.rendas, nil
 }
 
-func (m *MockRendaExtraRepoForHistorico) ListarPorMes(mes, ano int) ([]*domain.RendaExtra, error) {
+func (m *MockRendaExtraRepoForHistorico) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaExtra, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -75,14 +75,14 @@ type MockRendimentoRepoForHistorico struct {
 	err         error
 }
 
-func (m *MockRendimentoRepoForHistorico) Listar() ([]*domain.RendimentoInvestimento, error) {
+func (m *MockRendimentoRepoForHistorico) Listar(familiaID string) ([]*domain.RendimentoInvestimento, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	return m.rendimentos, nil
 }
 
-func (m *MockRendimentoRepoForHistorico) ListarPorMes(mes, ano int) ([]*domain.RendimentoInvestimento, error) {
+func (m *MockRendimentoRepoForHistorico) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendimentoInvestimento, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -131,7 +131,7 @@ func TestHistorico_TodosTiposRetornadosSemFiltro(t *testing.T) {
 		}},
 	)
 
-	resultado, err := svc.BuscarHistorico(domain.FiltroHistoricoRendas{})
+	resultado, err := svc.BuscarHistorico("familia-id", domain.FiltroHistoricoRendas{})
 	require.NoError(t, err)
 	assert.Len(t, resultado.Itens, 4)
 }
@@ -149,7 +149,7 @@ func TestHistorico_FiltroTipoFixa(t *testing.T) {
 		&MockRendimentoRepoForHistorico{},
 	)
 
-	resultado, err := svc.BuscarHistorico(domain.FiltroHistoricoRendas{Tipo: domain.TipoRendaFixa})
+	resultado, err := svc.BuscarHistorico("familia-id", domain.FiltroHistoricoRendas{Tipo: domain.TipoRendaFixa})
 	require.NoError(t, err)
 	assert.Len(t, resultado.Itens, 1)
 	assert.Equal(t, domain.TipoRendaFixa, resultado.Itens[0].Tipo)
@@ -170,7 +170,7 @@ func TestHistorico_FiltroTipoVariavel(t *testing.T) {
 		&MockRendimentoRepoForHistorico{},
 	)
 
-	resultado, err := svc.BuscarHistorico(domain.FiltroHistoricoRendas{Tipo: domain.TipoRendaVariavel})
+	resultado, err := svc.BuscarHistorico("familia-id", domain.FiltroHistoricoRendas{Tipo: domain.TipoRendaVariavel})
 	require.NoError(t, err)
 	assert.Len(t, resultado.Itens, 2)
 	for _, item := range resultado.Itens {
@@ -191,7 +191,7 @@ func TestHistorico_FiltroTipoExtra(t *testing.T) {
 		}},
 	)
 
-	resultado, err := svc.BuscarHistorico(domain.FiltroHistoricoRendas{Tipo: domain.TipoRendaExtra})
+	resultado, err := svc.BuscarHistorico("familia-id", domain.FiltroHistoricoRendas{Tipo: domain.TipoRendaExtra})
 	require.NoError(t, err)
 	assert.Len(t, resultado.Itens, 1)
 	assert.Equal(t, domain.TipoRendaExtra, resultado.Itens[0].Tipo)
@@ -212,7 +212,7 @@ func TestHistorico_FiltroTipoInvestimento(t *testing.T) {
 		}},
 	)
 
-	resultado, err := svc.BuscarHistorico(domain.FiltroHistoricoRendas{Tipo: domain.TipoRendaInvestimento})
+	resultado, err := svc.BuscarHistorico("familia-id", domain.FiltroHistoricoRendas{Tipo: domain.TipoRendaInvestimento})
 	require.NoError(t, err)
 	assert.Len(t, resultado.Itens, 2)
 	for _, item := range resultado.Itens {
@@ -237,7 +237,7 @@ func TestHistorico_FiltroMembroID(t *testing.T) {
 		&MockRendimentoRepoForHistorico{},
 	)
 
-	resultado, err := svc.BuscarHistorico(domain.FiltroHistoricoRendas{MembroID: "m-1"})
+	resultado, err := svc.BuscarHistorico("familia-id", domain.FiltroHistoricoRendas{MembroID: "m-1"})
 	require.NoError(t, err)
 	// rf-1 + rv-1 = 2 itens
 	assert.Len(t, resultado.Itens, 2)
@@ -263,7 +263,7 @@ func TestHistorico_FiltroMesEAno(t *testing.T) {
 		}},
 	)
 
-	resultado, err := svc.BuscarHistorico(domain.FiltroHistoricoRendas{Mes: 3, Ano: 2026})
+	resultado, err := svc.BuscarHistorico("familia-id", domain.FiltroHistoricoRendas{Mes: 3, Ano: 2026})
 	require.NoError(t, err)
 	// Todos os 4 itens devem ser retornados (mocks retornam todos independente do mês)
 	assert.Len(t, resultado.Itens, 4)
@@ -302,7 +302,7 @@ func TestHistorico_ResumoTotaisCorretos(t *testing.T) {
 		}},
 	)
 
-	resultado, err := svc.BuscarHistorico(domain.FiltroHistoricoRendas{})
+	resultado, err := svc.BuscarHistorico("familia-id", domain.FiltroHistoricoRendas{})
 	require.NoError(t, err)
 
 	assert.Equal(t, 5000.0, resultado.Resumo.TotalFixas)
@@ -326,7 +326,7 @@ func TestHistorico_InvestimentoNaoDistribuidoNaoEntraNaTotalGeral(t *testing.T) 
 		}},
 	)
 
-	resultado, err := svc.BuscarHistorico(domain.FiltroHistoricoRendas{})
+	resultado, err := svc.BuscarHistorico("familia-id", domain.FiltroHistoricoRendas{})
 	require.NoError(t, err)
 
 	assert.Len(t, resultado.Itens, 1)
@@ -345,7 +345,7 @@ func TestHistorico_ErroPropagadoFixa(t *testing.T) {
 		&MockRendimentoRepoForHistorico{},
 	)
 
-	_, err := svc.BuscarHistorico(domain.FiltroHistoricoRendas{})
+	_, err := svc.BuscarHistorico("familia-id", domain.FiltroHistoricoRendas{})
 	assert.ErrorIs(t, err, erroEsperado)
 }
 
@@ -359,7 +359,7 @@ func TestHistorico_ErroPropagadoVariavel(t *testing.T) {
 		&MockRendimentoRepoForHistorico{},
 	)
 
-	_, err := svc.BuscarHistorico(domain.FiltroHistoricoRendas{})
+	_, err := svc.BuscarHistorico("familia-id", domain.FiltroHistoricoRendas{})
 	assert.ErrorIs(t, err, erroEsperado)
 }
 
@@ -373,7 +373,7 @@ func TestHistorico_ErroPropagadoExtra(t *testing.T) {
 		&MockRendimentoRepoForHistorico{},
 	)
 
-	_, err := svc.BuscarHistorico(domain.FiltroHistoricoRendas{})
+	_, err := svc.BuscarHistorico("familia-id", domain.FiltroHistoricoRendas{})
 	assert.ErrorIs(t, err, erroEsperado)
 }
 
@@ -387,7 +387,7 @@ func TestHistorico_ErroPropagadoRendimento(t *testing.T) {
 		&MockRendimentoRepoForHistorico{err: erroEsperado},
 	)
 
-	_, err := svc.BuscarHistorico(domain.FiltroHistoricoRendas{})
+	_, err := svc.BuscarHistorico("familia-id", domain.FiltroHistoricoRendas{})
 	assert.ErrorIs(t, err, erroEsperado)
 }
 
@@ -395,7 +395,7 @@ func TestHistorico_ErroPropagadoRendimento(t *testing.T) {
 func TestHistorico_SemResultados(t *testing.T) {
 	svc := newHistoricoSvcVazio()
 
-	resultado, err := svc.BuscarHistorico(domain.FiltroHistoricoRendas{})
+	resultado, err := svc.BuscarHistorico("familia-id", domain.FiltroHistoricoRendas{})
 	require.NoError(t, err)
 	assert.Empty(t, resultado.Itens)
 	assert.Equal(t, 0.0, resultado.Resumo.TotalFixas)

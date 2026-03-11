@@ -11,11 +11,11 @@ import (
 // MembroServiceInterface define os métodos do service usados pelo handler.
 // Redeclarada aqui para desacoplar o pacote handler do service sem importação circular.
 type MembroServiceInterface interface {
-	Criar(nome, relacionamento string) (*domain.Membro, error)
-	BuscarPorID(id string) (*domain.Membro, error)
-	Listar() ([]*domain.Membro, error)
-	Atualizar(id, nome, relacionamento string, ativo bool) (*domain.Membro, error)
-	Inativar(id string) error
+	Criar(familiaID, nome, relacionamento string) (*domain.Membro, error)
+	BuscarPorID(familiaID, id string) (*domain.Membro, error)
+	Listar(familiaID string) ([]*domain.Membro, error)
+	Atualizar(familiaID, id, nome, relacionamento string, ativo bool) (*domain.Membro, error)
+	Inativar(familiaID, id string) error
 }
 
 // MembroHandler contém os handlers HTTP para membros da família.
@@ -59,7 +59,12 @@ type atualizarMembroRequest struct {
 // Listar retorna todos os membros da família.
 // GET /api/v1/membros
 func (h *MembroHandler) Listar(c *gin.Context) {
-	membros, err := h.svc.Listar()
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
+	membros, err := h.svc.Listar(familiaID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
@@ -76,13 +81,18 @@ func (h *MembroHandler) Listar(c *gin.Context) {
 // Criar cria um novo membro da família.
 // POST /api/v1/membros
 func (h *MembroHandler) Criar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	var req criarMembroRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
 		return
 	}
 
-	membro, err := h.svc.Criar(req.Nome, req.Relacionamento)
+	membro, err := h.svc.Criar(familiaID, req.Nome, req.Relacionamento)
 	if err != nil {
 		if errors.Is(err, domain.ErrNomeObrigatorio) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -98,9 +108,14 @@ func (h *MembroHandler) Criar(c *gin.Context) {
 // BuscarPorID retorna um membro pelo seu ID.
 // GET /api/v1/membros/:id
 func (h *MembroHandler) BuscarPorID(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	membro, err := h.svc.BuscarPorID(id)
+	membro, err := h.svc.BuscarPorID(familiaID, id)
 	if err != nil {
 		if errors.Is(err, domain.ErrMembroNaoEncontrado) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "membro não encontrado"})
@@ -116,6 +131,11 @@ func (h *MembroHandler) BuscarPorID(c *gin.Context) {
 // Atualizar atualiza os dados de um membro existente.
 // PUT /api/v1/membros/:id
 func (h *MembroHandler) Atualizar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
 	var req atualizarMembroRequest
@@ -124,7 +144,7 @@ func (h *MembroHandler) Atualizar(c *gin.Context) {
 		return
 	}
 
-	membro, err := h.svc.Atualizar(id, req.Nome, req.Relacionamento, req.Ativo)
+	membro, err := h.svc.Atualizar(familiaID, id, req.Nome, req.Relacionamento, req.Ativo)
 	if err != nil {
 		if errors.Is(err, domain.ErrMembroNaoEncontrado) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "membro não encontrado"})
@@ -144,9 +164,14 @@ func (h *MembroHandler) Atualizar(c *gin.Context) {
 // Inativar marca um membro como inativo.
 // PATCH /api/v1/membros/:id/inativar
 func (h *MembroHandler) Inativar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	if err := h.svc.Inativar(id); err != nil {
+	if err := h.svc.Inativar(familiaID, id); err != nil {
 		if errors.Is(err, domain.ErrMembroNaoEncontrado) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "membro não encontrado"})
 			return

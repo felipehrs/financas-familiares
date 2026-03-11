@@ -53,14 +53,14 @@ func (r despesaCartaoRow) toDomain() *domain.DespesaCartao {
 }
 
 // Criar persiste uma nova despesa de cartão no banco e retorna o registro criado (com ID gerado).
-func (r *DespesaCartaoRepository) Criar(d *domain.DespesaCartao) (*domain.DespesaCartao, error) {
+func (r *DespesaCartaoRepository) Criar(familiaID string, d *domain.DespesaCartao) (*domain.DespesaCartao, error) {
 	var row despesaCartaoRow
 	err := r.db.QueryRowx(`
 		INSERT INTO despesas_cartao
-			(compra_id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, parcela_numero, valor_parcela, fatura_mes, fatura_ano)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			(familia_id, compra_id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, parcela_numero, valor_parcela, fatura_mes, fatura_ano)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id, compra_id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, parcela_numero, valor_parcela, fatura_mes, fatura_ano
-	`, d.CompraID, d.CartaoID, d.CategoriaID, d.Descricao, d.DataCompra, d.ValorTotal, d.NumeroParcelas, d.ParcelaNumero, d.ValorParcela, d.FaturaMes, d.FaturaAno).StructScan(&row)
+	`, familiaID, d.CompraID, d.CartaoID, d.CategoriaID, d.Descricao, d.DataCompra, d.ValorTotal, d.NumeroParcelas, d.ParcelaNumero, d.ValorParcela, d.FaturaMes, d.FaturaAno).StructScan(&row)
 	if err != nil {
 		return nil, err
 	}
@@ -68,14 +68,14 @@ func (r *DespesaCartaoRepository) Criar(d *domain.DespesaCartao) (*domain.Despes
 }
 
 // ListarPorCartao retorna todas as despesas não excluídas de um cartão, ordenadas por data de compra.
-func (r *DespesaCartaoRepository) ListarPorCartao(cartaoID string) ([]*domain.DespesaCartao, error) {
+func (r *DespesaCartaoRepository) ListarPorCartao(familiaID, cartaoID string) ([]*domain.DespesaCartao, error) {
 	var rows []despesaCartaoRow
 	err := r.db.Select(&rows, `
 		SELECT id, compra_id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, parcela_numero, valor_parcela, fatura_mes, fatura_ano
 		FROM despesas_cartao
-		WHERE cartao_id = $1 AND deleted_at IS NULL
+		WHERE cartao_id = $1 AND familia_id = $2 AND deleted_at IS NULL
 		ORDER BY data_compra DESC, parcela_numero ASC
-	`, cartaoID)
+	`, cartaoID, familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -88,14 +88,14 @@ func (r *DespesaCartaoRepository) ListarPorCartao(cartaoID string) ([]*domain.De
 }
 
 // ListarPorFatura retorna as despesas de um cartão filtradas por mês e ano de fatura.
-func (r *DespesaCartaoRepository) ListarPorFatura(cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error) {
+func (r *DespesaCartaoRepository) ListarPorFatura(familiaID, cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error) {
 	var rows []despesaCartaoRow
 	err := r.db.Select(&rows, `
 		SELECT id, compra_id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, parcela_numero, valor_parcela, fatura_mes, fatura_ano
 		FROM despesas_cartao
-		WHERE cartao_id = $1 AND fatura_mes = $2 AND fatura_ano = $3 AND deleted_at IS NULL
+		WHERE cartao_id = $1 AND familia_id = $2 AND fatura_mes = $3 AND fatura_ano = $4 AND deleted_at IS NULL
 		ORDER BY data_compra DESC, parcela_numero ASC
-	`, cartaoID, mes, ano)
+	`, cartaoID, familiaID, mes, ano)
 	if err != nil {
 		return nil, err
 	}
@@ -109,13 +109,13 @@ func (r *DespesaCartaoRepository) ListarPorFatura(cartaoID string, mes, ano int)
 
 // BuscarPorID busca uma despesa pelo seu UUID.
 // Retorna domain.ErrDespesaCartaoNaoEncontrada se não existir ou estiver soft-deleted.
-func (r *DespesaCartaoRepository) BuscarPorID(id string) (*domain.DespesaCartao, error) {
+func (r *DespesaCartaoRepository) BuscarPorID(familiaID, id string) (*domain.DespesaCartao, error) {
 	var row despesaCartaoRow
 	err := r.db.QueryRowx(`
 		SELECT id, compra_id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, parcela_numero, valor_parcela, fatura_mes, fatura_ano
 		FROM despesas_cartao
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id).StructScan(&row)
+		WHERE id = $1 AND familia_id = $2 AND deleted_at IS NULL
+	`, id, familiaID).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrDespesaCartaoNaoEncontrada
@@ -127,14 +127,14 @@ func (r *DespesaCartaoRepository) BuscarPorID(id string) (*domain.DespesaCartao,
 
 // ListarPorFaturaGlobal retorna todas as despesas de todos os cartões filtradas por mês e ano de fatura.
 // Usado pelo DashboardService para calcular o total de despesas de cartão no mês.
-func (r *DespesaCartaoRepository) ListarPorFaturaGlobal(mes, ano int) ([]*domain.DespesaCartao, error) {
+func (r *DespesaCartaoRepository) ListarPorFaturaGlobal(familiaID string, mes, ano int) ([]*domain.DespesaCartao, error) {
 	var rows []despesaCartaoRow
 	err := r.db.Select(&rows, `
 		SELECT id, compra_id, cartao_id, categoria_id, descricao, data_compra, valor_total, numero_parcelas, parcela_numero, valor_parcela, fatura_mes, fatura_ano
 		FROM despesas_cartao
-		WHERE fatura_mes = $1 AND fatura_ano = $2 AND deleted_at IS NULL
+		WHERE familia_id = $1 AND fatura_mes = $2 AND fatura_ano = $3 AND deleted_at IS NULL
 		ORDER BY data_compra DESC, parcela_numero ASC
-	`, mes, ano)
+	`, familiaID, mes, ano)
 	if err != nil {
 		return nil, err
 	}
@@ -147,12 +147,12 @@ func (r *DespesaCartaoRepository) ListarPorFaturaGlobal(mes, ano int) ([]*domain
 }
 
 // Excluir realiza soft delete de uma despesa setando deleted_at = NOW().
-func (r *DespesaCartaoRepository) Excluir(id string) error {
+func (r *DespesaCartaoRepository) Excluir(familiaID, id string) error {
 	result, err := r.db.Exec(`
 		UPDATE despesas_cartao
 		SET deleted_at = NOW(), updated_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id)
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
+	`, familiaID, id)
 	if err != nil {
 		return err
 	}

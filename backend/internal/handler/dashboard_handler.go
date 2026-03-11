@@ -12,10 +12,10 @@ import (
 // DashboardServiceInterface define os métodos do service usados pelo handler de dashboard.
 // Redeclarada aqui para desacoplar o pacote handler do service sem importação circular.
 type DashboardServiceInterface interface {
-	ResumoMensal(mes, ano int) (*service.ResumoMensal, error)
-	DespesasPorCategoria(mes, ano int) (*service.ResumoCategorias, error)
-	EvolucaoMensal(qtdMeses int) ([]service.PontoEvolucao, error)
-	ProjecaoProximosMeses(qtdMeses int) ([]service.MesProjecao, error)
+	ResumoMensal(familiaID string, mes, ano int) (*service.ResumoMensal, error)
+	DespesasPorCategoria(familiaID string, mes, ano int) (*service.ResumoCategorias, error)
+	EvolucaoMensal(familiaID string, qtdMeses int) ([]service.PontoEvolucao, error)
+	ProjecaoProximosMeses(familiaID string, qtdMeses int) ([]service.MesProjecao, error)
 }
 
 // DashboardHandler contém os handlers HTTP para o dashboard.
@@ -32,6 +32,11 @@ func NewDashboardHandler(svc DashboardServiceInterface) *DashboardHandler {
 // GET /api/v1/dashboard/resumo?mes=3&ano=2026
 // Usa mês e ano atuais se os parâmetros não forem fornecidos.
 func (h *DashboardHandler) ResumoMensal(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	agora := time.Now()
 	mes := int(agora.Month())
 	ano := agora.Year()
@@ -54,7 +59,7 @@ func (h *DashboardHandler) ResumoMensal(c *gin.Context) {
 		ano = v
 	}
 
-	resumo, err := h.svc.ResumoMensal(mes, ano)
+	resumo, err := h.svc.ResumoMensal(familiaID, mes, ano)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
@@ -66,7 +71,12 @@ func (h *DashboardHandler) ResumoMensal(c *gin.Context) {
 // EvolucaoMensal retorna os totais dos últimos 12 meses para o gráfico de evolução.
 // GET /api/v1/dashboard/evolucao
 func (h *DashboardHandler) EvolucaoMensal(c *gin.Context) {
-	pontos, err := h.svc.EvolucaoMensal(12)
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
+	pontos, err := h.svc.EvolucaoMensal(familiaID, 12)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
@@ -77,7 +87,12 @@ func (h *DashboardHandler) EvolucaoMensal(c *gin.Context) {
 // Projecao retorna a projeção dos próximos 3 meses.
 // GET /api/v1/dashboard/projecao
 func (h *DashboardHandler) Projecao(c *gin.Context) {
-	projecao, err := h.svc.ProjecaoProximosMeses(3)
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
+	projecao, err := h.svc.ProjecaoProximosMeses(familiaID, 3)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
@@ -88,6 +103,11 @@ func (h *DashboardHandler) Projecao(c *gin.Context) {
 // DespesasPorCategoria retorna as despesas agrupadas por categoria para um mês/ano.
 // GET /api/v1/dashboard/categorias?mes=3&ano=2026
 func (h *DashboardHandler) DespesasPorCategoria(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	mesStr := c.Query("mes")
 	anoStr := c.Query("ano")
 
@@ -110,7 +130,7 @@ func (h *DashboardHandler) DespesasPorCategoria(c *gin.Context) {
 		ano = now.Year()
 	}
 
-	resumo, err := h.svc.DespesasPorCategoria(mes, ano)
+	resumo, err := h.svc.DespesasPorCategoria(familiaID, mes, ano)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return

@@ -13,12 +13,12 @@ import (
 // DespesaGeralServiceInterface define os métodos do service usados pelo handler.
 // Redeclarada aqui para desacoplar o pacote handler do service sem importação circular.
 type DespesaGeralServiceInterface interface {
-	Criar(membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error)
-	BuscarPorID(id string) (*domain.DespesaGeral, error)
-	Listar() ([]*domain.DespesaGeral, error)
-	ListarPorMes(mes, ano int) ([]*domain.DespesaGeral, error)
-	Atualizar(id, membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error)
-	Excluir(id string) error
+	Criar(familiaID, membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error)
+	BuscarPorID(familiaID, id string) (*domain.DespesaGeral, error)
+	Listar(familiaID string) ([]*domain.DespesaGeral, error)
+	ListarPorMes(familiaID string, mes, ano int) ([]*domain.DespesaGeral, error)
+	Atualizar(familiaID, id, membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error)
+	Excluir(familiaID, id string) error
 }
 
 // DespesaGeralHandler contém os handlers HTTP para despesas gerais.
@@ -95,6 +95,11 @@ func despesaGeralErroParaHTTP(c *gin.Context, err error) {
 // GET /api/v1/despesas-gerais
 // GET /api/v1/despesas-gerais?mes=3&ano=2026
 func (h *DespesaGeralHandler) Listar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	mesStr := c.Query("mes")
 	anoStr := c.Query("ano")
 
@@ -110,7 +115,7 @@ func (h *DespesaGeralHandler) Listar(c *gin.Context) {
 			return
 		}
 
-		despesas, err := h.svc.ListarPorMes(mes, ano)
+		despesas, err := h.svc.ListarPorMes(familiaID, mes, ano)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 			return
@@ -124,7 +129,7 @@ func (h *DespesaGeralHandler) Listar(c *gin.Context) {
 		return
 	}
 
-	despesas, err := h.svc.Listar()
+	despesas, err := h.svc.Listar(familiaID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
@@ -140,6 +145,11 @@ func (h *DespesaGeralHandler) Listar(c *gin.Context) {
 // Criar cria uma nova despesa geral.
 // POST /api/v1/despesas-gerais
 func (h *DespesaGeralHandler) Criar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	var req criarDespesaGeralRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
@@ -156,7 +166,7 @@ func (h *DespesaGeralHandler) Criar(c *gin.Context) {
 		data = parsed
 	}
 
-	despesa, err := h.svc.Criar(req.MembroID, req.CategoriaID, req.Descricao, data, req.Valor, req.FormaPagamento, req.Observacoes)
+	despesa, err := h.svc.Criar(familiaID, req.MembroID, req.CategoriaID, req.Descricao, data, req.Valor, req.FormaPagamento, req.Observacoes)
 	if err != nil {
 		despesaGeralErroParaHTTP(c, err)
 		return
@@ -168,9 +178,14 @@ func (h *DespesaGeralHandler) Criar(c *gin.Context) {
 // BuscarPorID retorna uma despesa geral pelo seu ID.
 // GET /api/v1/despesas-gerais/:id
 func (h *DespesaGeralHandler) BuscarPorID(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	despesa, err := h.svc.BuscarPorID(id)
+	despesa, err := h.svc.BuscarPorID(familiaID, id)
 	if err != nil {
 		despesaGeralErroParaHTTP(c, err)
 		return
@@ -182,6 +197,11 @@ func (h *DespesaGeralHandler) BuscarPorID(c *gin.Context) {
 // Atualizar atualiza os dados de uma despesa geral existente.
 // PUT /api/v1/despesas-gerais/:id
 func (h *DespesaGeralHandler) Atualizar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
 	var req atualizarDespesaGeralRequest
@@ -200,7 +220,7 @@ func (h *DespesaGeralHandler) Atualizar(c *gin.Context) {
 		data = parsed
 	}
 
-	despesa, err := h.svc.Atualizar(id, req.MembroID, req.CategoriaID, req.Descricao, data, req.Valor, req.FormaPagamento, req.Observacoes)
+	despesa, err := h.svc.Atualizar(familiaID, id, req.MembroID, req.CategoriaID, req.Descricao, data, req.Valor, req.FormaPagamento, req.Observacoes)
 	if err != nil {
 		despesaGeralErroParaHTTP(c, err)
 		return
@@ -212,9 +232,14 @@ func (h *DespesaGeralHandler) Atualizar(c *gin.Context) {
 // Excluir realiza o soft-delete de uma despesa geral.
 // DELETE /api/v1/despesas-gerais/:id
 func (h *DespesaGeralHandler) Excluir(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	if err := h.svc.Excluir(id); err != nil {
+	if err := h.svc.Excluir(familiaID, id); err != nil {
 		despesaGeralErroParaHTTP(c, err)
 		return
 	}

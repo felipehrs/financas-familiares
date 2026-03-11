@@ -45,13 +45,13 @@ func (r rendaFixaRow) toDomain() *domain.RendaFixa {
 }
 
 // Criar persiste uma nova renda fixa no banco e retorna o registro criado (com ID gerado).
-func (r *RendaFixaRepository) Criar(renda *domain.RendaFixa) (*domain.RendaFixa, error) {
+func (r *RendaFixaRepository) Criar(familiaID string, renda *domain.RendaFixa) (*domain.RendaFixa, error) {
 	var row rendaFixaRow
 	err := r.db.QueryRowx(`
-		INSERT INTO rendas_fixas (descricao, membro_id, valor, dia_recebimento, ativa, data_inicio, data_fim)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO rendas_fixas (familia_id, descricao, membro_id, valor, dia_recebimento, ativa, data_inicio, data_fim)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, descricao, membro_id, valor, dia_recebimento, ativa, data_inicio, data_fim
-	`, renda.Descricao, renda.MembroID, renda.Valor, renda.DiaRecebimento, renda.Ativa, renda.DataInicio, renda.DataFim).StructScan(&row)
+	`, familiaID, renda.Descricao, renda.MembroID, renda.Valor, renda.DiaRecebimento, renda.Ativa, renda.DataInicio, renda.DataFim).StructScan(&row)
 	if err != nil {
 		return nil, err
 	}
@@ -60,13 +60,13 @@ func (r *RendaFixaRepository) Criar(renda *domain.RendaFixa) (*domain.RendaFixa,
 
 // BuscarPorID busca uma renda fixa pelo seu UUID.
 // Retorna domain.ErrRendaFixaNaoEncontrada se não existir ou estiver soft-deleted.
-func (r *RendaFixaRepository) BuscarPorID(id string) (*domain.RendaFixa, error) {
+func (r *RendaFixaRepository) BuscarPorID(familiaID, id string) (*domain.RendaFixa, error) {
 	var row rendaFixaRow
 	err := r.db.QueryRowx(`
 		SELECT id, descricao, membro_id, valor, dia_recebimento, ativa, data_inicio, data_fim
 		FROM rendas_fixas
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id).StructScan(&row)
+		WHERE id = $1 AND familia_id = $2 AND deleted_at IS NULL
+	`, id, familiaID).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRendaFixaNaoEncontrada
@@ -77,14 +77,14 @@ func (r *RendaFixaRepository) BuscarPorID(id string) (*domain.RendaFixa, error) 
 }
 
 // Listar retorna todas as rendas fixas não excluídas (ativas e inativas).
-func (r *RendaFixaRepository) Listar() ([]*domain.RendaFixa, error) {
+func (r *RendaFixaRepository) Listar(familiaID string) ([]*domain.RendaFixa, error) {
 	var rows []rendaFixaRow
 	err := r.db.Select(&rows, `
 		SELECT id, descricao, membro_id, valor, dia_recebimento, ativa, data_inicio, data_fim
 		FROM rendas_fixas
-		WHERE deleted_at IS NULL
+		WHERE familia_id = $1 AND deleted_at IS NULL
 		ORDER BY descricao ASC
-	`)
+	`, familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -97,14 +97,14 @@ func (r *RendaFixaRepository) Listar() ([]*domain.RendaFixa, error) {
 }
 
 // ListarAtivas retorna apenas as rendas fixas ativas (para cálculo de saldo e projeções).
-func (r *RendaFixaRepository) ListarAtivas() ([]*domain.RendaFixa, error) {
+func (r *RendaFixaRepository) ListarAtivas(familiaID string) ([]*domain.RendaFixa, error) {
 	var rows []rendaFixaRow
 	err := r.db.Select(&rows, `
 		SELECT id, descricao, membro_id, valor, dia_recebimento, ativa, data_inicio, data_fim
 		FROM rendas_fixas
-		WHERE ativa = TRUE AND deleted_at IS NULL
+		WHERE familia_id = $1 AND ativa = TRUE AND deleted_at IS NULL
 		ORDER BY descricao ASC
-	`)
+	`, familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -119,17 +119,18 @@ func (r *RendaFixaRepository) ListarAtivas() ([]*domain.RendaFixa, error) {
 // ListarVigentesPorMes retorna as rendas fixas ativas e vigentes para o mês/ano informado.
 // Uma renda é vigente se: data_inicio (mês/ano) <= alvo AND (data_fim IS NULL OR data_fim (mês/ano) >= alvo).
 // Compara usando: (YEAR * 12 + MONTH) como inteiro para granularidade mensal.
-func (r *RendaFixaRepository) ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error) {
+func (r *RendaFixaRepository) ListarVigentesPorMes(familiaID string, mes, ano int) ([]*domain.RendaFixa, error) {
 	var rows []rendaFixaRow
 	err := r.db.Select(&rows, `
 		SELECT id, descricao, membro_id, valor, dia_recebimento, ativa, data_inicio, data_fim
 		FROM rendas_fixas
-		WHERE ativa = TRUE
+		WHERE familia_id = $1
+		  AND ativa = TRUE
 		  AND deleted_at IS NULL
-		  AND (EXTRACT(YEAR FROM data_inicio) * 12 + EXTRACT(MONTH FROM data_inicio)) <= ($1 * 12 + $2)
-		  AND (data_fim IS NULL OR (EXTRACT(YEAR FROM data_fim) * 12 + EXTRACT(MONTH FROM data_fim)) >= ($1 * 12 + $2))
+		  AND (EXTRACT(YEAR FROM data_inicio) * 12 + EXTRACT(MONTH FROM data_inicio)) <= ($2 * 12 + $3)
+		  AND (data_fim IS NULL OR (EXTRACT(YEAR FROM data_fim) * 12 + EXTRACT(MONTH FROM data_fim)) >= ($2 * 12 + $3))
 		ORDER BY descricao ASC
-	`, ano, mes)
+	`, familiaID, ano, mes)
 	if err != nil {
 		return nil, err
 	}
@@ -142,15 +143,15 @@ func (r *RendaFixaRepository) ListarVigentesPorMes(mes, ano int) ([]*domain.Rend
 }
 
 // Atualizar atualiza os dados de uma renda fixa existente e retorna o registro atualizado.
-func (r *RendaFixaRepository) Atualizar(renda *domain.RendaFixa) (*domain.RendaFixa, error) {
+func (r *RendaFixaRepository) Atualizar(familiaID string, renda *domain.RendaFixa) (*domain.RendaFixa, error) {
 	var row rendaFixaRow
 	err := r.db.QueryRowx(`
 		UPDATE rendas_fixas
-		SET descricao = $2, membro_id = $3, valor = $4, dia_recebimento = $5, ativa = $6,
-		    data_inicio = $7, data_fim = $8, updated_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
+		SET descricao = $3, membro_id = $4, valor = $5, dia_recebimento = $6, ativa = $7,
+		    data_inicio = $8, data_fim = $9, updated_at = NOW()
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
 		RETURNING id, descricao, membro_id, valor, dia_recebimento, ativa, data_inicio, data_fim
-	`, renda.ID, renda.Descricao, renda.MembroID, renda.Valor, renda.DiaRecebimento, renda.Ativa, renda.DataInicio, renda.DataFim).StructScan(&row)
+	`, familiaID, renda.ID, renda.Descricao, renda.MembroID, renda.Valor, renda.DiaRecebimento, renda.Ativa, renda.DataInicio, renda.DataFim).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRendaFixaNaoEncontrada
@@ -161,12 +162,12 @@ func (r *RendaFixaRepository) Atualizar(renda *domain.RendaFixa) (*domain.RendaF
 }
 
 // Inativar marca uma renda fixa como inativa sem excluir o registro.
-func (r *RendaFixaRepository) Inativar(id string) error {
+func (r *RendaFixaRepository) Inativar(familiaID, id string) error {
 	result, err := r.db.Exec(`
 		UPDATE rendas_fixas
 		SET ativa = FALSE, updated_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id)
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
+	`, familiaID, id)
 	if err != nil {
 		return err
 	}
