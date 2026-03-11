@@ -1,7 +1,7 @@
 # Plano de Implementação: Tabela de Lançamentos (Ledger) + Tela de Pendências
 
 **Data:** 10/03/2026
-**Pré-requisito:** Sprint 9 concluída (TT-07 — `usuario_id` em todas as tabelas)
+**Pré-requisito:** Sprint 9 concluída (TT-07 — `familia_id` em todas as tabelas + tabelas `familias` e `familia_usuarios`)
 
 ---
 
@@ -45,7 +45,7 @@
 ```sql
 CREATE TABLE lancamentos_despesas (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    usuario_id    UUID NOT NULL REFERENCES usuarios(id),
+    familia_id    UUID NOT NULL REFERENCES familias(id),
 
     -- Identificação do tipo e template de origem
     tipo          VARCHAR(20) NOT NULL
@@ -85,12 +85,12 @@ CREATE TABLE lancamentos_despesas (
 ### 2.2 Índices
 
 ```sql
-CREATE INDEX idx_lancamentos_usuario
-    ON lancamentos_despesas(usuario_id)
+CREATE INDEX idx_lancamentos_familia
+    ON lancamentos_despesas(familia_id)
     WHERE deleted_at IS NULL;
 
 CREATE INDEX idx_lancamentos_competencia
-    ON lancamentos_despesas(usuario_id, competencia_ano, competencia_mes)
+    ON lancamentos_despesas(familia_id, competencia_ano, competencia_mes)
     WHERE deleted_at IS NULL;
 
 CREATE INDEX idx_lancamentos_referencia
@@ -108,7 +108,7 @@ CREATE INDEX idx_lancamentos_deleted_at
 
 type LancamentoDespesa struct {
     ID             string
-    UsuarioID      string
+    FamiliaID      string
     Tipo           string  // "assinatura" | "conta_fixa"
     ReferenciaID   string
     CompetenciaMes int
@@ -146,7 +146,7 @@ var (
 
 ### 3.2 Migration SQL
 
-**Número:** `000017_create_lancamentos_despesas`
+**Número:** `000018_create_lancamentos_despesas` (000017 é reservada para a migration de `familia_id` do TT-07)
 
 - `up.sql`: DDL completo da seção 2.1 + índices da seção 2.2
 - `down.sql`: `DROP TABLE IF EXISTS lancamentos_despesas;`
@@ -389,18 +389,18 @@ GET    /api/v1/lancamentos-despesas/pendencias?mes=3&ano=2026
 
 ```go
 // ResumoMensal(mes, ano):
-temLancamentos, _ := lancamentosRepo.ExisteAlgumLancamento(mes, ano, usuarioID)
+temLancamentos, _ := lancamentosRepo.ExisteAlgumLancamento(mes, ano, familiaID)
 ehMesApartirDaCorte := competenciaApartirDaCorte(mes, ano) // env LEDGER_DATA_CORTE
 
 if temLancamentos || ehMesApartirDaCorte {
     // Usa lançamentos reais (nao_se_aplica=false)
-    lancamentos, _ := lancamentosRepo.ListarPorCompetencia(mes, ano, usuarioID)
+    lancamentos, _ := lancamentosRepo.ListarPorCompetencia(mes, ano, familiaID)
     totalAssinaturas = somarPorTipo(lancamentos, "assinatura")
     totalContasFixas = somarPorTipo(lancamentos, "conta_fixa")
 } else {
     // Compatibilidade retroativa: usa valor do template
-    assinaturas, _ = assinaturaRepo.ListarAtivas(usuarioID)
-    contasFixas, _ = contaFixaRepo.ListarAtivas(usuarioID)
+    assinaturas, _ = assinaturaRepo.ListarAtivas(familiaID)
+    contasFixas, _ = contaFixaRepo.ListarAtivas(familiaID)
     // soma como hoje
 }
 ```
@@ -415,7 +415,7 @@ SELECT ld.categoria_id, SUM(ld.valor) as total
 FROM lancamentos_despesas ld
 WHERE ld.competencia_mes = $1
   AND ld.competencia_ano = $2
-  AND ld.usuario_id      = $3
+  AND ld.familia_id      = $3
   AND ld.nao_se_aplica   = FALSE
   AND ld.deleted_at IS NULL
 GROUP BY ld.categoria_id
@@ -434,7 +434,7 @@ O banner inclui link para a tela de pendências.
 ## 8. Sequenciamento e Dependências
 
 ```
-Sprint 9 (TT-07 — usuario_id em todas as tabelas)
+Sprint 9 (TT-07 — familia_id em todas as tabelas + tabelas familias/familia_usuarios)
         │
         ▼
    Fase A — Backend Ledger
@@ -460,7 +460,7 @@ Fase B e Fase C podem rodar **em paralelo** após a Fase A estar completa.
 | Evolução mensal incorreta antes da data de corte | Alta | Médio | Trade-off documentado; exibir nota na UI para meses históricos |
 | Constraint UNIQUE rejeitar tentativa dupla | Baixa | Baixo | Backend 409 com mensagem clara; frontend verifica existência antes do POST |
 | Template soft-deleted com lançamentos existentes | Baixa | Baixo | FK polimórfica omitida; lançamentos sobrevivem ao delete do template via JOIN LEFT |
-| Sprint 9 não concluída | Alta (pré-req) | Crítico | Bloquear Fase A até TT-07 estar em ✅ |
+| Sprint 9 não concluída | Alta (pré-req) | Crítico | Bloquear Fase A até TT-07 estar em ✅ (tabela `familias` precisa existir para a FK de `lancamentos_despesas`) |
 
 ---
 
@@ -469,8 +469,8 @@ Fase B e Fase C podem rodar **em paralelo** após a Fase A estar completa.
 ### Fase A — Novos
 
 ```
-backend/migrations/000017_create_lancamentos_despesas.up.sql
-backend/migrations/000017_create_lancamentos_despesas.down.sql
+backend/migrations/000018_create_lancamentos_despesas.up.sql
+backend/migrations/000018_create_lancamentos_despesas.down.sql
 backend/internal/domain/lancamento_despesa.go
 backend/internal/repository/lancamento_despesa_repository.go
 backend/internal/service/lancamento_despesa_service.go
