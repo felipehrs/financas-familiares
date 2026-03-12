@@ -1,7 +1,7 @@
 # Sprints — Finanças Familiares
 
 **Referência:** stories.md | spec.md | tech-spec.md
-**Atualizado em:** 11/03/2026 (Sprint 9 TT-07 em andamento — progresso detalhado abaixo)
+**Atualizado em:** 12/03/2026 (Sprint 9 TT-07 e TT-10 concluídos)
 
 ---
 
@@ -170,16 +170,16 @@
 
 | Seq | Status | ID | Descrição |
 |-----|--------|-----|-----------|
-| 1 | 🔄 | TT-07 | Infraestrutura Multi-Tenant: tabelas `familias`, colunas `familia_id`, alteração JWT e Middleware |
-| 2 | 🔲 | TT-10 | Refatoração para Isolamento: filtrar 15+ repositórios e handlers por `familia_id` |
+| 1 | ✅ | TT-07 | Infraestrutura Multi-Tenant: tabelas `familias`, colunas `familia_id`, alteração JWT e Middleware |
+| 2 | ✅ | TT-10 | Refatoração para Isolamento: filtrar 15+ repositórios e handlers por `familia_id` |
 | 3 | 🔲 | TT-08 | Segurança: restringir CORS a origens específicas; rate limiting em `POST /auth/login` |
 | 4 | 🔲 | TT-09 | Índices de performance: `deleted_at` em todas as tabelas, `familia_id` em todas as tabelas, índice composto em `despesas_cartao` |
 
 **Critério de conclusão:** TT-07 validado com teste de isolamento (usuário A não vê dados do B). CORS restrito a domínios específicos e rate limiting ativo no login com resposta 429. Índices criados e verificados em todas as tabelas afetadas.
 
-### Progresso TT-07 (atualizado em 11/03/2026)
+### Progresso TT-07 + TT-10 (concluído em 12/03/2026)
 
-> **Contexto:** O TT-07 abrange toda a refatoração backend para isolamento por família. As subtarefas abaixo cobrem o trabalho já feito (marcado ✅) e o que ainda falta (🔲).
+> **Contexto:** O TT-07 abrange toda a refatoração backend para isolamento por família (TT-10 foi integrado no mesmo trabalho). Todas as subtarefas concluídas.
 
 | Subtarefa | Status | Detalhe |
 |-----------|--------|---------|
@@ -190,18 +190,16 @@
 | `handler/helpers.go` | ✅ | `getFamiliaID(c)` criado |
 | `service/auth_service.go` | ✅ | Interface `FamiliaRepository` adicionada; `familiaID` no JWT |
 | 11 domain services (interfaces + implementações) | ✅ | `familiaID string` como 1º param em todas as interfaces e chamadas repo |
-| `service/rendimento_investimento_service_test.go` | ✅ | Mocks e chamadas atualizados com `familiaID` |
+| Todos os service tests | ✅ | Mocks e chamadas atualizados com `familiaID` |
 | `service/dashboard_service.go` | ✅ | Interfaces e métodos públicos atualizados com `familiaID` |
-| `service/dashboard_service_test.go` | ✅ | Mocks e chamadas atualizados com `familiaID` |
-| `service/renda_historico_service.go` | 🔲 | Interfaces e `BuscarHistorico` precisam de `familiaID` |
-| `service/renda_historico_service_test.go` | 🔲 | Mocks e chamadas precisam de `familiaID` |
-| 13 repositories (queries SQL) | 🔲 | Cada método precisa de `familiaID` param + `AND familia_id = $N` nas queries |
-| 13 handlers (interfaces locais + chamadas) | 🔲 | Interfaces locais e cada chamada de service precisam de `familiaID` |
-| 13 handler tests (mocks + setupRouter) | 🔲 | Mocks e `setupRouter` precisam injetar `familiaID` no contexto |
-| `repository/seed.go` | 🔲 | `SeedCategorias(familiaID)` + lógica de família no `SeedUsuarios` |
-| `cmd/server/main.go` | 🔲 | Criar `familiaRepo`, passar para `authService`; remover chamada separada de `SeedCategorias` |
-| `go build ./...` limpo | 🔲 | Zero erros de compilação |
-| `go test ./...` verde | 🔲 | Zero falhas de teste |
+| `service/renda_historico_service.go` | ✅ | Interfaces e `BuscarHistorico` atualizados com `familiaID` |
+| 13 repositories (queries SQL) | ✅ | `familiaID` param + `AND familia_id = $N` em todas as queries |
+| 13 handlers (interfaces locais + chamadas) | ✅ | Interfaces locais e chamadas de service com `familiaID` |
+| 13 handler tests (mocks + setupRouter) | ✅ | Mocks e `setupRouter` injetam `familiaID` no contexto |
+| `repository/seed.go` | ✅ | `SeedCategorias(familiaID)` + lógica de família no `SeedUsuarios` |
+| `cmd/server/main.go` | ✅ | `familiaRepo` criado, passado para `authService` |
+| `go build ./...` limpo | ✅ | Zero erros de compilação |
+| `go test ./...` verde | ✅ | Zero falhas de teste |
 
 **Pré-requisito:** Sprints 1–8 concluídas.
 

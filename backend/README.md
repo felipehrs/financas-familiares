@@ -77,6 +77,7 @@ cp .env.example .env
 | `SEED_USER2_EMAIL` | E-mail do usuário 2 | `usuario2@email.com` |
 | `SEED_USER2_NOME` | Nome do usuário 2 | `Ana` |
 | `SEED_USER2_SENHA` | Senha do usuário 2 (plaintext) | `senha-segura` |
+| `ALLOWED_ORIGINS` | Origens permitidas no CORS (separadas por vírgula) | `http://localhost:5173` |
 
 ---
 
@@ -190,3 +191,4 @@ Todos os endpoints (exceto `/health` e `/api/v1/auth/*`) requerem `Authorization
 | 014 | unique constraint em `categorias.nome` |
 | 015 | campo `num_parcelas` em `despesas_cartao` |
 | 016 | campos `data_inicio` / `data_fim` em `rendas_fixas` |
+| 017 | tabelas `familias` + `familia_usuarios`; coluna `familia_id` em todas as tabelas de dados |
