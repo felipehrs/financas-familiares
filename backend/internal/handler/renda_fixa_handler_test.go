@@ -17,46 +17,51 @@ import (
 
 // MockRendaFixaService implementa RendaFixaServiceInterface para testes.
 type MockRendaFixaService struct {
-	CriarFn                func(descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
-	BuscarFn               func(id string) (*domain.RendaFixa, error)
-	ListarFn               func() ([]*domain.RendaFixa, error)
-	ListarAtivasFn         func() ([]*domain.RendaFixa, error)
-	ListarVigentesPorMesFn func(mes, ano int) ([]*domain.RendaFixa, error)
-	AtualizarFn            func(id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
-	InativarFn             func(id string) error
+	CriarFn                func(familiaID, descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
+	BuscarFn               func(familiaID, id string) (*domain.RendaFixa, error)
+	ListarFn               func(familiaID string) ([]*domain.RendaFixa, error)
+	ListarAtivasFn         func(familiaID string) ([]*domain.RendaFixa, error)
+	ListarVigentesPorMesFn func(familiaID string, mes, ano int) ([]*domain.RendaFixa, error)
+	AtualizarFn            func(familiaID, id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
+	InativarFn             func(familiaID, id string) error
 }
 
-func (m *MockRendaFixaService) Criar(descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
-	return m.CriarFn(descricao, membroID, valor, diaRecebimento, dataInicio, dataFim)
+func (m *MockRendaFixaService) Criar(familiaID, descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
+	return m.CriarFn(familiaID, descricao, membroID, valor, diaRecebimento, dataInicio, dataFim)
 }
 
-func (m *MockRendaFixaService) BuscarPorID(id string) (*domain.RendaFixa, error) {
-	return m.BuscarFn(id)
+func (m *MockRendaFixaService) BuscarPorID(familiaID, id string) (*domain.RendaFixa, error) {
+	return m.BuscarFn(familiaID, id)
 }
 
-func (m *MockRendaFixaService) Listar() ([]*domain.RendaFixa, error) {
-	return m.ListarFn()
+func (m *MockRendaFixaService) Listar(familiaID string) ([]*domain.RendaFixa, error) {
+	return m.ListarFn(familiaID)
 }
 
-func (m *MockRendaFixaService) ListarAtivas() ([]*domain.RendaFixa, error) {
-	return m.ListarAtivasFn()
+func (m *MockRendaFixaService) ListarAtivas(familiaID string) ([]*domain.RendaFixa, error) {
+	return m.ListarAtivasFn(familiaID)
 }
 
-func (m *MockRendaFixaService) ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error) {
-	return m.ListarVigentesPorMesFn(mes, ano)
+func (m *MockRendaFixaService) ListarVigentesPorMes(familiaID string, mes, ano int) ([]*domain.RendaFixa, error) {
+	return m.ListarVigentesPorMesFn(familiaID, mes, ano)
 }
 
-func (m *MockRendaFixaService) Atualizar(id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
-	return m.AtualizarFn(id, descricao, membroID, valor, diaRecebimento, ativa, dataInicio, dataFim)
+func (m *MockRendaFixaService) Atualizar(familiaID, id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
+	return m.AtualizarFn(familiaID, id, descricao, membroID, valor, diaRecebimento, ativa, dataInicio, dataFim)
 }
 
-func (m *MockRendaFixaService) Inativar(id string) error {
-	return m.InativarFn(id)
+func (m *MockRendaFixaService) Inativar(familiaID, id string) error {
+	return m.InativarFn(familiaID, id)
 }
 
 func setupRendaFixaRouter(svc handler.RendaFixaServiceInterface) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("userID", "usuario-teste-uuid")
+		c.Set("familiaID", "familia-teste-uuid")
+		c.Next()
+	})
 	h := handler.NewRendaFixaHandler(svc)
 	v1 := r.Group("/api/v1")
 	{
@@ -78,7 +83,7 @@ func TestListarRendasFixasHandler_Sucesso(t *testing.T) {
 		{ID: "uuid-2", Descricao: "Aposentadoria", MembroID: "m-2", Valor: 2000.00, DiaRecebimento: 10, Ativa: true},
 	}
 	svc := &MockRendaFixaService{
-		ListarFn: func() ([]*domain.RendaFixa, error) { return rendas, nil },
+		ListarFn: func(familiaID string) ([]*domain.RendaFixa, error) { return rendas, nil },
 	}
 	r := setupRendaFixaRouter(svc)
 
@@ -100,7 +105,7 @@ func TestListarRendasFixasHandler_Sucesso(t *testing.T) {
 
 func TestCriarRendaFixaHandler_Sucesso(t *testing.T) {
 	svc := &MockRendaFixaService{
-		CriarFn: func(descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
+		CriarFn: func(familiaID, descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
 			return &domain.RendaFixa{
 				ID:             "uuid-novo",
 				Descricao:      descricao,
@@ -163,7 +168,7 @@ func TestCriarRendaFixaHandler_DataInicioAusente(t *testing.T) {
 
 func TestCriarRendaFixaHandler_DescricaoVazia(t *testing.T) {
 	svc := &MockRendaFixaService{
-		CriarFn: func(descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
+		CriarFn: func(familiaID, descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
 			return nil, domain.ErrDescricaoRendaObrigatoria
 		},
 	}
@@ -205,7 +210,7 @@ func TestListarVigentesPorMesHandler_Sucesso(t *testing.T) {
 		{ID: "uuid-2", Descricao: "Aposentadoria", MembroID: "m-2", Valor: 2000.00, DiaRecebimento: 10, Ativa: true, DataInicio: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)},
 	}
 	svc := &MockRendaFixaService{
-		ListarVigentesPorMesFn: func(mes, ano int) ([]*domain.RendaFixa, error) {
+		ListarVigentesPorMesFn: func(familiaID string, mes, ano int) ([]*domain.RendaFixa, error) {
 			return rendas, nil
 		},
 	}
@@ -229,7 +234,7 @@ func TestListarVigentesPorMesHandler_Sucesso(t *testing.T) {
 
 func TestBuscarRendaFixaHandler_Sucesso(t *testing.T) {
 	svc := &MockRendaFixaService{
-		BuscarFn: func(id string) (*domain.RendaFixa, error) {
+		BuscarFn: func(familiaID, id string) (*domain.RendaFixa, error) {
 			return &domain.RendaFixa{
 				ID:             id,
 				Descricao:      "Salário",
@@ -256,7 +261,7 @@ func TestBuscarRendaFixaHandler_Sucesso(t *testing.T) {
 
 func TestBuscarRendaFixaHandler_NaoEncontrada(t *testing.T) {
 	svc := &MockRendaFixaService{
-		BuscarFn: func(id string) (*domain.RendaFixa, error) {
+		BuscarFn: func(familiaID, id string) (*domain.RendaFixa, error) {
 			return nil, domain.ErrRendaFixaNaoEncontrada
 		},
 	}
@@ -273,7 +278,7 @@ func TestBuscarRendaFixaHandler_NaoEncontrada(t *testing.T) {
 
 func TestAtualizarRendaFixaHandler_Sucesso(t *testing.T) {
 	svc := &MockRendaFixaService{
-		AtualizarFn: func(id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
+		AtualizarFn: func(familiaID, id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
 			return &domain.RendaFixa{
 				ID:             id,
 				Descricao:      descricao,
@@ -307,7 +312,7 @@ func TestAtualizarRendaFixaHandler_Sucesso(t *testing.T) {
 
 func TestAtualizarRendaFixaHandler_NaoEncontrada(t *testing.T) {
 	svc := &MockRendaFixaService{
-		AtualizarFn: func(id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
+		AtualizarFn: func(familiaID, id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error) {
 			return nil, domain.ErrRendaFixaNaoEncontrada
 		},
 	}
@@ -328,7 +333,7 @@ func TestAtualizarRendaFixaHandler_NaoEncontrada(t *testing.T) {
 
 func TestInativarRendaFixaHandler_Sucesso(t *testing.T) {
 	svc := &MockRendaFixaService{
-		InativarFn: func(id string) error { return nil },
+		InativarFn: func(familiaID, id string) error { return nil },
 	}
 	r := setupRendaFixaRouter(svc)
 
@@ -346,7 +351,7 @@ func TestInativarRendaFixaHandler_Sucesso(t *testing.T) {
 
 func TestInativarRendaFixaHandler_NaoEncontrada(t *testing.T) {
 	svc := &MockRendaFixaService{
-		InativarFn: func(id string) error { return domain.ErrRendaFixaNaoEncontrada },
+		InativarFn: func(familiaID, id string) error { return domain.ErrRendaFixaNaoEncontrada },
 	}
 	r := setupRendaFixaRouter(svc)
 

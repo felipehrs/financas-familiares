@@ -17,41 +17,46 @@ import (
 
 // MockRendimentoInvestimentoService implementa RendimentoInvestimentoServiceInterface (declarada no handler) para testes.
 type MockRendimentoInvestimentoService struct {
-	CriarFn        func(descricao, membroID string, data time.Time, valor, valorDistribuido float64) (*domain.RendimentoInvestimento, error)
-	BuscarFn       func(id string) (*domain.RendimentoInvestimento, error)
-	ListarFn       func() ([]*domain.RendimentoInvestimento, error)
-	ListarPorMesFn func(mes, ano int) ([]*domain.RendimentoInvestimento, error)
-	AtualizarFn    func(id, descricao, membroID string, data time.Time, valor, valorDistribuido float64) (*domain.RendimentoInvestimento, error)
-	ExcluirFn      func(id string) error
+	CriarFn        func(familiaID, descricao, membroID string, data time.Time, valor, valorDistribuido float64) (*domain.RendimentoInvestimento, error)
+	BuscarFn       func(familiaID, id string) (*domain.RendimentoInvestimento, error)
+	ListarFn       func(familiaID string) ([]*domain.RendimentoInvestimento, error)
+	ListarPorMesFn func(familiaID string, mes, ano int) ([]*domain.RendimentoInvestimento, error)
+	AtualizarFn    func(familiaID, id, descricao, membroID string, data time.Time, valor, valorDistribuido float64) (*domain.RendimentoInvestimento, error)
+	ExcluirFn      func(familiaID, id string) error
 }
 
-func (m *MockRendimentoInvestimentoService) Criar(descricao, membroID string, data time.Time, valor, valorDistribuido float64) (*domain.RendimentoInvestimento, error) {
-	return m.CriarFn(descricao, membroID, data, valor, valorDistribuido)
+func (m *MockRendimentoInvestimentoService) Criar(familiaID, descricao, membroID string, data time.Time, valor, valorDistribuido float64) (*domain.RendimentoInvestimento, error) {
+	return m.CriarFn(familiaID, descricao, membroID, data, valor, valorDistribuido)
 }
 
-func (m *MockRendimentoInvestimentoService) BuscarPorID(id string) (*domain.RendimentoInvestimento, error) {
-	return m.BuscarFn(id)
+func (m *MockRendimentoInvestimentoService) BuscarPorID(familiaID, id string) (*domain.RendimentoInvestimento, error) {
+	return m.BuscarFn(familiaID, id)
 }
 
-func (m *MockRendimentoInvestimentoService) Listar() ([]*domain.RendimentoInvestimento, error) {
-	return m.ListarFn()
+func (m *MockRendimentoInvestimentoService) Listar(familiaID string) ([]*domain.RendimentoInvestimento, error) {
+	return m.ListarFn(familiaID)
 }
 
-func (m *MockRendimentoInvestimentoService) ListarPorMes(mes, ano int) ([]*domain.RendimentoInvestimento, error) {
-	return m.ListarPorMesFn(mes, ano)
+func (m *MockRendimentoInvestimentoService) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendimentoInvestimento, error) {
+	return m.ListarPorMesFn(familiaID, mes, ano)
 }
 
-func (m *MockRendimentoInvestimentoService) Atualizar(id, descricao, membroID string, data time.Time, valor, valorDistribuido float64) (*domain.RendimentoInvestimento, error) {
-	return m.AtualizarFn(id, descricao, membroID, data, valor, valorDistribuido)
+func (m *MockRendimentoInvestimentoService) Atualizar(familiaID, id, descricao, membroID string, data time.Time, valor, valorDistribuido float64) (*domain.RendimentoInvestimento, error) {
+	return m.AtualizarFn(familiaID, id, descricao, membroID, data, valor, valorDistribuido)
 }
 
-func (m *MockRendimentoInvestimentoService) Excluir(id string) error {
-	return m.ExcluirFn(id)
+func (m *MockRendimentoInvestimentoService) Excluir(familiaID, id string) error {
+	return m.ExcluirFn(familiaID, id)
 }
 
 func setupRendimentoInvestimentoRouter(svc handler.RendimentoInvestimentoServiceInterface) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("userID", "usuario-teste-uuid")
+		c.Set("familiaID", "familia-teste-uuid")
+		c.Next()
+	})
 	h := handler.NewRendimentoInvestimentoHandler(svc)
 	v1 := r.Group("/api/v1")
 	{
@@ -77,7 +82,7 @@ var rendimentoInvestimentoExemplo = &domain.RendimentoInvestimento{
 
 func TestCriarRendimentoInvestimentoHandler_Sucesso(t *testing.T) {
 	svc := &MockRendimentoInvestimentoService{
-		CriarFn: func(descricao, membroID string, data time.Time, valor, valorDistribuido float64) (*domain.RendimentoInvestimento, error) {
+		CriarFn: func(familiaID, descricao, membroID string, data time.Time, valor, valorDistribuido float64) (*domain.RendimentoInvestimento, error) {
 			return &domain.RendimentoInvestimento{
 				ID:               "uuid-novo",
 				Descricao:        descricao,
@@ -125,7 +130,7 @@ func TestCriarRendimentoInvestimentoHandler_BodyInvalido(t *testing.T) {
 
 func TestCriarRendimentoInvestimentoHandler_ErroValidacao(t *testing.T) {
 	svc := &MockRendimentoInvestimentoService{
-		CriarFn: func(descricao, membroID string, data time.Time, valor, valorDistribuido float64) (*domain.RendimentoInvestimento, error) {
+		CriarFn: func(familiaID, descricao, membroID string, data time.Time, valor, valorDistribuido float64) (*domain.RendimentoInvestimento, error) {
 			return nil, domain.ErrDescricaoRendimentoObrigatoria
 		},
 	}
@@ -158,7 +163,7 @@ func TestListarRendimentosInvestimentoHandler_Sucesso(t *testing.T) {
 		{ID: "uuid-2", Descricao: "Rendimento LCI", MembroID: "membro-1", Data: time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC), Valor: 2000.00},
 	}
 	svc := &MockRendimentoInvestimentoService{
-		ListarFn: func() ([]*domain.RendimentoInvestimento, error) {
+		ListarFn: func(familiaID string) ([]*domain.RendimentoInvestimento, error) {
 			return rendimentos, nil
 		},
 	}
@@ -182,7 +187,7 @@ func TestListarRendimentosInvestimentoHandler_FiltradaPorMes(t *testing.T) {
 		{ID: "uuid-1", Descricao: "Rendimento CDB", MembroID: "membro-1", Data: time.Date(2026, 3, 8, 0, 0, 0, 0, time.UTC), Valor: 1000.00},
 	}
 	svc := &MockRendimentoInvestimentoService{
-		ListarPorMesFn: func(mes, ano int) ([]*domain.RendimentoInvestimento, error) {
+		ListarPorMesFn: func(familiaID string, mes, ano int) ([]*domain.RendimentoInvestimento, error) {
 			assert.Equal(t, 3, mes)
 			assert.Equal(t, 2026, ano)
 			return rendimentos, nil
@@ -207,7 +212,7 @@ func TestListarRendimentosInvestimentoHandler_FiltradaPorMes(t *testing.T) {
 
 func TestBuscarRendimentoInvestimentoHandler_Existente(t *testing.T) {
 	svc := &MockRendimentoInvestimentoService{
-		BuscarFn: func(id string) (*domain.RendimentoInvestimento, error) {
+		BuscarFn: func(familiaID, id string) (*domain.RendimentoInvestimento, error) {
 			return rendimentoInvestimentoExemplo, nil
 		},
 	}
@@ -228,7 +233,7 @@ func TestBuscarRendimentoInvestimentoHandler_Existente(t *testing.T) {
 
 func TestBuscarRendimentoInvestimentoHandler_Inexistente(t *testing.T) {
 	svc := &MockRendimentoInvestimentoService{
-		BuscarFn: func(id string) (*domain.RendimentoInvestimento, error) {
+		BuscarFn: func(familiaID, id string) (*domain.RendimentoInvestimento, error) {
 			return nil, domain.ErrRendimentoInvestimentoNaoEncontrado
 		},
 	}
@@ -250,7 +255,7 @@ func TestBuscarRendimentoInvestimentoHandler_Inexistente(t *testing.T) {
 
 func TestAtualizarRendimentoInvestimentoHandler_Sucesso(t *testing.T) {
 	svc := &MockRendimentoInvestimentoService{
-		AtualizarFn: func(id, descricao, membroID string, data time.Time, valor, valorDistribuido float64) (*domain.RendimentoInvestimento, error) {
+		AtualizarFn: func(familiaID, id, descricao, membroID string, data time.Time, valor, valorDistribuido float64) (*domain.RendimentoInvestimento, error) {
 			return &domain.RendimentoInvestimento{
 				ID:               id,
 				Descricao:        descricao,
@@ -289,7 +294,7 @@ func TestAtualizarRendimentoInvestimentoHandler_Sucesso(t *testing.T) {
 
 func TestExcluirRendimentoInvestimentoHandler_Sucesso(t *testing.T) {
 	svc := &MockRendimentoInvestimentoService{
-		ExcluirFn: func(id string) error {
+		ExcluirFn: func(familiaID, id string) error {
 			return nil
 		},
 	}
@@ -304,7 +309,7 @@ func TestExcluirRendimentoInvestimentoHandler_Sucesso(t *testing.T) {
 
 func TestExcluirRendimentoInvestimentoHandler_Inexistente(t *testing.T) {
 	svc := &MockRendimentoInvestimentoService{
-		ExcluirFn: func(id string) error {
+		ExcluirFn: func(familiaID, id string) error {
 			return domain.ErrRendimentoInvestimentoNaoEncontrado
 		},
 	}

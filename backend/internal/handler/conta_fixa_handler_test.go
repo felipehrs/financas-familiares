@@ -16,36 +16,41 @@ import (
 
 // MockContaFixaService implementa ContaFixaServiceInterface (declarada no handler) para testes.
 type MockContaFixaService struct {
-	CriarFn        func(descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error)
-	BuscarFn       func(id string) (*domain.ContaFixa, error)
-	ListarFn       func() ([]*domain.ContaFixa, error)
-	AtualizarFn    func(id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error)
-	AlterarAtivoFn func(id string, ativa bool) (*domain.ContaFixa, error)
+	CriarFn        func(familiaID, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error)
+	BuscarFn       func(familiaID, id string) (*domain.ContaFixa, error)
+	ListarFn       func(familiaID string) ([]*domain.ContaFixa, error)
+	AtualizarFn    func(familiaID, id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error)
+	AlterarAtivoFn func(familiaID, id string, ativa bool) (*domain.ContaFixa, error)
 }
 
-func (m *MockContaFixaService) Criar(descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error) {
-	return m.CriarFn(descricao, membroID, categoriaID, valor, diaVencimento, formaPagamento)
+func (m *MockContaFixaService) Criar(familiaID, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error) {
+	return m.CriarFn(familiaID, descricao, membroID, categoriaID, valor, diaVencimento, formaPagamento)
 }
 
-func (m *MockContaFixaService) BuscarPorID(id string) (*domain.ContaFixa, error) {
-	return m.BuscarFn(id)
+func (m *MockContaFixaService) BuscarPorID(familiaID, id string) (*domain.ContaFixa, error) {
+	return m.BuscarFn(familiaID, id)
 }
 
-func (m *MockContaFixaService) Listar() ([]*domain.ContaFixa, error) {
-	return m.ListarFn()
+func (m *MockContaFixaService) Listar(familiaID string) ([]*domain.ContaFixa, error) {
+	return m.ListarFn(familiaID)
 }
 
-func (m *MockContaFixaService) Atualizar(id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error) {
-	return m.AtualizarFn(id, descricao, membroID, categoriaID, valor, diaVencimento, formaPagamento, ativa)
+func (m *MockContaFixaService) Atualizar(familiaID, id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error) {
+	return m.AtualizarFn(familiaID, id, descricao, membroID, categoriaID, valor, diaVencimento, formaPagamento, ativa)
 }
 
-func (m *MockContaFixaService) AlterarAtivo(id string, ativa bool) (*domain.ContaFixa, error) {
-	return m.AlterarAtivoFn(id, ativa)
+func (m *MockContaFixaService) AlterarAtivo(familiaID, id string, ativa bool) (*domain.ContaFixa, error) {
+	return m.AlterarAtivoFn(familiaID, id, ativa)
 }
 
 func setupContaFixaRouter(svc handler.ContaFixaServiceInterface) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("userID", "usuario-teste-uuid")
+		c.Set("familiaID", "familia-teste-uuid")
+		c.Next()
+	})
 	h := handler.NewContaFixaHandler(svc)
 	v1 := r.Group("/api/v1")
 	{
@@ -66,7 +71,7 @@ func TestListarContasFixasHandler_Sucesso(t *testing.T) {
 		{ID: "uuid-2", Descricao: "Água", MembroID: "membro-1", Valor: 80.00, DiaVencimento: 15, FormaPagamento: "boleto", Ativa: true},
 	}
 	svc := &MockContaFixaService{
-		ListarFn: func() ([]*domain.ContaFixa, error) {
+		ListarFn: func(familiaID string) ([]*domain.ContaFixa, error) {
 			return contas, nil
 		},
 	}
@@ -88,7 +93,7 @@ func TestListarContasFixasHandler_Sucesso(t *testing.T) {
 
 func TestListarContasFixasHandler_ListaVazia(t *testing.T) {
 	svc := &MockContaFixaService{
-		ListarFn: func() ([]*domain.ContaFixa, error) {
+		ListarFn: func(familiaID string) ([]*domain.ContaFixa, error) {
 			return []*domain.ContaFixa{}, nil
 		},
 	}
@@ -110,7 +115,7 @@ func TestListarContasFixasHandler_ListaVazia(t *testing.T) {
 
 func TestCriarContaFixaHandler_Sucesso(t *testing.T) {
 	svc := &MockContaFixaService{
-		CriarFn: func(descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error) {
+		CriarFn: func(familiaID, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error) {
 			return &domain.ContaFixa{
 				ID:             "uuid-novo",
 				Descricao:      descricao,
@@ -149,7 +154,7 @@ func TestCriarContaFixaHandler_Sucesso(t *testing.T) {
 
 func TestCriarContaFixaHandler_DescricaoVazia(t *testing.T) {
 	svc := &MockContaFixaService{
-		CriarFn: func(descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error) {
+		CriarFn: func(familiaID, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error) {
 			return nil, domain.ErrDescricaoContaFixaObrigatoria
 		},
 	}
@@ -191,7 +196,7 @@ func TestCriarContaFixaHandler_BodyInvalido(t *testing.T) {
 
 func TestBuscarContaFixaHandler_Sucesso(t *testing.T) {
 	svc := &MockContaFixaService{
-		BuscarFn: func(id string) (*domain.ContaFixa, error) {
+		BuscarFn: func(familiaID, id string) (*domain.ContaFixa, error) {
 			return &domain.ContaFixa{
 				ID:             id,
 				Descricao:      "Internet",
@@ -220,7 +225,7 @@ func TestBuscarContaFixaHandler_Sucesso(t *testing.T) {
 
 func TestBuscarContaFixaHandler_NaoEncontrada(t *testing.T) {
 	svc := &MockContaFixaService{
-		BuscarFn: func(id string) (*domain.ContaFixa, error) {
+		BuscarFn: func(familiaID, id string) (*domain.ContaFixa, error) {
 			return nil, domain.ErrContaFixaNaoEncontrada
 		},
 	}
@@ -242,7 +247,7 @@ func TestBuscarContaFixaHandler_NaoEncontrada(t *testing.T) {
 
 func TestAtualizarContaFixaHandler_Sucesso(t *testing.T) {
 	svc := &MockContaFixaService{
-		AtualizarFn: func(id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error) {
+		AtualizarFn: func(familiaID, id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error) {
 			return &domain.ContaFixa{
 				ID:             id,
 				Descricao:      descricao,
@@ -281,7 +286,7 @@ func TestAtualizarContaFixaHandler_Sucesso(t *testing.T) {
 
 func TestAtualizarContaFixaHandler_NaoEncontrada(t *testing.T) {
 	svc := &MockContaFixaService{
-		AtualizarFn: func(id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error) {
+		AtualizarFn: func(familiaID, id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error) {
 			return nil, domain.ErrContaFixaNaoEncontrada
 		},
 	}
@@ -324,7 +329,7 @@ func TestAtualizarContaFixaHandler_BodyInvalido(t *testing.T) {
 
 func TestAlterarAtivoHandler_Sucesso(t *testing.T) {
 	svc := &MockContaFixaService{
-		AlterarAtivoFn: func(id string, ativa bool) (*domain.ContaFixa, error) {
+		AlterarAtivoFn: func(familiaID, id string, ativa bool) (*domain.ContaFixa, error) {
 			return &domain.ContaFixa{
 				ID:             id,
 				Descricao:      "Internet",
@@ -357,7 +362,7 @@ func TestAlterarAtivoHandler_Sucesso(t *testing.T) {
 
 func TestAlterarAtivoHandler_NaoEncontrada(t *testing.T) {
 	svc := &MockContaFixaService{
-		AlterarAtivoFn: func(id string, ativa bool) (*domain.ContaFixa, error) {
+		AlterarAtivoFn: func(familiaID, id string, ativa bool) (*domain.ContaFixa, error) {
 			return nil, domain.ErrContaFixaNaoEncontrada
 		},
 	}

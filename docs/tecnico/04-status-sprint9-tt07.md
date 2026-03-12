@@ -1,7 +1,7 @@
 # Status da Implementação — Sprint 9 TT-07 (Data Isolation por familia_id)
 
 **Branch de trabalho:** `feat/sprint9-familia-isolation`
-**Data do último ponto:** 2026-03-11
+**Data do último ponto:** 2026-03-12
 
 ---
 
@@ -99,11 +99,20 @@ Adicionar isolamento de dados por `familia_id` em todas as camadas do backend (m
 - [x] `backend/internal/handler/renda_historico_handler.go`
 - [x] `backend/internal/handler/auth_handler.go` — `ValidateAccessToken` retorna 3 valores
 
-### Handler testes (PENDENTE — todos os 13)
-- Cada `*_handler_test.go` precisa:
-  1. Assinaturas dos mocks de serviço atualizadas (ex: `AlterarStatus` em assinatura passa de `(id, status)` para `(familiaID, id, status)`)
-  2. `setupRouter` deve injetar `c.Set("familiaID", "familia-teste-uuid")` via middleware fake
-  3. Function literals nos testes devem ter `familiaID string` como primeiro param
+### Handler testes (CONCLUÍDO)
+- [x] `backend/internal/handler/membro_handler_test.go`
+- [x] `backend/internal/handler/categoria_handler_test.go`
+- [x] `backend/internal/handler/cartao_credito_handler_test.go`
+- [x] `backend/internal/handler/despesa_cartao_handler_test.go`
+- [x] `backend/internal/handler/assinatura_handler_test.go`
+- [x] `backend/internal/handler/conta_fixa_handler_test.go`
+- [x] `backend/internal/handler/despesa_geral_handler_test.go`
+- [x] `backend/internal/handler/renda_fixa_handler_test.go`
+- [x] `backend/internal/handler/renda_variavel_handler_test.go`
+- [x] `backend/internal/handler/renda_extra_handler_test.go`
+- [x] `backend/internal/handler/rendimento_investimento_handler_test.go`
+- [x] `backend/internal/handler/dashboard_handler_test.go`
+- [x] `backend/internal/handler/renda_historico_handler_test.go`
 
 ### Outros (CONCLUÍDO)
 - [x] `backend/internal/repository/seed.go` — `SeedCategorias(db, familiaID)`, `SeedUsuarios` cria família compartilhada entre user1 (admin) e user2 (membro)
@@ -111,9 +120,17 @@ Adicionar isolamento de dados por `familia_id` em todas as camadas do backend (m
 
 ---
 
-## Próximo passo: Handler testes (Step 8)
+## Status atual: ✅ CONCLUÍDO E TESTADO
 
-Atualizar os 13 `*_handler_test.go`: assinaturas dos mocks + `setupRouter` com `c.Set("familiaID", "familia-teste-uuid")`.
+Todas as camadas foram atualizadas com isolamento por `familiaID`.
+
+**Verificação final (2026-03-12):**
+- ✅ `go build ./...` — compilação OK (sem erros)
+- ✅ `go test ./...` — todos os testes passando
+  - `internal/handler`: ok (cached)
+  - `internal/service`: ok (cached)
+
+**Próximos passos:** commit final + PR para master
 
 ---
 

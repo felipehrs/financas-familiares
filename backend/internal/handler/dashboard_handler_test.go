@@ -17,33 +17,33 @@ import (
 
 // MockDashboardService implementa DashboardServiceInterface para testes.
 type MockDashboardService struct {
-	ResumoMensalFn         func(mes, ano int) (*service.ResumoMensal, error)
-	DespesasPorCategoriaFn func(mes, ano int) (*service.ResumoCategorias, error)
-	EvolucaoMensalFn       func(qtdMeses int) ([]service.PontoEvolucao, error)
-	ProjecaoFn             func(qtdMeses int) ([]service.MesProjecao, error)
+	ResumoMensalFn         func(familiaID string, mes, ano int) (*service.ResumoMensal, error)
+	DespesasPorCategoriaFn func(familiaID string, mes, ano int) (*service.ResumoCategorias, error)
+	EvolucaoMensalFn       func(familiaID string, qtdMeses int) ([]service.PontoEvolucao, error)
+	ProjecaoFn             func(familiaID string, qtdMeses int) ([]service.MesProjecao, error)
 }
 
-func (m *MockDashboardService) ResumoMensal(mes, ano int) (*service.ResumoMensal, error) {
-	return m.ResumoMensalFn(mes, ano)
+func (m *MockDashboardService) ResumoMensal(familiaID string, mes, ano int) (*service.ResumoMensal, error) {
+	return m.ResumoMensalFn(familiaID, mes, ano)
 }
 
-func (m *MockDashboardService) DespesasPorCategoria(mes, ano int) (*service.ResumoCategorias, error) {
+func (m *MockDashboardService) DespesasPorCategoria(familiaID string, mes, ano int) (*service.ResumoCategorias, error) {
 	if m.DespesasPorCategoriaFn != nil {
-		return m.DespesasPorCategoriaFn(mes, ano)
+		return m.DespesasPorCategoriaFn(familiaID, mes, ano)
 	}
 	return nil, nil
 }
 
-func (m *MockDashboardService) EvolucaoMensal(qtdMeses int) ([]service.PontoEvolucao, error) {
+func (m *MockDashboardService) EvolucaoMensal(familiaID string, qtdMeses int) ([]service.PontoEvolucao, error) {
 	if m.EvolucaoMensalFn != nil {
-		return m.EvolucaoMensalFn(qtdMeses)
+		return m.EvolucaoMensalFn(familiaID, qtdMeses)
 	}
 	return []service.PontoEvolucao{}, nil
 }
 
-func (m *MockDashboardService) ProjecaoProximosMeses(qtdMeses int) ([]service.MesProjecao, error) {
+func (m *MockDashboardService) ProjecaoProximosMeses(familiaID string, qtdMeses int) ([]service.MesProjecao, error) {
 	if m.ProjecaoFn != nil {
-		return m.ProjecaoFn(qtdMeses)
+		return m.ProjecaoFn(familiaID, qtdMeses)
 	}
 	return []service.MesProjecao{}, nil
 }
@@ -51,6 +51,11 @@ func (m *MockDashboardService) ProjecaoProximosMeses(qtdMeses int) ([]service.Me
 func setupDashboardRouter(svc handler.DashboardServiceInterface) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("userID", "usuario-teste-uuid")
+		c.Set("familiaID", "familia-teste-uuid")
+		c.Next()
+	})
 	h := handler.NewDashboardHandler(svc)
 	v1 := r.Group("/api/v1")
 	{
@@ -66,7 +71,7 @@ func setupDashboardRouter(svc handler.DashboardServiceInterface) *gin.Engine {
 
 func TestResumoMensalHandler_SucessoComParamsExplicitos(t *testing.T) {
 	svc := &MockDashboardService{
-		ResumoMensalFn: func(mes, ano int) (*service.ResumoMensal, error) {
+		ResumoMensalFn: func(familiaID string, mes, ano int) (*service.ResumoMensal, error) {
 			assert.Equal(t, 3, mes)
 			assert.Equal(t, 2026, ano)
 			return &service.ResumoMensal{
@@ -102,7 +107,7 @@ func TestResumoMensalHandler_SucessoSemParams(t *testing.T) {
 	anoAtual := agora.Year()
 
 	svc := &MockDashboardService{
-		ResumoMensalFn: func(mes, ano int) (*service.ResumoMensal, error) {
+		ResumoMensalFn: func(familiaID string, mes, ano int) (*service.ResumoMensal, error) {
 			assert.Equal(t, mesAtual, mes)
 			assert.Equal(t, anoAtual, ano)
 			return &service.ResumoMensal{
@@ -185,7 +190,7 @@ func TestResumoMensalHandler_AnoNaoNumerico(t *testing.T) {
 
 func TestResumoMensalHandler_ErroInterno(t *testing.T) {
 	svc := &MockDashboardService{
-		ResumoMensalFn: func(mes, ano int) (*service.ResumoMensal, error) {
+		ResumoMensalFn: func(familiaID string, mes, ano int) (*service.ResumoMensal, error) {
 			return nil, errors.New("falha no banco de dados")
 		},
 	}
@@ -207,7 +212,7 @@ func TestResumoMensalHandler_ErroInterno(t *testing.T) {
 
 func TestDespesasPorCategoriaHandler_SucessoComParams(t *testing.T) {
 	svc := &MockDashboardService{
-		DespesasPorCategoriaFn: func(mes, ano int) (*service.ResumoCategorias, error) {
+		DespesasPorCategoriaFn: func(familiaID string, mes, ano int) (*service.ResumoCategorias, error) {
 			assert.Equal(t, 3, mes)
 			assert.Equal(t, 2026, ano)
 			return &service.ResumoCategorias{
@@ -246,7 +251,7 @@ func TestDespesasPorCategoriaHandler_SucessoSemParams(t *testing.T) {
 	anoAtual := agora.Year()
 
 	svc := &MockDashboardService{
-		DespesasPorCategoriaFn: func(mes, ano int) (*service.ResumoCategorias, error) {
+		DespesasPorCategoriaFn: func(familiaID string, mes, ano int) (*service.ResumoCategorias, error) {
 			assert.Equal(t, mesAtual, mes)
 			assert.Equal(t, anoAtual, ano)
 			return &service.ResumoCategorias{
@@ -300,7 +305,7 @@ func TestDespesasPorCategoriaHandler_AnoInvalido(t *testing.T) {
 
 func TestDespesasPorCategoriaHandler_ErroInterno(t *testing.T) {
 	svc := &MockDashboardService{
-		DespesasPorCategoriaFn: func(mes, ano int) (*service.ResumoCategorias, error) {
+		DespesasPorCategoriaFn: func(familiaID string, mes, ano int) (*service.ResumoCategorias, error) {
 			return nil, errors.New("falha no banco de dados")
 		},
 	}
@@ -322,7 +327,7 @@ func TestDespesasPorCategoriaHandler_ErroInterno(t *testing.T) {
 
 func TestEvolucaoMensalHandler_Sucesso(t *testing.T) {
 	svc := &MockDashboardService{
-		EvolucaoMensalFn: func(qtdMeses int) ([]service.PontoEvolucao, error) {
+		EvolucaoMensalFn: func(familiaID string, qtdMeses int) ([]service.PontoEvolucao, error) {
 			assert.Equal(t, 12, qtdMeses)
 			return []service.PontoEvolucao{
 				{Mes: 4, Ano: 2025, TotalRendas: 5000.00, TotalDespesas: 1000.00, Saldo: 4000.00},
@@ -349,7 +354,7 @@ func TestEvolucaoMensalHandler_Sucesso(t *testing.T) {
 
 func TestEvolucaoMensalHandler_ErroInterno(t *testing.T) {
 	svc := &MockDashboardService{
-		EvolucaoMensalFn: func(qtdMeses int) ([]service.PontoEvolucao, error) {
+		EvolucaoMensalFn: func(familiaID string, qtdMeses int) ([]service.PontoEvolucao, error) {
 			return nil, errors.New("falha no banco de dados")
 		},
 	}
@@ -371,7 +376,7 @@ func TestEvolucaoMensalHandler_ErroInterno(t *testing.T) {
 
 func TestProjecaoHandler_Sucesso(t *testing.T) {
 	svc := &MockDashboardService{
-		ProjecaoFn: func(qtdMeses int) ([]service.MesProjecao, error) {
+		ProjecaoFn: func(familiaID string, qtdMeses int) ([]service.MesProjecao, error) {
 			assert.Equal(t, 3, qtdMeses)
 			return []service.MesProjecao{
 				{Mes: 4, Ano: 2026, TotalRendas: 5000.00, TotalCartoes: 300.00, TotalAssinaturas: 50.00, TotalContasFixas: 200.00, TotalDespesas: 550.00, SaldoEstimado: 4450.00},
@@ -401,7 +406,7 @@ func TestProjecaoHandler_Sucesso(t *testing.T) {
 
 func TestProjecaoHandler_ErroInterno(t *testing.T) {
 	svc := &MockDashboardService{
-		ProjecaoFn: func(qtdMeses int) ([]service.MesProjecao, error) {
+		ProjecaoFn: func(familiaID string, qtdMeses int) ([]service.MesProjecao, error) {
 			return nil, errors.New("falha no banco de dados")
 		},
 	}

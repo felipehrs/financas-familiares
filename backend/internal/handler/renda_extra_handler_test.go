@@ -17,41 +17,46 @@ import (
 
 // MockRendaExtraService implementa RendaExtraServiceInterface (declarada no handler) para testes.
 type MockRendaExtraService struct {
-	CriarFn        func(descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error)
-	BuscarFn       func(id string) (*domain.RendaExtra, error)
-	ListarFn       func() ([]*domain.RendaExtra, error)
-	ListarPorMesFn func(mes, ano int) ([]*domain.RendaExtra, error)
-	AtualizarFn    func(id, descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error)
-	ExcluirFn      func(id string) error
+	CriarFn        func(familiaID, descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error)
+	BuscarFn       func(familiaID, id string) (*domain.RendaExtra, error)
+	ListarFn       func(familiaID string) ([]*domain.RendaExtra, error)
+	ListarPorMesFn func(familiaID string, mes, ano int) ([]*domain.RendaExtra, error)
+	AtualizarFn    func(familiaID, id, descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error)
+	ExcluirFn      func(familiaID, id string) error
 }
 
-func (m *MockRendaExtraService) Criar(descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error) {
-	return m.CriarFn(descricao, membroID, dataRecebimento, valor)
+func (m *MockRendaExtraService) Criar(familiaID, descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error) {
+	return m.CriarFn(familiaID, descricao, membroID, dataRecebimento, valor)
 }
 
-func (m *MockRendaExtraService) BuscarPorID(id string) (*domain.RendaExtra, error) {
-	return m.BuscarFn(id)
+func (m *MockRendaExtraService) BuscarPorID(familiaID, id string) (*domain.RendaExtra, error) {
+	return m.BuscarFn(familiaID, id)
 }
 
-func (m *MockRendaExtraService) Listar() ([]*domain.RendaExtra, error) {
-	return m.ListarFn()
+func (m *MockRendaExtraService) Listar(familiaID string) ([]*domain.RendaExtra, error) {
+	return m.ListarFn(familiaID)
 }
 
-func (m *MockRendaExtraService) ListarPorMes(mes, ano int) ([]*domain.RendaExtra, error) {
-	return m.ListarPorMesFn(mes, ano)
+func (m *MockRendaExtraService) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaExtra, error) {
+	return m.ListarPorMesFn(familiaID, mes, ano)
 }
 
-func (m *MockRendaExtraService) Atualizar(id, descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error) {
-	return m.AtualizarFn(id, descricao, membroID, dataRecebimento, valor)
+func (m *MockRendaExtraService) Atualizar(familiaID, id, descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error) {
+	return m.AtualizarFn(familiaID, id, descricao, membroID, dataRecebimento, valor)
 }
 
-func (m *MockRendaExtraService) Excluir(id string) error {
-	return m.ExcluirFn(id)
+func (m *MockRendaExtraService) Excluir(familiaID, id string) error {
+	return m.ExcluirFn(familiaID, id)
 }
 
 func setupRendaExtraRouter(svc handler.RendaExtraServiceInterface) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("userID", "usuario-teste-uuid")
+		c.Set("familiaID", "familia-teste-uuid")
+		c.Next()
+	})
 	h := handler.NewRendaExtraHandler(svc)
 	v1 := r.Group("/api/v1")
 	{
@@ -76,7 +81,7 @@ var rendaExtraExemplo = &domain.RendaExtra{
 
 func TestCriarRendaExtraHandler_Sucesso(t *testing.T) {
 	svc := &MockRendaExtraService{
-		CriarFn: func(descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error) {
+		CriarFn: func(familiaID, descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error) {
 			return &domain.RendaExtra{
 				ID:              "uuid-novo",
 				Descricao:       descricao,
@@ -123,7 +128,7 @@ func TestCriarRendaExtraHandler_BodyInvalido(t *testing.T) {
 
 func TestCriarRendaExtraHandler_ErroValidacao(t *testing.T) {
 	svc := &MockRendaExtraService{
-		CriarFn: func(descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error) {
+		CriarFn: func(familiaID, descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error) {
 			return nil, domain.ErrDescricaoRendaExtraObrigatoria
 		},
 	}
@@ -156,7 +161,7 @@ func TestListarRendasExtrasHandler_Sucesso(t *testing.T) {
 		{ID: "uuid-2", Descricao: "Venda equipamento", MembroID: "membro-1", DataRecebimento: time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC), Valor: 500.00},
 	}
 	svc := &MockRendaExtraService{
-		ListarFn: func() ([]*domain.RendaExtra, error) {
+		ListarFn: func(familiaID string) ([]*domain.RendaExtra, error) {
 			return rendas, nil
 		},
 	}
@@ -180,7 +185,7 @@ func TestListarRendasExtrasHandler_FiltradaPorMes(t *testing.T) {
 		{ID: "uuid-1", Descricao: "Bônus março", MembroID: "membro-1", DataRecebimento: time.Date(2026, 3, 8, 0, 0, 0, 0, time.UTC), Valor: 2000.00},
 	}
 	svc := &MockRendaExtraService{
-		ListarPorMesFn: func(mes, ano int) ([]*domain.RendaExtra, error) {
+		ListarPorMesFn: func(familiaID string, mes, ano int) ([]*domain.RendaExtra, error) {
 			assert.Equal(t, 3, mes)
 			assert.Equal(t, 2026, ano)
 			return rendas, nil
@@ -205,7 +210,7 @@ func TestListarRendasExtrasHandler_FiltradaPorMes(t *testing.T) {
 
 func TestBuscarRendaExtraHandler_Existente(t *testing.T) {
 	svc := &MockRendaExtraService{
-		BuscarFn: func(id string) (*domain.RendaExtra, error) {
+		BuscarFn: func(familiaID, id string) (*domain.RendaExtra, error) {
 			return rendaExtraExemplo, nil
 		},
 	}
@@ -226,7 +231,7 @@ func TestBuscarRendaExtraHandler_Existente(t *testing.T) {
 
 func TestBuscarRendaExtraHandler_Inexistente(t *testing.T) {
 	svc := &MockRendaExtraService{
-		BuscarFn: func(id string) (*domain.RendaExtra, error) {
+		BuscarFn: func(familiaID, id string) (*domain.RendaExtra, error) {
 			return nil, domain.ErrRendaExtraNaoEncontrada
 		},
 	}
@@ -248,7 +253,7 @@ func TestBuscarRendaExtraHandler_Inexistente(t *testing.T) {
 
 func TestAtualizarRendaExtraHandler_Sucesso(t *testing.T) {
 	svc := &MockRendaExtraService{
-		AtualizarFn: func(id, descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error) {
+		AtualizarFn: func(familiaID, id, descricao, membroID string, dataRecebimento time.Time, valor float64) (*domain.RendaExtra, error) {
 			return &domain.RendaExtra{
 				ID:              id,
 				Descricao:       descricao,
@@ -284,7 +289,7 @@ func TestAtualizarRendaExtraHandler_Sucesso(t *testing.T) {
 
 func TestExcluirRendaExtraHandler_Sucesso(t *testing.T) {
 	svc := &MockRendaExtraService{
-		ExcluirFn: func(id string) error {
+		ExcluirFn: func(familiaID, id string) error {
 			return nil
 		},
 	}
@@ -299,7 +304,7 @@ func TestExcluirRendaExtraHandler_Sucesso(t *testing.T) {
 
 func TestExcluirRendaExtraHandler_Inexistente(t *testing.T) {
 	svc := &MockRendaExtraService{
-		ExcluirFn: func(id string) error {
+		ExcluirFn: func(familiaID, id string) error {
 			return domain.ErrRendaExtraNaoEncontrada
 		},
 	}

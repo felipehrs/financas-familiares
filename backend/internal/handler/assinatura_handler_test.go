@@ -16,36 +16,41 @@ import (
 
 // MockAssinaturaService implementa AssinaturaServiceInterface (declarada no handler) para testes.
 type MockAssinaturaService struct {
-	CriarFn         func(nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error)
-	BuscarFn        func(id string) (*domain.Assinatura, error)
-	ListarFn        func() ([]*domain.Assinatura, error)
-	AtualizarFn     func(id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error)
-	AlterarStatusFn func(id, status string) (*domain.Assinatura, error)
+	CriarFn         func(familiaID, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error)
+	BuscarFn        func(familiaID, id string) (*domain.Assinatura, error)
+	ListarFn        func(familiaID string) ([]*domain.Assinatura, error)
+	AtualizarFn     func(familiaID, id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error)
+	AlterarStatusFn func(familiaID, id, status string) (*domain.Assinatura, error)
 }
 
-func (m *MockAssinaturaService) Criar(nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error) {
-	return m.CriarFn(nome, membroID, categoriaID, valor, diaCobranca, formaPagamento)
+func (m *MockAssinaturaService) Criar(familiaID, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error) {
+	return m.CriarFn(familiaID, nome, membroID, categoriaID, valor, diaCobranca, formaPagamento)
 }
 
-func (m *MockAssinaturaService) BuscarPorID(id string) (*domain.Assinatura, error) {
-	return m.BuscarFn(id)
+func (m *MockAssinaturaService) BuscarPorID(familiaID, id string) (*domain.Assinatura, error) {
+	return m.BuscarFn(familiaID, id)
 }
 
-func (m *MockAssinaturaService) Listar() ([]*domain.Assinatura, error) {
-	return m.ListarFn()
+func (m *MockAssinaturaService) Listar(familiaID string) ([]*domain.Assinatura, error) {
+	return m.ListarFn(familiaID)
 }
 
-func (m *MockAssinaturaService) Atualizar(id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error) {
-	return m.AtualizarFn(id, nome, membroID, categoriaID, valor, diaCobranca, formaPagamento, status)
+func (m *MockAssinaturaService) Atualizar(familiaID, id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error) {
+	return m.AtualizarFn(familiaID, id, nome, membroID, categoriaID, valor, diaCobranca, formaPagamento, status)
 }
 
-func (m *MockAssinaturaService) AlterarStatus(id, status string) (*domain.Assinatura, error) {
-	return m.AlterarStatusFn(id, status)
+func (m *MockAssinaturaService) AlterarStatus(familiaID, id, status string) (*domain.Assinatura, error) {
+	return m.AlterarStatusFn(familiaID, id, status)
 }
 
 func setupAssinaturaRouter(svc handler.AssinaturaServiceInterface) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("userID", "usuario-teste-uuid")
+		c.Set("familiaID", "familia-teste-uuid")
+		c.Next()
+	})
 	h := handler.NewAssinaturaHandler(svc)
 	v1 := r.Group("/api/v1")
 	{
@@ -66,7 +71,7 @@ func TestListarAssinaturasHandler_Sucesso(t *testing.T) {
 		{ID: "uuid-2", Nome: "Spotify", MembroID: "membro-1", Valor: 19.90, DiaCobranca: 10, FormaPagamento: "debito", Status: "ativa"},
 	}
 	svc := &MockAssinaturaService{
-		ListarFn: func() ([]*domain.Assinatura, error) {
+		ListarFn: func(familiaID string) ([]*domain.Assinatura, error) {
 			return assinaturas, nil
 		},
 	}
@@ -88,7 +93,7 @@ func TestListarAssinaturasHandler_Sucesso(t *testing.T) {
 
 func TestListarAssinaturasHandler_ListaVazia(t *testing.T) {
 	svc := &MockAssinaturaService{
-		ListarFn: func() ([]*domain.Assinatura, error) {
+		ListarFn: func(familiaID string) ([]*domain.Assinatura, error) {
 			return []*domain.Assinatura{}, nil
 		},
 	}
@@ -110,7 +115,7 @@ func TestListarAssinaturasHandler_ListaVazia(t *testing.T) {
 
 func TestCriarAssinaturaHandler_Sucesso(t *testing.T) {
 	svc := &MockAssinaturaService{
-		CriarFn: func(nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error) {
+		CriarFn: func(familiaID, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error) {
 			return &domain.Assinatura{
 				ID:             "uuid-novo",
 				Nome:           nome,
@@ -149,7 +154,7 @@ func TestCriarAssinaturaHandler_Sucesso(t *testing.T) {
 
 func TestCriarAssinaturaHandler_NomeVazio(t *testing.T) {
 	svc := &MockAssinaturaService{
-		CriarFn: func(nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error) {
+		CriarFn: func(familiaID, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error) {
 			return nil, domain.ErrNomeAssinaturaObrigatorio
 		},
 	}
@@ -191,7 +196,7 @@ func TestCriarAssinaturaHandler_BodyInvalido(t *testing.T) {
 
 func TestBuscarAssinaturaHandler_Sucesso(t *testing.T) {
 	svc := &MockAssinaturaService{
-		BuscarFn: func(id string) (*domain.Assinatura, error) {
+		BuscarFn: func(familiaID, id string) (*domain.Assinatura, error) {
 			return &domain.Assinatura{
 				ID:             id,
 				Nome:           "Netflix",
@@ -220,7 +225,7 @@ func TestBuscarAssinaturaHandler_Sucesso(t *testing.T) {
 
 func TestBuscarAssinaturaHandler_NaoEncontrada(t *testing.T) {
 	svc := &MockAssinaturaService{
-		BuscarFn: func(id string) (*domain.Assinatura, error) {
+		BuscarFn: func(familiaID, id string) (*domain.Assinatura, error) {
 			return nil, domain.ErrAssinaturaNaoEncontrada
 		},
 	}
@@ -242,7 +247,7 @@ func TestBuscarAssinaturaHandler_NaoEncontrada(t *testing.T) {
 
 func TestAtualizarAssinaturaHandler_Sucesso(t *testing.T) {
 	svc := &MockAssinaturaService{
-		AtualizarFn: func(id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error) {
+		AtualizarFn: func(familiaID, id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error) {
 			return &domain.Assinatura{
 				ID:             id,
 				Nome:           nome,
@@ -281,7 +286,7 @@ func TestAtualizarAssinaturaHandler_Sucesso(t *testing.T) {
 
 func TestAtualizarAssinaturaHandler_NaoEncontrada(t *testing.T) {
 	svc := &MockAssinaturaService{
-		AtualizarFn: func(id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error) {
+		AtualizarFn: func(familiaID, id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error) {
 			return nil, domain.ErrAssinaturaNaoEncontrada
 		},
 	}
@@ -324,7 +329,7 @@ func TestAtualizarAssinaturaHandler_BodyInvalido(t *testing.T) {
 
 func TestAlterarStatusHandler_Sucesso(t *testing.T) {
 	svc := &MockAssinaturaService{
-		AlterarStatusFn: func(id, status string) (*domain.Assinatura, error) {
+		AlterarStatusFn: func(familiaID, id, status string) (*domain.Assinatura, error) {
 			return &domain.Assinatura{
 				ID:             id,
 				Nome:           "Netflix",
@@ -357,7 +362,7 @@ func TestAlterarStatusHandler_Sucesso(t *testing.T) {
 
 func TestAlterarStatusHandler_StatusInvalido(t *testing.T) {
 	svc := &MockAssinaturaService{
-		AlterarStatusFn: func(id, status string) (*domain.Assinatura, error) {
+		AlterarStatusFn: func(familiaID, id, status string) (*domain.Assinatura, error) {
 			return nil, domain.ErrStatusInvalido
 		},
 	}
@@ -381,7 +386,7 @@ func TestAlterarStatusHandler_StatusInvalido(t *testing.T) {
 
 func TestAlterarStatusHandler_NaoEncontrada(t *testing.T) {
 	svc := &MockAssinaturaService{
-		AlterarStatusFn: func(id, status string) (*domain.Assinatura, error) {
+		AlterarStatusFn: func(familiaID, id, status string) (*domain.Assinatura, error) {
 			return nil, domain.ErrAssinaturaNaoEncontrada
 		},
 	}

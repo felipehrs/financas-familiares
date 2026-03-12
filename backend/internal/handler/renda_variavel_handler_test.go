@@ -17,41 +17,46 @@ import (
 
 // MockRendaVariavelService implementa RendaVariavelServiceInterface (declarada no handler) para testes.
 type MockRendaVariavelService struct {
-	CriarFn        func(descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error)
-	BuscarFn       func(id string) (*domain.RendaVariavel, error)
-	ListarFn       func() ([]*domain.RendaVariavel, error)
-	ListarPorMesFn func(mes, ano int) ([]*domain.RendaVariavel, error)
-	AtualizarFn    func(id, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error)
-	ExcluirFn      func(id string) error
+	CriarFn        func(familiaID, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error)
+	BuscarFn       func(familiaID, id string) (*domain.RendaVariavel, error)
+	ListarFn       func(familiaID string) ([]*domain.RendaVariavel, error)
+	ListarPorMesFn func(familiaID string, mes, ano int) ([]*domain.RendaVariavel, error)
+	AtualizarFn    func(familiaID, id, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error)
+	ExcluirFn      func(familiaID, id string) error
 }
 
-func (m *MockRendaVariavelService) Criar(descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error) {
-	return m.CriarFn(descricao, membroID, mesReferencia, anoReferencia, valor, dataRecebimento)
+func (m *MockRendaVariavelService) Criar(familiaID, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error) {
+	return m.CriarFn(familiaID, descricao, membroID, mesReferencia, anoReferencia, valor, dataRecebimento)
 }
 
-func (m *MockRendaVariavelService) BuscarPorID(id string) (*domain.RendaVariavel, error) {
-	return m.BuscarFn(id)
+func (m *MockRendaVariavelService) BuscarPorID(familiaID, id string) (*domain.RendaVariavel, error) {
+	return m.BuscarFn(familiaID, id)
 }
 
-func (m *MockRendaVariavelService) Listar() ([]*domain.RendaVariavel, error) {
-	return m.ListarFn()
+func (m *MockRendaVariavelService) Listar(familiaID string) ([]*domain.RendaVariavel, error) {
+	return m.ListarFn(familiaID)
 }
 
-func (m *MockRendaVariavelService) ListarPorMes(mes, ano int) ([]*domain.RendaVariavel, error) {
-	return m.ListarPorMesFn(mes, ano)
+func (m *MockRendaVariavelService) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaVariavel, error) {
+	return m.ListarPorMesFn(familiaID, mes, ano)
 }
 
-func (m *MockRendaVariavelService) Atualizar(id, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error) {
-	return m.AtualizarFn(id, descricao, membroID, mesReferencia, anoReferencia, valor, dataRecebimento)
+func (m *MockRendaVariavelService) Atualizar(familiaID, id, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error) {
+	return m.AtualizarFn(familiaID, id, descricao, membroID, mesReferencia, anoReferencia, valor, dataRecebimento)
 }
 
-func (m *MockRendaVariavelService) Excluir(id string) error {
-	return m.ExcluirFn(id)
+func (m *MockRendaVariavelService) Excluir(familiaID, id string) error {
+	return m.ExcluirFn(familiaID, id)
 }
 
 func setupRendaVariavelRouter(svc handler.RendaVariavelServiceInterface) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("userID", "usuario-teste-uuid")
+		c.Set("familiaID", "familia-teste-uuid")
+		c.Next()
+	})
 	h := handler.NewRendaVariavelHandler(svc)
 	v1 := r.Group("/api/v1")
 	{
@@ -78,7 +83,7 @@ var rendaVariavelExemplo = &domain.RendaVariavel{
 
 func TestCriarRendaVariavelHandler_Sucesso(t *testing.T) {
 	svc := &MockRendaVariavelService{
-		CriarFn: func(descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error) {
+		CriarFn: func(familiaID, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error) {
 			return &domain.RendaVariavel{
 				ID:              "uuid-novo",
 				Descricao:       descricao,
@@ -129,7 +134,7 @@ func TestCriarRendaVariavelHandler_BodyInvalido(t *testing.T) {
 
 func TestCriarRendaVariavelHandler_ErroValidacao(t *testing.T) {
 	svc := &MockRendaVariavelService{
-		CriarFn: func(descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error) {
+		CriarFn: func(familiaID, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error) {
 			return nil, domain.ErrDescricaoRendaVariavelObrigatoria
 		},
 	}
@@ -164,7 +169,7 @@ func TestListarRendasVariaveisHandler_Sucesso(t *testing.T) {
 		{ID: "uuid-2", Descricao: "Comissão venda", MembroID: "membro-1", MesReferencia: 3, AnoReferencia: 2026, Valor: 800.00, DataRecebimento: time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC)},
 	}
 	svc := &MockRendaVariavelService{
-		ListarFn: func() ([]*domain.RendaVariavel, error) {
+		ListarFn: func(familiaID string) ([]*domain.RendaVariavel, error) {
 			return rendas, nil
 		},
 	}
@@ -188,7 +193,7 @@ func TestListarRendasVariaveisHandler_FiltradaPorMes(t *testing.T) {
 		{ID: "uuid-1", Descricao: "Freelance março", MembroID: "membro-1", MesReferencia: 3, AnoReferencia: 2026, Valor: 1500.00, DataRecebimento: time.Date(2026, 3, 8, 0, 0, 0, 0, time.UTC)},
 	}
 	svc := &MockRendaVariavelService{
-		ListarPorMesFn: func(mes, ano int) ([]*domain.RendaVariavel, error) {
+		ListarPorMesFn: func(familiaID string, mes, ano int) ([]*domain.RendaVariavel, error) {
 			assert.Equal(t, 3, mes)
 			assert.Equal(t, 2026, ano)
 			return rendas, nil
@@ -213,7 +218,7 @@ func TestListarRendasVariaveisHandler_FiltradaPorMes(t *testing.T) {
 
 func TestBuscarRendaVariavelHandler_Existente(t *testing.T) {
 	svc := &MockRendaVariavelService{
-		BuscarFn: func(id string) (*domain.RendaVariavel, error) {
+		BuscarFn: func(familiaID, id string) (*domain.RendaVariavel, error) {
 			return rendaVariavelExemplo, nil
 		},
 	}
@@ -234,7 +239,7 @@ func TestBuscarRendaVariavelHandler_Existente(t *testing.T) {
 
 func TestBuscarRendaVariavelHandler_Inexistente(t *testing.T) {
 	svc := &MockRendaVariavelService{
-		BuscarFn: func(id string) (*domain.RendaVariavel, error) {
+		BuscarFn: func(familiaID, id string) (*domain.RendaVariavel, error) {
 			return nil, domain.ErrRendaVariavelNaoEncontrada
 		},
 	}
@@ -256,7 +261,7 @@ func TestBuscarRendaVariavelHandler_Inexistente(t *testing.T) {
 
 func TestAtualizarRendaVariavelHandler_Sucesso(t *testing.T) {
 	svc := &MockRendaVariavelService{
-		AtualizarFn: func(id, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error) {
+		AtualizarFn: func(familiaID, id, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error) {
 			return &domain.RendaVariavel{
 				ID:              id,
 				Descricao:       descricao,
@@ -296,7 +301,7 @@ func TestAtualizarRendaVariavelHandler_Sucesso(t *testing.T) {
 
 func TestExcluirRendaVariavelHandler_Sucesso(t *testing.T) {
 	svc := &MockRendaVariavelService{
-		ExcluirFn: func(id string) error {
+		ExcluirFn: func(familiaID, id string) error {
 			return nil
 		},
 	}
@@ -311,7 +316,7 @@ func TestExcluirRendaVariavelHandler_Sucesso(t *testing.T) {
 
 func TestExcluirRendaVariavelHandler_Inexistente(t *testing.T) {
 	svc := &MockRendaVariavelService{
-		ExcluirFn: func(id string) error {
+		ExcluirFn: func(familiaID, id string) error {
 			return domain.ErrRendaVariavelNaoEncontrada
 		},
 	}

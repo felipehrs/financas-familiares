@@ -18,7 +18,7 @@ import (
 type MockAuthService struct {
 	LoginFn               func(email, senha string) (string, string, error)
 	RefreshTokenFn        func(refreshToken string) (string, error)
-	ValidateAccessTokenFn func(token string) (string, error)
+	ValidateAccessTokenFn func(token string) (string, string, error)
 }
 
 func (m *MockAuthService) Login(email, senha string) (string, string, error) {
@@ -29,7 +29,7 @@ func (m *MockAuthService) RefreshToken(refreshToken string) (string, error) {
 	return m.RefreshTokenFn(refreshToken)
 }
 
-func (m *MockAuthService) ValidateAccessToken(token string) (string, error) {
+func (m *MockAuthService) ValidateAccessToken(token string) (string, string, error) {
 	return m.ValidateAccessTokenFn(token)
 }
 
