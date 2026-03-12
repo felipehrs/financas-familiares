@@ -1,7 +1,7 @@
 # Sprints — Finanças Familiares
 
 **Referência:** stories.md | spec.md | tech-spec.md
-**Atualizado em:** 12/03/2026 (Sprint 9 TT-07 e TT-10 concluídos)
+**Atualizado em:** 12/03/2026 (Sprint 9 TT-07 e TT-10 concluídos; TT-08 iniciado)
 
 ---
 
@@ -172,7 +172,7 @@
 |-----|--------|-----|-----------|
 | 1 | ✅ | TT-07 | Infraestrutura Multi-Tenant: tabelas `familias`, colunas `familia_id`, alteração JWT e Middleware |
 | 2 | ✅ | TT-10 | Refatoração para Isolamento: filtrar 15+ repositórios e handlers por `familia_id` |
-| 3 | 🔲 | TT-08 | Segurança: restringir CORS a origens específicas; rate limiting em `POST /auth/login` |
+| 3 | 🔄 | TT-08 | Segurança: restringir CORS a origens específicas; rate limiting em `POST /auth/login` |
 | 4 | 🔲 | TT-09 | Índices de performance: `deleted_at` em todas as tabelas, `familia_id` em todas as tabelas, índice composto em `despesas_cartao` |
 
 **Critério de conclusão:** TT-07 validado com teste de isolamento (usuário A não vê dados do B). CORS restrito a domínios específicos e rate limiting ativo no login com resposta 429. Índices criados e verificados em todas as tabelas afetadas.
@@ -200,6 +200,29 @@
 | `cmd/server/main.go` | ✅ | `familiaRepo` criado, passado para `authService` |
 | `go build ./...` limpo | ✅ | Zero erros de compilação |
 | `go test ./...` verde | ✅ | Zero falhas de teste |
+
+### Progresso TT-08 (em andamento — iniciado em 12/03/2026)
+
+> **Contexto:** Implementação de segurança adicional: restrição de CORS e rate limiting no login.
+> **Plano detalhado:** [docs/tecnico/05-plano-tt08-cors-rate-limiting.md](../tecnico/05-plano-tt08-cors-rate-limiting.md)
+
+| Fase | Status | Detalhe |
+|------|--------|---------|
+| **Fase 1: CORS Restrito** | 🔲 | |
+| Adicionar env vars `CORS_ALLOWED_ORIGINS` | 🔲 | Em `.env` e `.env.example` |
+| Atualizar `config/config.go` | 🔲 | Campo `CORS.AllowedOrigins` + parsing |
+| Substituir `AllowAllOrigins` em `main.go` | 🔲 | Usar whitelist de origens |
+| Testar CORS manualmente | 🔲 | curl com origem permitida + bloqueada |
+| **Fase 2: Rate Limiting** | 🔲 | |
+| Instalar `github.com/ulule/limiter/v3` | 🔲 | `go get` |
+| Criar `middleware/rate_limit.go` | 🔲 | Middleware genérico |
+| Adicionar env var `RATE_LIMIT_LOGIN` | 🔲 | Default: "5-M" (5 por minuto) |
+| Aplicar middleware no `/auth/login` | 🔲 | Em `main.go` |
+| Testar rate limiting manualmente | 🔲 | Script bash com 6 requests |
+| Validar HTTP 429 e headers | 🔲 | `X-RateLimit-*` presentes |
+| **Fase 3: Docs e Finalização** | 🔲 | |
+| Atualizar `backend/README.md` | 🔲 | Seção "Segurança" |
+| Verificação final | 🔲 | `go build ./...` e `go test ./...` |
 
 **Pré-requisito:** Sprints 1–8 concluídas.
 
