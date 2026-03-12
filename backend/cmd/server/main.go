@@ -131,7 +131,12 @@ func main() {
 		// Rotas públicas de autenticação
 		authGroup := v1.Group("/auth")
 		{
-			authGroup.POST("/login", authHandler.Login)
+			// Rate limit no login: proteger contra força bruta
+			authGroup.POST("/login",
+				middleware.RateLimitMiddleware(cfg.RateLimit.LoginRate),
+				authHandler.Login)
+
+			// Refresh token sem rate limit (já é protegido pelo token válido)
 			authGroup.POST("/refresh", authHandler.Refresh)
 		}
 
