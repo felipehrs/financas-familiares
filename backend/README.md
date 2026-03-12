@@ -81,6 +81,58 @@ cp .env.example .env
 
 ---
 
+## Segurança
+
+### CORS (Cross-Origin Resource Sharing)
+
+O backend restringe requisições apenas a origens autorizadas para prevenir ataques CSRF.
+
+**Configuração:**
+
+```env
+# Lista de origens permitidas (separadas por vírgula)
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+```
+
+**Produção (Railway):**
+
+```env
+CORS_ALLOWED_ORIGINS=https://financas-familiares.vercel.app
+```
+
+Para múltiplos domínios (ex: preview branches do Vercel):
+
+```env
+CORS_ALLOWED_ORIGINS=https://financas-familiares.vercel.app,https://preview-branch.vercel.app
+```
+
+---
+
+### Rate Limiting
+
+Proteção contra força bruta no endpoint de login (`POST /api/v1/auth/login`).
+
+**Configuração:**
+
+```env
+# Formato: "X-Y" onde X = número de requests, Y = período (S, M, H, D)
+RATE_LIMIT_LOGIN=5-M  # 5 tentativas por minuto
+```
+
+**Comportamento:**
+- Após 5 tentativas de login do mesmo IP em 1 minuto, o servidor retorna HTTP 429 (Too Many Requests)
+- O limite reseta automaticamente após 60 segundos
+- Headers de resposta incluem informações do rate limit:
+  - `X-RateLimit-Limit`: Limite total
+  - `X-RateLimit-Remaining`: Tentativas restantes
+  - `X-RateLimit-Reset`: Timestamp Unix quando o limite reseta
+
+**Nota de produção:**
+
+O rate limiting atual usa um store em memória, adequado para deploy single-instance (Railway). Para escalar horizontalmente (múltiplas instâncias), considere migrar para Redis.
+
+---
+
 ## Subindo o banco localmente
 
 Dentro do Dev Container o PostgreSQL já sobe automaticamente junto com o container. Fora dele:
