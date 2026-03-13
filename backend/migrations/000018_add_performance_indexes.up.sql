@@ -94,11 +94,11 @@ ON rendas_variaveis (familia_id, ano_referencia DESC, mes_referencia DESC)
 WHERE deleted_at IS NULL;
 
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_rendas_extras_mes_ano
-ON rendas_extras (familia_id, EXTRACT(YEAR FROM data_recebimento)::INTEGER DESC, EXTRACT(MONTH FROM data_recebimento)::INTEGER DESC)
+ON rendas_extras (familia_id, EXTRACT(YEAR FROM data_recebimento) DESC, EXTRACT(MONTH FROM data_recebimento) DESC)
 WHERE deleted_at IS NULL;
 
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_rendimentos_investimento_mes_ano
-ON rendimentos_investimento (familia_id, EXTRACT(YEAR FROM data)::INTEGER DESC, EXTRACT(MONTH FROM data)::INTEGER DESC)
+ON rendimentos_investimento (familia_id, EXTRACT(YEAR FROM data) DESC, EXTRACT(MONTH FROM data) DESC)
 WHERE deleted_at IS NULL;
 
 -- Vigência de rendas fixas (data_inicio, data_fim — US-22)
