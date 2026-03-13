@@ -23,7 +23,7 @@ type categoriaTotalRow struct {
 // DespesasPorCategoria retorna o total de despesas agrupado por categoria para um mês/ano.
 // Inclui despesas de cartão (parcelas do mês), assinaturas ativas, contas fixas ativas e despesas gerais do mês.
 // Itens sem categoria aparecem como "Sem categoria".
-func (r *DashboardRepository) DespesasPorCategoria(mes, ano int) ([]domain.CategoriaTotalRaw, error) {
+func (r *DashboardRepository) DespesasPorCategoria(familiaID string, mes, ano int) ([]domain.CategoriaTotalRaw, error) {
 	var rows []categoriaTotalRow
 	err := r.db.Select(&rows, `
 		SELECT
@@ -32,32 +32,33 @@ func (r *DashboardRepository) DespesasPorCategoria(mes, ano int) ([]domain.Categ
 		FROM (
 			SELECT categoria_id, valor_parcela AS valor
 			FROM despesas_cartao
-			WHERE fatura_mes = $1 AND fatura_ano = $2 AND deleted_at IS NULL
+			WHERE fatura_mes = $2 AND fatura_ano = $3 AND familia_id = $1 AND deleted_at IS NULL
 
 			UNION ALL
 
 			SELECT categoria_id, valor
 			FROM assinaturas
-			WHERE status = 'ativa' AND deleted_at IS NULL
+			WHERE status = 'ativa' AND familia_id = $1 AND deleted_at IS NULL
 
 			UNION ALL
 
 			SELECT categoria_id, valor
 			FROM contas_fixas
-			WHERE ativa = true AND deleted_at IS NULL
+			WHERE ativa = true AND familia_id = $1 AND deleted_at IS NULL
 
 			UNION ALL
 
 			SELECT categoria_id, valor
 			FROM despesas_gerais
-			WHERE EXTRACT(MONTH FROM data) = $1
-			  AND EXTRACT(YEAR FROM data) = $2
+			WHERE EXTRACT(MONTH FROM data) = $2
+			  AND EXTRACT(YEAR FROM data) = $3
+			  AND familia_id = $1
 			  AND deleted_at IS NULL
 		) AS d
 		LEFT JOIN categorias c ON c.id = d.categoria_id AND c.deleted_at IS NULL
 		GROUP BY COALESCE(c.nome, 'Sem categoria')
 		ORDER BY total DESC
-	`, mes, ano)
+	`, familiaID, mes, ano)
 	if err != nil {
 		return nil, err
 	}

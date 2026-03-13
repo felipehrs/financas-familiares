@@ -14,11 +14,11 @@ import (
 // DespesaCartaoServiceInterface define os métodos do service usados pelo handler.
 // Redeclarada aqui para desacoplar o pacote handler do service sem importação circular.
 type DespesaCartaoServiceInterface interface {
-	Criar(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error)
-	ListarPorCartao(cartaoID string) ([]*domain.DespesaCartao, error)
-	ListarPorFatura(cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error)
-	BuscarPorID(id string) (*domain.DespesaCartao, error)
-	Excluir(id string) error
+	Criar(familiaID, cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error)
+	ListarPorCartao(familiaID, cartaoID string) ([]*domain.DespesaCartao, error)
+	ListarPorFatura(familiaID, cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error)
+	BuscarPorID(familiaID, id string) (*domain.DespesaCartao, error)
+	Excluir(familiaID, id string) error
 }
 
 // DespesaCartaoHandler contém os handlers HTTP para despesas de cartão de crédito.
@@ -118,9 +118,14 @@ func (h *DespesaCartaoHandler) erroDominio(c *gin.Context, err error) bool {
 // ListarPorCartao retorna todas as despesas de um cartão.
 // GET /api/v1/cartoes/:id/despesas
 func (h *DespesaCartaoHandler) ListarPorCartao(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	cartaoID := c.Param("id")
 
-	despesas, err := h.svc.ListarPorCartao(cartaoID)
+	despesas, err := h.svc.ListarPorCartao(familiaID, cartaoID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
@@ -137,6 +142,11 @@ func (h *DespesaCartaoHandler) ListarPorCartao(c *gin.Context) {
 // ListarPorFatura retorna as despesas de um cartão filtradas por mês/ano de fatura.
 // GET /api/v1/cartoes/:id/despesas/fatura?mes=3&ano=2026
 func (h *DespesaCartaoHandler) ListarPorFatura(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	cartaoID := c.Param("id")
 
 	mesStr := c.Query("mes")
@@ -159,7 +169,7 @@ func (h *DespesaCartaoHandler) ListarPorFatura(c *gin.Context) {
 		return
 	}
 
-	despesas, err := h.svc.ListarPorFatura(cartaoID, mes, ano)
+	despesas, err := h.svc.ListarPorFatura(familiaID, cartaoID, mes, ano)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
@@ -177,6 +187,11 @@ func (h *DespesaCartaoHandler) ListarPorFatura(c *gin.Context) {
 // POST /api/v1/cartoes/:id/despesas
 // Responde com array JSON de todas as parcelas criadas.
 func (h *DespesaCartaoHandler) Criar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	cartaoID := c.Param("id")
 
 	var req criarDespesaCartaoRequest
@@ -196,7 +211,7 @@ func (h *DespesaCartaoHandler) Criar(c *gin.Context) {
 		req.NumeroParcelas = 1
 	}
 
-	despesas, err := h.svc.Criar(cartaoID, req.Descricao, req.CategoriaID, dataCompra, req.ValorTotal, req.NumeroParcelas)
+	despesas, err := h.svc.Criar(familiaID, cartaoID, req.Descricao, req.CategoriaID, dataCompra, req.ValorTotal, req.NumeroParcelas)
 	if err != nil {
 		if h.erroDominio(c, err) {
 			return
@@ -216,9 +231,14 @@ func (h *DespesaCartaoHandler) Criar(c *gin.Context) {
 // Excluir remove (soft delete) uma despesa de cartão.
 // DELETE /api/v1/despesas/:id
 func (h *DespesaCartaoHandler) Excluir(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	if err := h.svc.Excluir(id); err != nil {
+	if err := h.svc.Excluir(familiaID, id); err != nil {
 		if h.erroDominio(c, err) {
 			return
 		}

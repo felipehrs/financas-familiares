@@ -9,21 +9,21 @@ import (
 // ContaFixaRepository define as operações de persistência necessárias para contas fixas.
 // Declarada aqui para evitar import circular entre service e repository.
 type ContaFixaRepository interface {
-	Criar(c *domain.ContaFixa) (*domain.ContaFixa, error)
-	BuscarPorID(id string) (*domain.ContaFixa, error)
-	Listar() ([]*domain.ContaFixa, error)
-	Atualizar(c *domain.ContaFixa) (*domain.ContaFixa, error)
-	AlterarAtivo(id string, ativa bool) (*domain.ContaFixa, error)
+	Criar(familiaID string, c *domain.ContaFixa) (*domain.ContaFixa, error)
+	BuscarPorID(familiaID, id string) (*domain.ContaFixa, error)
+	Listar(familiaID string) ([]*domain.ContaFixa, error)
+	Atualizar(familiaID string, c *domain.ContaFixa) (*domain.ContaFixa, error)
+	AlterarAtivo(familiaID, id string, ativa bool) (*domain.ContaFixa, error)
 }
 
 // ContaFixaServiceInterface define os métodos públicos do serviço de contas fixas.
 // Redeclarada nos handlers para desacoplamento.
 type ContaFixaServiceInterface interface {
-	Criar(descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error)
-	BuscarPorID(id string) (*domain.ContaFixa, error)
-	Listar() ([]*domain.ContaFixa, error)
-	Atualizar(id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error)
-	AlterarAtivo(id string, ativa bool) (*domain.ContaFixa, error)
+	Criar(familiaID, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error)
+	BuscarPorID(familiaID, id string) (*domain.ContaFixa, error)
+	Listar(familiaID string) ([]*domain.ContaFixa, error)
+	Atualizar(familiaID, id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error)
+	AlterarAtivo(familiaID, id string, ativa bool) (*domain.ContaFixa, error)
 }
 
 // ContaFixaService implementa a lógica de negócio para contas fixas mensais.
@@ -58,7 +58,7 @@ func validarCamposContaFixa(descricao, membroID string, valor float64, diaVencim
 
 // Criar cria uma nova conta fixa mensal.
 // Valida campos obrigatórios e define Ativa=true por padrão.
-func (s *ContaFixaService) Criar(descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error) {
+func (s *ContaFixaService) Criar(familiaID, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error) {
 	if err := validarCamposContaFixa(descricao, membroID, valor, diaVencimento, formaPagamento); err != nil {
 		return nil, err
 	}
@@ -73,28 +73,28 @@ func (s *ContaFixaService) Criar(descricao, membroID string, categoriaID *string
 		Ativa:          true,
 	}
 
-	return s.repo.Criar(conta)
+	return s.repo.Criar(familiaID, conta)
 }
 
 // BuscarPorID retorna uma conta fixa pelo seu ID.
 // Retorna ErrContaFixaNaoEncontrada se não existir.
-func (s *ContaFixaService) BuscarPorID(id string) (*domain.ContaFixa, error) {
-	return s.repo.BuscarPorID(id)
+func (s *ContaFixaService) BuscarPorID(familiaID, id string) (*domain.ContaFixa, error) {
+	return s.repo.BuscarPorID(familiaID, id)
 }
 
 // Listar retorna todas as contas fixas não excluídas.
-func (s *ContaFixaService) Listar() ([]*domain.ContaFixa, error) {
-	return s.repo.Listar()
+func (s *ContaFixaService) Listar(familiaID string) ([]*domain.ContaFixa, error) {
+	return s.repo.Listar(familiaID)
 }
 
 // Atualizar atualiza os dados de uma conta fixa existente.
 // Valida campos obrigatórios antes de buscar no repositório.
-func (s *ContaFixaService) Atualizar(id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error) {
+func (s *ContaFixaService) Atualizar(familiaID, id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error) {
 	if err := validarCamposContaFixa(descricao, membroID, valor, diaVencimento, formaPagamento); err != nil {
 		return nil, err
 	}
 
-	conta, err := s.repo.BuscarPorID(id)
+	conta, err := s.repo.BuscarPorID(familiaID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -107,16 +107,16 @@ func (s *ContaFixaService) Atualizar(id, descricao, membroID string, categoriaID
 	conta.FormaPagamento = formaPagamento
 	conta.Ativa = ativa
 
-	return s.repo.Atualizar(conta)
+	return s.repo.Atualizar(familiaID, conta)
 }
 
 // AlterarAtivo altera o estado ativo/inativo de uma conta fixa existente.
 // Confirma a existência do registro antes de delegar ao repositório.
-func (s *ContaFixaService) AlterarAtivo(id string, ativa bool) (*domain.ContaFixa, error) {
-	_, err := s.repo.BuscarPorID(id)
+func (s *ContaFixaService) AlterarAtivo(familiaID, id string, ativa bool) (*domain.ContaFixa, error) {
+	_, err := s.repo.BuscarPorID(familiaID, id)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.repo.AlterarAtivo(id, ativa)
+	return s.repo.AlterarAtivo(familiaID, id, ativa)
 }

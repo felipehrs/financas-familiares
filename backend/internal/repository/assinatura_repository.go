@@ -47,13 +47,13 @@ func (r assinaturaRow) toDomain() *domain.Assinatura {
 }
 
 // Criar persiste uma nova assinatura no banco e retorna o registro criado (com ID gerado).
-func (r *AssinaturaRepository) Criar(a *domain.Assinatura) (*domain.Assinatura, error) {
+func (r *AssinaturaRepository) Criar(familiaID string, a *domain.Assinatura) (*domain.Assinatura, error) {
 	var row assinaturaRow
 	err := r.db.QueryRowx(`
-		INSERT INTO assinaturas (nome, membro_id, categoria_id, valor, dia_cobranca, forma_pagamento, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO assinaturas (familia_id, nome, membro_id, categoria_id, valor, dia_cobranca, forma_pagamento, status)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, nome, membro_id, categoria_id, valor, dia_cobranca, forma_pagamento, status, created_at
-	`, a.Nome, a.MembroID, a.CategoriaID, a.Valor, a.DiaCobranca, a.FormaPagamento, a.Status).StructScan(&row)
+	`, familiaID, a.Nome, a.MembroID, a.CategoriaID, a.Valor, a.DiaCobranca, a.FormaPagamento, a.Status).StructScan(&row)
 	if err != nil {
 		return nil, err
 	}
@@ -62,13 +62,13 @@ func (r *AssinaturaRepository) Criar(a *domain.Assinatura) (*domain.Assinatura, 
 
 // BuscarPorID busca uma assinatura pelo seu UUID.
 // Retorna domain.ErrAssinaturaNaoEncontrada se não existir ou estiver soft-deleted.
-func (r *AssinaturaRepository) BuscarPorID(id string) (*domain.Assinatura, error) {
+func (r *AssinaturaRepository) BuscarPorID(familiaID, id string) (*domain.Assinatura, error) {
 	var row assinaturaRow
 	err := r.db.QueryRowx(`
 		SELECT id, nome, membro_id, categoria_id, valor, dia_cobranca, forma_pagamento, status, created_at
 		FROM assinaturas
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id).StructScan(&row)
+		WHERE id = $1 AND familia_id = $2 AND deleted_at IS NULL
+	`, id, familiaID).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrAssinaturaNaoEncontrada
@@ -79,14 +79,14 @@ func (r *AssinaturaRepository) BuscarPorID(id string) (*domain.Assinatura, error
 }
 
 // Listar retorna todas as assinaturas não excluídas, ordenadas por nome.
-func (r *AssinaturaRepository) Listar() ([]*domain.Assinatura, error) {
+func (r *AssinaturaRepository) Listar(familiaID string) ([]*domain.Assinatura, error) {
 	var rows []assinaturaRow
 	err := r.db.Select(&rows, `
 		SELECT id, nome, membro_id, categoria_id, valor, dia_cobranca, forma_pagamento, status, created_at
 		FROM assinaturas
-		WHERE deleted_at IS NULL
+		WHERE familia_id = $1 AND deleted_at IS NULL
 		ORDER BY nome ASC
-	`)
+	`, familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -100,14 +100,14 @@ func (r *AssinaturaRepository) Listar() ([]*domain.Assinatura, error) {
 
 // Atualizar atualiza os campos de uma assinatura existente.
 // Retorna o registro atualizado ou ErrAssinaturaNaoEncontrada se não existir.
-func (r *AssinaturaRepository) Atualizar(a *domain.Assinatura) (*domain.Assinatura, error) {
+func (r *AssinaturaRepository) Atualizar(familiaID string, a *domain.Assinatura) (*domain.Assinatura, error) {
 	var row assinaturaRow
 	err := r.db.QueryRowx(`
 		UPDATE assinaturas
-		SET nome = $2, membro_id = $3, categoria_id = $4, valor = $5, dia_cobranca = $6, forma_pagamento = $7, status = $8, updated_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
+		SET nome = $3, membro_id = $4, categoria_id = $5, valor = $6, dia_cobranca = $7, forma_pagamento = $8, status = $9, updated_at = NOW()
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
 		RETURNING id, nome, membro_id, categoria_id, valor, dia_cobranca, forma_pagamento, status, created_at
-	`, a.ID, a.Nome, a.MembroID, a.CategoriaID, a.Valor, a.DiaCobranca, a.FormaPagamento, a.Status).StructScan(&row)
+	`, familiaID, a.ID, a.Nome, a.MembroID, a.CategoriaID, a.Valor, a.DiaCobranca, a.FormaPagamento, a.Status).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrAssinaturaNaoEncontrada
@@ -118,15 +118,15 @@ func (r *AssinaturaRepository) Atualizar(a *domain.Assinatura) (*domain.Assinatu
 }
 
 // ListarAtivas retorna todas as assinaturas com status "ativa" e não excluídas.
-func (r *AssinaturaRepository) ListarAtivas() ([]*domain.Assinatura, error) {
+func (r *AssinaturaRepository) ListarAtivas(familiaID string) ([]*domain.Assinatura, error) {
 	var rows []assinaturaRow
 	err := r.db.Select(&rows, `
 		SELECT id, nome, membro_id, categoria_id, valor, dia_cobranca, forma_pagamento, status, created_at
 		FROM assinaturas
-		WHERE deleted_at IS NULL
+		WHERE familia_id = $1 AND deleted_at IS NULL
 		  AND status = 'ativa'
 		ORDER BY nome ASC
-	`)
+	`, familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -139,14 +139,14 @@ func (r *AssinaturaRepository) ListarAtivas() ([]*domain.Assinatura, error) {
 
 // AlterarStatus atualiza apenas o status de uma assinatura existente.
 // Retorna o registro atualizado ou ErrAssinaturaNaoEncontrada se não existir.
-func (r *AssinaturaRepository) AlterarStatus(id, status string) (*domain.Assinatura, error) {
+func (r *AssinaturaRepository) AlterarStatus(familiaID, id, status string) (*domain.Assinatura, error) {
 	var row assinaturaRow
 	err := r.db.QueryRowx(`
 		UPDATE assinaturas
-		SET status = $2, updated_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
+		SET status = $3, updated_at = NOW()
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
 		RETURNING id, nome, membro_id, categoria_id, valor, dia_cobranca, forma_pagamento, status, created_at
-	`, id, status).StructScan(&row)
+	`, familiaID, id, status).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrAssinaturaNaoEncontrada

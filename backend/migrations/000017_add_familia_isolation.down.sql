@@ -1,0 +1,14 @@
+ALTER TABLE rendimentos_investimento DROP CONSTRAINT IF EXISTS rendimentos_investimento_familia_id_fkey, DROP COLUMN IF EXISTS familia_id;
+ALTER TABLE rendas_extras DROP CONSTRAINT IF EXISTS rendas_extras_familia_id_fkey, DROP COLUMN IF EXISTS familia_id;
+ALTER TABLE rendas_variaveis DROP CONSTRAINT IF EXISTS rendas_variaveis_familia_id_fkey, DROP COLUMN IF EXISTS familia_id;
+ALTER TABLE rendas_fixas DROP CONSTRAINT IF EXISTS rendas_fixas_familia_id_fkey, DROP COLUMN IF EXISTS familia_id;
+ALTER TABLE despesas_gerais DROP CONSTRAINT IF EXISTS despesas_gerais_familia_id_fkey, DROP COLUMN IF EXISTS familia_id;
+ALTER TABLE contas_fixas DROP CONSTRAINT IF EXISTS contas_fixas_familia_id_fkey, DROP COLUMN IF EXISTS familia_id;
+ALTER TABLE assinaturas DROP CONSTRAINT IF EXISTS assinaturas_familia_id_fkey, DROP COLUMN IF EXISTS familia_id;
+ALTER TABLE despesas_cartao DROP CONSTRAINT IF EXISTS despesas_cartao_familia_id_fkey, DROP COLUMN IF EXISTS familia_id;
+ALTER TABLE cartoes_credito DROP CONSTRAINT IF EXISTS cartoes_credito_familia_id_fkey, DROP COLUMN IF EXISTS familia_id;
+ALTER TABLE categorias DROP CONSTRAINT IF EXISTS categorias_nome_familia_unique, DROP CONSTRAINT IF EXISTS categorias_familia_id_fkey, DROP COLUMN IF EXISTS familia_id;
+ALTER TABLE categorias ADD CONSTRAINT categorias_nome_key UNIQUE (nome);
+ALTER TABLE membros DROP CONSTRAINT IF EXISTS membros_familia_id_fkey, DROP COLUMN IF EXISTS familia_id;
+DROP TABLE IF EXISTS familia_usuarios;
+DROP TABLE IF EXISTS familias;

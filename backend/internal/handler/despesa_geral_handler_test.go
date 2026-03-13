@@ -17,41 +17,46 @@ import (
 
 // MockDespesaGeralService implementa DespesaGeralServiceInterface (declarada no handler) para testes.
 type MockDespesaGeralService struct {
-	CriarFn        func(membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error)
-	BuscarFn       func(id string) (*domain.DespesaGeral, error)
-	ListarFn       func() ([]*domain.DespesaGeral, error)
-	ListarPorMesFn func(mes, ano int) ([]*domain.DespesaGeral, error)
-	AtualizarFn    func(id, membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error)
-	ExcluirFn      func(id string) error
+	CriarFn        func(familiaID, membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error)
+	BuscarFn       func(familiaID, id string) (*domain.DespesaGeral, error)
+	ListarFn       func(familiaID string) ([]*domain.DespesaGeral, error)
+	ListarPorMesFn func(familiaID string, mes, ano int) ([]*domain.DespesaGeral, error)
+	AtualizarFn    func(familiaID, id, membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error)
+	ExcluirFn      func(familiaID, id string) error
 }
 
-func (m *MockDespesaGeralService) Criar(membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error) {
-	return m.CriarFn(membroID, categoriaID, descricao, data, valor, formaPagamento, observacoes)
+func (m *MockDespesaGeralService) Criar(familiaID, membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error) {
+	return m.CriarFn(familiaID, membroID, categoriaID, descricao, data, valor, formaPagamento, observacoes)
 }
 
-func (m *MockDespesaGeralService) BuscarPorID(id string) (*domain.DespesaGeral, error) {
-	return m.BuscarFn(id)
+func (m *MockDespesaGeralService) BuscarPorID(familiaID, id string) (*domain.DespesaGeral, error) {
+	return m.BuscarFn(familiaID, id)
 }
 
-func (m *MockDespesaGeralService) Listar() ([]*domain.DespesaGeral, error) {
-	return m.ListarFn()
+func (m *MockDespesaGeralService) Listar(familiaID string) ([]*domain.DespesaGeral, error) {
+	return m.ListarFn(familiaID)
 }
 
-func (m *MockDespesaGeralService) ListarPorMes(mes, ano int) ([]*domain.DespesaGeral, error) {
-	return m.ListarPorMesFn(mes, ano)
+func (m *MockDespesaGeralService) ListarPorMes(familiaID string, mes, ano int) ([]*domain.DespesaGeral, error) {
+	return m.ListarPorMesFn(familiaID, mes, ano)
 }
 
-func (m *MockDespesaGeralService) Atualizar(id, membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error) {
-	return m.AtualizarFn(id, membroID, categoriaID, descricao, data, valor, formaPagamento, observacoes)
+func (m *MockDespesaGeralService) Atualizar(familiaID, id, membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error) {
+	return m.AtualizarFn(familiaID, id, membroID, categoriaID, descricao, data, valor, formaPagamento, observacoes)
 }
 
-func (m *MockDespesaGeralService) Excluir(id string) error {
-	return m.ExcluirFn(id)
+func (m *MockDespesaGeralService) Excluir(familiaID, id string) error {
+	return m.ExcluirFn(familiaID, id)
 }
 
 func setupDespesaGeralRouter(svc handler.DespesaGeralServiceInterface) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("userID", "usuario-teste-uuid")
+		c.Set("familiaID", "familia-teste-uuid")
+		c.Next()
+	})
 	h := handler.NewDespesaGeralHandler(svc)
 	v1 := r.Group("/api/v1")
 	{
@@ -77,7 +82,7 @@ var despesaGeralExemplo = &domain.DespesaGeral{
 
 func TestCriarDespesaGeralHandler_Sucesso(t *testing.T) {
 	svc := &MockDespesaGeralService{
-		CriarFn: func(membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error) {
+		CriarFn: func(familiaID, membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error) {
 			return &domain.DespesaGeral{
 				ID:             "uuid-novo",
 				MembroID:       membroID,
@@ -126,7 +131,7 @@ func TestCriarDespesaGeralHandler_BodyInvalido(t *testing.T) {
 
 func TestCriarDespesaGeralHandler_ErroValidacao(t *testing.T) {
 	svc := &MockDespesaGeralService{
-		CriarFn: func(membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error) {
+		CriarFn: func(familiaID, membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error) {
 			return nil, domain.ErrDescricaoDespesaGeralObrigatoria
 		},
 	}
@@ -160,7 +165,7 @@ func TestListarDespesasGeraisHandler_Sucesso(t *testing.T) {
 		{ID: "uuid-2", MembroID: "membro-1", Descricao: "Farmácia", Data: time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC), Valor: 80.00, FormaPagamento: "dinheiro"},
 	}
 	svc := &MockDespesaGeralService{
-		ListarFn: func() ([]*domain.DespesaGeral, error) {
+		ListarFn: func(familiaID string) ([]*domain.DespesaGeral, error) {
 			return despesas, nil
 		},
 	}
@@ -184,7 +189,7 @@ func TestListarDespesasGeraisHandler_FiltradaPorMes(t *testing.T) {
 		{ID: "uuid-1", MembroID: "membro-1", Descricao: "Mercado", Data: time.Date(2026, 3, 8, 0, 0, 0, 0, time.UTC), Valor: 250.00, FormaPagamento: "pix"},
 	}
 	svc := &MockDespesaGeralService{
-		ListarPorMesFn: func(mes, ano int) ([]*domain.DespesaGeral, error) {
+		ListarPorMesFn: func(familiaID string, mes, ano int) ([]*domain.DespesaGeral, error) {
 			assert.Equal(t, 3, mes)
 			assert.Equal(t, 2026, ano)
 			return despesas, nil
@@ -209,7 +214,7 @@ func TestListarDespesasGeraisHandler_FiltradaPorMes(t *testing.T) {
 
 func TestBuscarDespesaGeralHandler_Existente(t *testing.T) {
 	svc := &MockDespesaGeralService{
-		BuscarFn: func(id string) (*domain.DespesaGeral, error) {
+		BuscarFn: func(familiaID, id string) (*domain.DespesaGeral, error) {
 			return despesaGeralExemplo, nil
 		},
 	}
@@ -230,7 +235,7 @@ func TestBuscarDespesaGeralHandler_Existente(t *testing.T) {
 
 func TestBuscarDespesaGeralHandler_Inexistente(t *testing.T) {
 	svc := &MockDespesaGeralService{
-		BuscarFn: func(id string) (*domain.DespesaGeral, error) {
+		BuscarFn: func(familiaID, id string) (*domain.DespesaGeral, error) {
 			return nil, domain.ErrDespesaGeralNaoEncontrada
 		},
 	}
@@ -252,7 +257,7 @@ func TestBuscarDespesaGeralHandler_Inexistente(t *testing.T) {
 
 func TestAtualizarDespesaGeralHandler_Sucesso(t *testing.T) {
 	svc := &MockDespesaGeralService{
-		AtualizarFn: func(id, membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error) {
+		AtualizarFn: func(familiaID, id, membroID string, categoriaID *string, descricao string, data time.Time, valor float64, formaPagamento string, observacoes *string) (*domain.DespesaGeral, error) {
 			return &domain.DespesaGeral{
 				ID:             id,
 				MembroID:       membroID,
@@ -290,7 +295,7 @@ func TestAtualizarDespesaGeralHandler_Sucesso(t *testing.T) {
 
 func TestExcluirDespesaGeralHandler_Sucesso(t *testing.T) {
 	svc := &MockDespesaGeralService{
-		ExcluirFn: func(id string) error {
+		ExcluirFn: func(familiaID, id string) error {
 			return nil
 		},
 	}
@@ -305,7 +310,7 @@ func TestExcluirDespesaGeralHandler_Sucesso(t *testing.T) {
 
 func TestExcluirDespesaGeralHandler_Inexistente(t *testing.T) {
 	svc := &MockDespesaGeralService{
-		ExcluirFn: func(id string) error {
+		ExcluirFn: func(familiaID, id string) error {
 			return domain.ErrDespesaGeralNaoEncontrada
 		},
 	}

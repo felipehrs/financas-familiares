@@ -16,36 +16,41 @@ import (
 
 // MockCartaoCreditoService implementa CartaoCreditoServiceInterface para testes.
 type MockCartaoCreditoService struct {
-	CriarFn     func(nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error)
-	BuscarFn    func(id string) (*domain.CartaoCredito, error)
-	ListarFn    func() ([]*domain.CartaoCredito, error)
-	AtualizarFn func(id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error)
-	InativarFn  func(id string) error
+	CriarFn     func(familiaID, nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error)
+	BuscarFn    func(familiaID, id string) (*domain.CartaoCredito, error)
+	ListarFn    func(familiaID string) ([]*domain.CartaoCredito, error)
+	AtualizarFn func(familiaID, id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error)
+	InativarFn  func(familiaID, id string) error
 }
 
-func (m *MockCartaoCreditoService) Criar(nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error) {
-	return m.CriarFn(nome, membroID, diaFechamento, diaVencimento, limite)
+func (m *MockCartaoCreditoService) Criar(familiaID, nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error) {
+	return m.CriarFn(familiaID, nome, membroID, diaFechamento, diaVencimento, limite)
 }
 
-func (m *MockCartaoCreditoService) BuscarPorID(id string) (*domain.CartaoCredito, error) {
-	return m.BuscarFn(id)
+func (m *MockCartaoCreditoService) BuscarPorID(familiaID, id string) (*domain.CartaoCredito, error) {
+	return m.BuscarFn(familiaID, id)
 }
 
-func (m *MockCartaoCreditoService) Listar() ([]*domain.CartaoCredito, error) {
-	return m.ListarFn()
+func (m *MockCartaoCreditoService) Listar(familiaID string) ([]*domain.CartaoCredito, error) {
+	return m.ListarFn(familiaID)
 }
 
-func (m *MockCartaoCreditoService) Atualizar(id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error) {
-	return m.AtualizarFn(id, nome, membroID, diaFechamento, diaVencimento, limite, ativo)
+func (m *MockCartaoCreditoService) Atualizar(familiaID, id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error) {
+	return m.AtualizarFn(familiaID, id, nome, membroID, diaFechamento, diaVencimento, limite, ativo)
 }
 
-func (m *MockCartaoCreditoService) Inativar(id string) error {
-	return m.InativarFn(id)
+func (m *MockCartaoCreditoService) Inativar(familiaID, id string) error {
+	return m.InativarFn(familiaID, id)
 }
 
 func setupCartaoRouter(svc handler.CartaoCreditoServiceInterface) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("userID", "usuario-teste-uuid")
+		c.Set("familiaID", "familia-teste-uuid")
+		c.Next()
+	})
 	h := handler.NewCartaoCreditoHandler(svc)
 	v1 := r.Group("/api/v1")
 	{
@@ -66,7 +71,7 @@ func TestListarCartoesHandler_Sucesso(t *testing.T) {
 		{ID: "uuid-2", Nome: "Inter", MembroID: "m-1", DiaFechamento: 5, DiaVencimento: 12, Ativo: true},
 	}
 	svc := &MockCartaoCreditoService{
-		ListarFn: func() ([]*domain.CartaoCredito, error) { return cartoes, nil },
+		ListarFn: func(familiaID string) ([]*domain.CartaoCredito, error) { return cartoes, nil },
 	}
 	r := setupCartaoRouter(svc)
 
@@ -88,7 +93,7 @@ func TestListarCartoesHandler_Sucesso(t *testing.T) {
 
 func TestCriarCartaoHandler_Sucesso(t *testing.T) {
 	svc := &MockCartaoCreditoService{
-		CriarFn: func(nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error) {
+		CriarFn: func(familiaID, nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error) {
 			return &domain.CartaoCredito{
 				ID:            "uuid-novo",
 				Nome:          nome,
@@ -126,7 +131,7 @@ func TestCriarCartaoHandler_Sucesso(t *testing.T) {
 
 func TestCriarCartaoHandler_NomeVazio(t *testing.T) {
 	svc := &MockCartaoCreditoService{
-		CriarFn: func(nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error) {
+		CriarFn: func(familiaID, nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error) {
 			return nil, domain.ErrNomeCartaoObrigatorio
 		},
 	}
@@ -164,7 +169,7 @@ func TestCriarCartaoHandler_BodyInvalido(t *testing.T) {
 
 func TestBuscarCartaoHandler_Sucesso(t *testing.T) {
 	svc := &MockCartaoCreditoService{
-		BuscarFn: func(id string) (*domain.CartaoCredito, error) {
+		BuscarFn: func(familiaID, id string) (*domain.CartaoCredito, error) {
 			return &domain.CartaoCredito{
 				ID:            id,
 				Nome:          "Nubank",
@@ -191,7 +196,7 @@ func TestBuscarCartaoHandler_Sucesso(t *testing.T) {
 
 func TestBuscarCartaoHandler_NaoEncontrado(t *testing.T) {
 	svc := &MockCartaoCreditoService{
-		BuscarFn: func(id string) (*domain.CartaoCredito, error) {
+		BuscarFn: func(familiaID, id string) (*domain.CartaoCredito, error) {
 			return nil, domain.ErrCartaoNaoEncontrado
 		},
 	}
@@ -208,7 +213,7 @@ func TestBuscarCartaoHandler_NaoEncontrado(t *testing.T) {
 
 func TestAtualizarCartaoHandler_Sucesso(t *testing.T) {
 	svc := &MockCartaoCreditoService{
-		AtualizarFn: func(id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error) {
+		AtualizarFn: func(familiaID, id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error) {
 			return &domain.CartaoCredito{
 				ID:            id,
 				Nome:          nome,
@@ -242,7 +247,7 @@ func TestAtualizarCartaoHandler_Sucesso(t *testing.T) {
 
 func TestAtualizarCartaoHandler_NaoEncontrado(t *testing.T) {
 	svc := &MockCartaoCreditoService{
-		AtualizarFn: func(id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error) {
+		AtualizarFn: func(familiaID, id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error) {
 			return nil, domain.ErrCartaoNaoEncontrado
 		},
 	}
@@ -263,7 +268,7 @@ func TestAtualizarCartaoHandler_NaoEncontrado(t *testing.T) {
 
 func TestInativarCartaoHandler_Sucesso(t *testing.T) {
 	svc := &MockCartaoCreditoService{
-		InativarFn: func(id string) error { return nil },
+		InativarFn: func(familiaID, id string) error { return nil },
 	}
 	r := setupCartaoRouter(svc)
 
@@ -281,7 +286,7 @@ func TestInativarCartaoHandler_Sucesso(t *testing.T) {
 
 func TestInativarCartaoHandler_NaoEncontrado(t *testing.T) {
 	svc := &MockCartaoCreditoService{
-		InativarFn: func(id string) error { return domain.ErrCartaoNaoEncontrado },
+		InativarFn: func(familiaID, id string) error { return domain.ErrCartaoNaoEncontrado },
 	}
 	r := setupCartaoRouter(svc)
 

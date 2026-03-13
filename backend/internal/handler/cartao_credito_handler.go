@@ -11,11 +11,11 @@ import (
 // CartaoCreditoServiceInterface define os métodos do service usados pelo handler.
 // Redeclarada aqui para desacoplar o pacote handler do service sem importação circular.
 type CartaoCreditoServiceInterface interface {
-	Criar(nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error)
-	BuscarPorID(id string) (*domain.CartaoCredito, error)
-	Listar() ([]*domain.CartaoCredito, error)
-	Atualizar(id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error)
-	Inativar(id string) error
+	Criar(familiaID, nome, membroID string, diaFechamento, diaVencimento int, limite *float64) (*domain.CartaoCredito, error)
+	BuscarPorID(familiaID, id string) (*domain.CartaoCredito, error)
+	Listar(familiaID string) ([]*domain.CartaoCredito, error)
+	Atualizar(familiaID, id, nome, membroID string, diaFechamento, diaVencimento int, limite *float64, ativo bool) (*domain.CartaoCredito, error)
+	Inativar(familiaID, id string) error
 }
 
 // CartaoCreditoHandler contém os handlers HTTP para cartões de crédito.
@@ -86,7 +86,12 @@ func (h *CartaoCreditoHandler) erroDominio(c *gin.Context, err error) bool {
 // Listar retorna todos os cartões de crédito.
 // GET /api/v1/cartoes
 func (h *CartaoCreditoHandler) Listar(c *gin.Context) {
-	cartoes, err := h.svc.Listar()
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
+	cartoes, err := h.svc.Listar(familiaID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
@@ -103,13 +108,18 @@ func (h *CartaoCreditoHandler) Listar(c *gin.Context) {
 // Criar cria um novo cartão de crédito.
 // POST /api/v1/cartoes
 func (h *CartaoCreditoHandler) Criar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	var req criarCartaoCreditoRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
 		return
 	}
 
-	cartao, err := h.svc.Criar(req.Nome, req.MembroID, req.DiaFechamento, req.DiaVencimento, req.Limite)
+	cartao, err := h.svc.Criar(familiaID, req.Nome, req.MembroID, req.DiaFechamento, req.DiaVencimento, req.Limite)
 	if err != nil {
 		if h.erroDominio(c, err) {
 			return
@@ -124,9 +134,14 @@ func (h *CartaoCreditoHandler) Criar(c *gin.Context) {
 // BuscarPorID retorna um cartão pelo seu ID.
 // GET /api/v1/cartoes/:id
 func (h *CartaoCreditoHandler) BuscarPorID(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	cartao, err := h.svc.BuscarPorID(id)
+	cartao, err := h.svc.BuscarPorID(familiaID, id)
 	if err != nil {
 		if h.erroDominio(c, err) {
 			return
@@ -141,6 +156,11 @@ func (h *CartaoCreditoHandler) BuscarPorID(c *gin.Context) {
 // Atualizar atualiza os dados de um cartão existente.
 // PUT /api/v1/cartoes/:id
 func (h *CartaoCreditoHandler) Atualizar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
 	var req atualizarCartaoCreditoRequest
@@ -149,7 +169,7 @@ func (h *CartaoCreditoHandler) Atualizar(c *gin.Context) {
 		return
 	}
 
-	cartao, err := h.svc.Atualizar(id, req.Nome, req.MembroID, req.DiaFechamento, req.DiaVencimento, req.Limite, req.Ativo)
+	cartao, err := h.svc.Atualizar(familiaID, id, req.Nome, req.MembroID, req.DiaFechamento, req.DiaVencimento, req.Limite, req.Ativo)
 	if err != nil {
 		if h.erroDominio(c, err) {
 			return
@@ -164,9 +184,14 @@ func (h *CartaoCreditoHandler) Atualizar(c *gin.Context) {
 // Inativar marca um cartão como inativo.
 // PATCH /api/v1/cartoes/:id/inativar
 func (h *CartaoCreditoHandler) Inativar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	if err := h.svc.Inativar(id); err != nil {
+	if err := h.svc.Inativar(familiaID, id); err != nil {
 		if h.erroDominio(c, err) {
 			return
 		}

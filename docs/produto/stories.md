@@ -439,17 +439,26 @@
 
 ---
 
-#### TT-07 — Isolamento de dados por usuário 🔴
+#### TT-07 — Infraestrutura de Multi-Tenant e Famílias 🔴
 
-Atualmente nenhuma tabela possui `usuario_id`, fazendo com que todos os usuários do sistema vejam os dados uns dos outros.
+Base técnica para suportar o isolamento de dados por família.
 
-- Adicionar `usuario_id UUID NOT NULL REFERENCES usuarios(id)` a todas as tabelas: `membros`, `categorias`, `cartoes_credito`, `despesas_cartao`, `assinaturas`, `contas_fixas`, `despesas_gerais`, `rendas_fixas`, `rendas_variaveis`, `rendas_extras`, `rendimentos_investimento`
-- Criar migrações para cada tabela (com retrocompatibilidade para seed)
-- Refatorar todos os repositórios para receber e filtrar por `usuario_id` no WHERE de todas as queries
-- Extrair `usuario_id` do JWT em cada handler e passar ao serviço/repositório
-- Ajustar seed de categorias para criar categorias por usuário (não globais)
-- Criar índice em `usuario_id` em cada tabela afetada
-- Testes: cobrir que um usuário não vê dados de outro usuário
+- Adicionar tabelas `familias` e `familia_usuarios` para gerenciar os tenants.
+- Adicionar `familia_id UUID NOT NULL REFERENCES familias(id)` a todas as tabelas: `membros`, `categorias`, `cartoes_credito`, `despesas_cartao`, `assinaturas`, `contas_fixas`, `despesas_gerais`, `rendas_fixas`, `rendas_variaveis`, `rendas_extras`, `rendimentos_investimento`.
+- Criar migrações com retrocompatibilidade para os dados existentes.
+- Atualizar JWT para incluir `familia_id` e Middleware para extrair este valor.
+- Ajustar lógica de login para vincular usuário à sua família.
+
+---
+
+#### TT-10 — Refatoração para Isolamento de Dados 🔴
+
+Refatoração completa do sistema para exigir o filtro de família em todas as operações.
+
+- Refatorar todos os repositórios (15+) para receber e filtrar por `familia_id` em todas as queries.
+- Refatorar todos os handlers para passar o `familia_id` do contexto para os serviços/repositórios.
+- Ajustar seed de categorias para ser por família (não globais).
+- Testes: validar que um usuário de uma família não acessa dados de outra.
 
 ---
 

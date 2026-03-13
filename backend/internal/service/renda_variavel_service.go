@@ -10,23 +10,23 @@ import (
 // RendaVariavelRepositoryInterface define as operações de persistência para rendas variáveis.
 // Declarada aqui para evitar import circular entre service e repository.
 type RendaVariavelRepositoryInterface interface {
-	Criar(r *domain.RendaVariavel) (*domain.RendaVariavel, error)
-	BuscarPorID(id string) (*domain.RendaVariavel, error)
-	Listar() ([]*domain.RendaVariavel, error)
-	ListarPorMes(mes, ano int) ([]*domain.RendaVariavel, error)
-	Atualizar(r *domain.RendaVariavel) (*domain.RendaVariavel, error)
-	Excluir(id string) error
+	Criar(familiaID string, r *domain.RendaVariavel) (*domain.RendaVariavel, error)
+	BuscarPorID(familiaID, id string) (*domain.RendaVariavel, error)
+	Listar(familiaID string) ([]*domain.RendaVariavel, error)
+	ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaVariavel, error)
+	Atualizar(familiaID string, r *domain.RendaVariavel) (*domain.RendaVariavel, error)
+	Excluir(familiaID, id string) error
 }
 
 // RendaVariavelServiceInterface define os métodos públicos do serviço de rendas variáveis.
 // Redeclarada nos handlers para desacoplamento.
 type RendaVariavelServiceInterface interface {
-	Criar(descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error)
-	BuscarPorID(id string) (*domain.RendaVariavel, error)
-	Listar() ([]*domain.RendaVariavel, error)
-	ListarPorMes(mes, ano int) ([]*domain.RendaVariavel, error)
-	Atualizar(id, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error)
-	Excluir(id string) error
+	Criar(familiaID, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error)
+	BuscarPorID(familiaID, id string) (*domain.RendaVariavel, error)
+	Listar(familiaID string) ([]*domain.RendaVariavel, error)
+	ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaVariavel, error)
+	Atualizar(familiaID, id, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error)
+	Excluir(familiaID, id string) error
 }
 
 // RendaVariavelService implementa a lógica de negócio para rendas variáveis.
@@ -64,7 +64,7 @@ func validarCamposRendaVariavel(descricao, membroID string, mesReferencia, anoRe
 
 // Criar cria uma nova renda variável.
 // Valida campos obrigatórios antes de persistir.
-func (s *RendaVariavelService) Criar(descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error) {
+func (s *RendaVariavelService) Criar(familiaID, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error) {
 	if err := validarCamposRendaVariavel(descricao, membroID, mesReferencia, anoReferencia, valor, dataRecebimento); err != nil {
 		return nil, err
 	}
@@ -78,33 +78,33 @@ func (s *RendaVariavelService) Criar(descricao, membroID string, mesReferencia, 
 		DataRecebimento: dataRecebimento,
 	}
 
-	return s.repo.Criar(renda)
+	return s.repo.Criar(familiaID, renda)
 }
 
 // BuscarPorID retorna uma renda variável pelo seu ID.
 // Retorna ErrRendaVariavelNaoEncontrada se não existir.
-func (s *RendaVariavelService) BuscarPorID(id string) (*domain.RendaVariavel, error) {
-	return s.repo.BuscarPorID(id)
+func (s *RendaVariavelService) BuscarPorID(familiaID, id string) (*domain.RendaVariavel, error) {
+	return s.repo.BuscarPorID(familiaID, id)
 }
 
 // Listar retorna todas as rendas variáveis não excluídas.
-func (s *RendaVariavelService) Listar() ([]*domain.RendaVariavel, error) {
-	return s.repo.Listar()
+func (s *RendaVariavelService) Listar(familiaID string) ([]*domain.RendaVariavel, error) {
+	return s.repo.Listar(familiaID)
 }
 
 // ListarPorMes retorna as rendas variáveis do mês e ano especificados.
-func (s *RendaVariavelService) ListarPorMes(mes, ano int) ([]*domain.RendaVariavel, error) {
-	return s.repo.ListarPorMes(mes, ano)
+func (s *RendaVariavelService) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaVariavel, error) {
+	return s.repo.ListarPorMes(familiaID, mes, ano)
 }
 
 // Atualizar atualiza os dados de uma renda variável existente.
 // Valida campos obrigatórios antes de buscar no repositório.
-func (s *RendaVariavelService) Atualizar(id, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error) {
+func (s *RendaVariavelService) Atualizar(familiaID, id, descricao, membroID string, mesReferencia, anoReferencia int, valor float64, dataRecebimento time.Time) (*domain.RendaVariavel, error) {
 	if err := validarCamposRendaVariavel(descricao, membroID, mesReferencia, anoReferencia, valor, dataRecebimento); err != nil {
 		return nil, err
 	}
 
-	renda, err := s.repo.BuscarPorID(id)
+	renda, err := s.repo.BuscarPorID(familiaID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -116,16 +116,16 @@ func (s *RendaVariavelService) Atualizar(id, descricao, membroID string, mesRefe
 	renda.Valor = valor
 	renda.DataRecebimento = dataRecebimento
 
-	return s.repo.Atualizar(renda)
+	return s.repo.Atualizar(familiaID, renda)
 }
 
 // Excluir realiza o soft-delete de uma renda variável existente.
 // Retorna ErrRendaVariavelNaoEncontrada se não existir.
-func (s *RendaVariavelService) Excluir(id string) error {
-	_, err := s.repo.BuscarPorID(id)
+func (s *RendaVariavelService) Excluir(familiaID, id string) error {
+	_, err := s.repo.BuscarPorID(familiaID, id)
 	if err != nil {
 		return err
 	}
 
-	return s.repo.Excluir(id)
+	return s.repo.Excluir(familiaID, id)
 }

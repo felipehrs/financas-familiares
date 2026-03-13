@@ -1,7 +1,7 @@
 # Sprints — Finanças Familiares
 
 **Referência:** stories.md | spec.md | tech-spec.md
-**Atualizado em:** 10/03/2026 (Sprint 9 revisada — TT-07, TT-08, TT-09 adicionados)
+**Atualizado em:** 12/03/2026 (Sprint 9 TT-07, TT-10 e TT-08 concluídos)
 
 ---
 
@@ -170,11 +170,59 @@
 
 | Seq | Status | ID | Descrição |
 |-----|--------|-----|-----------|
-| 1 | 🔲 | TT-07 | Isolamento de dados por usuário: adicionar `usuario_id` em todas as tabelas, refatorar todos os repositórios para filtrar por usuário, ajustar seed de categorias por usuário |
-| 2 | 🔲 | TT-08 | Segurança: restringir CORS a origens específicas via `ALLOWED_ORIGINS`; rate limiting em `POST /auth/login` (10 req/min/IP, resposta 429) |
-| 3 | 🔲 | TT-09 | Índices de performance: `deleted_at` em todas as tabelas com soft delete, `usuario_id` em todas as tabelas, índice composto em `despesas_cartao(usuario_id, fatura_ano, fatura_mes)` |
+| 1 | ✅ | TT-07 | Infraestrutura Multi-Tenant: tabelas `familias`, colunas `familia_id`, alteração JWT e Middleware |
+| 2 | ✅ | TT-10 | Refatoração para Isolamento: filtrar 15+ repositórios e handlers por `familia_id` |
+| 3 | ✅ | TT-08 | Segurança: restringir CORS a origens específicas; rate limiting em `POST /auth/login` |
+| 4 | ✅ | TT-09 | Índices de performance: `deleted_at` em todas as tabelas, `familia_id` em todas as tabelas, índice composto em `despesas_cartao` |
 
 **Critério de conclusão:** TT-07 validado com teste de isolamento (usuário A não vê dados do B). CORS restrito a domínios específicos e rate limiting ativo no login com resposta 429. Índices criados e verificados em todas as tabelas afetadas.
+
+### Progresso TT-07 + TT-10 (concluído em 12/03/2026)
+
+> **Contexto:** O TT-07 abrange toda a refatoração backend para isolamento por família (TT-10 foi integrado no mesmo trabalho). Todas as subtarefas concluídas.
+
+| Subtarefa | Status | Detalhe |
+|-----------|--------|---------|
+| Migrations 000017 up/down | ✅ | Criadas: tabelas `familias`, `familia_usuarios`; colunas `familia_id` em todas as tabelas de dados |
+| `domain/familia.go` | ✅ | Criado |
+| `repository/familia_repository.go` | ✅ | Criado (`BuscarFamiliaPorUsuario`) |
+| `middleware/auth.go` | ✅ | `ValidateAccessToken` retorna 3 valores; seta `"familiaID"` no contexto |
+| `handler/helpers.go` | ✅ | `getFamiliaID(c)` criado |
+| `service/auth_service.go` | ✅ | Interface `FamiliaRepository` adicionada; `familiaID` no JWT |
+| 11 domain services (interfaces + implementações) | ✅ | `familiaID string` como 1º param em todas as interfaces e chamadas repo |
+| Todos os service tests | ✅ | Mocks e chamadas atualizados com `familiaID` |
+| `service/dashboard_service.go` | ✅ | Interfaces e métodos públicos atualizados com `familiaID` |
+| `service/renda_historico_service.go` | ✅ | Interfaces e `BuscarHistorico` atualizados com `familiaID` |
+| 13 repositories (queries SQL) | ✅ | `familiaID` param + `AND familia_id = $N` em todas as queries |
+| 13 handlers (interfaces locais + chamadas) | ✅ | Interfaces locais e chamadas de service com `familiaID` |
+| 13 handler tests (mocks + setupRouter) | ✅ | Mocks e `setupRouter` injetam `familiaID` no contexto |
+| `repository/seed.go` | ✅ | `SeedCategorias(familiaID)` + lógica de família no `SeedUsuarios` |
+| `cmd/server/main.go` | ✅ | `familiaRepo` criado, passado para `authService` |
+| `go build ./...` limpo | ✅ | Zero erros de compilação |
+| `go test ./...` verde | ✅ | Zero falhas de teste |
+
+### Progresso TT-08 (concluído em 12/03/2026)
+
+> **Contexto:** Implementação de segurança adicional: restrição de CORS e rate limiting no login.
+> **Plano detalhado:** [docs/tecnico/05-plano-tt08-cors-rate-limiting.md](../tecnico/05-plano-tt08-cors-rate-limiting.md)
+
+| Fase | Status | Detalhe |
+|------|--------|---------|
+| **Fase 1: CORS Restrito** | ✅ | |
+| Adicionar env vars `CORS_ALLOWED_ORIGINS` | ✅ | Em `.env` e `.env.example` |
+| Atualizar `config/config.go` | ✅ | Campo `CORS.AllowedOrigins` + parsing |
+| Substituir `AllowAllOrigins` em `main.go` | ✅ | Usar whitelist de origens |
+| Testar CORS manualmente | ✅ | curl com origem permitida + bloqueada |
+| **Fase 2: Rate Limiting** | ✅ | |
+| Instalar `github.com/ulule/limiter/v3` | ✅ | `go get` |
+| Criar `middleware/rate_limit.go` | ✅ | Middleware genérico |
+| Adicionar env var `RATE_LIMIT_LOGIN` | ✅ | Default: "5-M" (5 por minuto) |
+| Aplicar middleware no `/auth/login` | ✅ | Em `main.go` |
+| Testar rate limiting manualmente | ✅ | Script bash com 6 requests |
+| Validar HTTP 429 e headers | ✅ | `X-RateLimit-*` presentes |
+| **Fase 3: Docs e Finalização** | ✅ | |
+| Atualizar `backend/README.md` | ✅ | Seção "Segurança" |
+| Verificação final | ✅ | `go build ./...` e `go test ./...` |
 
 **Pré-requisito:** Sprints 1–8 concluídas.
 
@@ -214,5 +262,5 @@
 | 6 | Dashboard completo e offline | US-17, US-18, TT-04, TT-05 |
 | 7 | Analytics e projeções | US-19, US-20, US-21 |
 | 8 | Qualidade e deploy | TT-06 + validações |
-| 9 | Segurança e isolamento de dados | TT-07, TT-08, TT-09 |
+| 9 | Segurança e isolamento | TT-07, TT-10, TT-08, TT-09 |
 | 10 | Melhorias de usabilidade | US-28, US-23, US-24, US-25, US-26, US-27 |

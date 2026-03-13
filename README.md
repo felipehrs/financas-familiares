@@ -115,7 +115,7 @@ make dev
 | **Sprint 6 — Dashboard Completo e Offline** | Dashboard com todas as seções (RN06/RN08), gráfico de categorias, PWA, IndexedDB offline-first | ✅ Concluído |
 | **Sprint 7 — Analytics e Projeções** | Gráfico de evolução mensal (12 meses), projeção 3 meses (RN07), histórico de rendas | ✅ Concluído |
 | **Sprint 8 — Qualidade e Deploy** | CI/CD GitHub Actions, cobertura validada, deploy (Vercel + Railway) | ✅ Concluído |
-| **Sprint 9 — Segurança e Isolamento de Dados** | Isolamento de dados por usuário (TT-07), CORS restrito + rate limiting (TT-08), índices de performance (TT-09) | 🔲 Futuro |
+| **Sprint 9 — Segurança e Isolamento de Dados** | Isolamento de dados por família (`familia_id` em todas as tabelas + JWT, TT-07/TT-10 ✅), CORS restrito + rate limiting (TT-08 🔲), índices de performance (TT-09 🔲) | 🔄 Em andamento |
 | **Sprint 10 — Melhorias de Usabilidade** | Contas fixas variáveis + reajustes, assinaturas em moeda estrangeira, lista centralizada de despesas, projeção com pior cenário | 🔲 Futuro |
 
 ---

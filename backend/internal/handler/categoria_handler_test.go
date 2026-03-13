@@ -16,31 +16,36 @@ import (
 
 // MockCategoriaService implementa CategoriaServiceInterface (declarada no handler) para testes.
 type MockCategoriaService struct {
-	CriarFn     func(nome string) (*domain.Categoria, error)
-	ListarFn    func() ([]*domain.Categoria, error)
-	AtualizarFn func(id, nome string) (*domain.Categoria, error)
-	ExcluirFn   func(id string) error
+	CriarFn     func(familiaID, nome string) (*domain.Categoria, error)
+	ListarFn    func(familiaID string) ([]*domain.Categoria, error)
+	AtualizarFn func(familiaID, id, nome string) (*domain.Categoria, error)
+	ExcluirFn   func(familiaID, id string) error
 }
 
-func (m *MockCategoriaService) Criar(nome string) (*domain.Categoria, error) {
-	return m.CriarFn(nome)
+func (m *MockCategoriaService) Criar(familiaID, nome string) (*domain.Categoria, error) {
+	return m.CriarFn(familiaID, nome)
 }
 
-func (m *MockCategoriaService) Listar() ([]*domain.Categoria, error) {
-	return m.ListarFn()
+func (m *MockCategoriaService) Listar(familiaID string) ([]*domain.Categoria, error) {
+	return m.ListarFn(familiaID)
 }
 
-func (m *MockCategoriaService) Atualizar(id, nome string) (*domain.Categoria, error) {
-	return m.AtualizarFn(id, nome)
+func (m *MockCategoriaService) Atualizar(familiaID, id, nome string) (*domain.Categoria, error) {
+	return m.AtualizarFn(familiaID, id, nome)
 }
 
-func (m *MockCategoriaService) Excluir(id string) error {
-	return m.ExcluirFn(id)
+func (m *MockCategoriaService) Excluir(familiaID, id string) error {
+	return m.ExcluirFn(familiaID, id)
 }
 
 func setupCategoriaRouter(svc handler.CategoriaServiceInterface) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("userID", "usuario-teste-uuid")
+		c.Set("familiaID", "familia-teste-uuid")
+		c.Next()
+	})
 	h := handler.NewCategoriaHandler(svc)
 	v1 := r.Group("/api/v1")
 	{
@@ -60,7 +65,7 @@ func TestListarCategoriasHandler_Sucesso(t *testing.T) {
 		{ID: "uuid-2", Nome: "Transporte"},
 	}
 	svc := &MockCategoriaService{
-		ListarFn: func() ([]*domain.Categoria, error) {
+		ListarFn: func(familiaID string) ([]*domain.Categoria, error) {
 			return categorias, nil
 		},
 	}
@@ -84,7 +89,7 @@ func TestListarCategoriasHandler_Sucesso(t *testing.T) {
 
 func TestCriarCategoriaHandler_Sucesso(t *testing.T) {
 	svc := &MockCategoriaService{
-		CriarFn: func(nome string) (*domain.Categoria, error) {
+		CriarFn: func(familiaID, nome string) (*domain.Categoria, error) {
 			return &domain.Categoria{
 				ID:   "uuid-novo",
 				Nome: nome,
@@ -110,7 +115,7 @@ func TestCriarCategoriaHandler_Sucesso(t *testing.T) {
 
 func TestCriarCategoriaHandler_NomeVazio(t *testing.T) {
 	svc := &MockCategoriaService{
-		CriarFn: func(nome string) (*domain.Categoria, error) {
+		CriarFn: func(familiaID, nome string) (*domain.Categoria, error) {
 			return nil, domain.ErrNomeCategoriaObrigatorio
 		},
 	}
@@ -146,7 +151,7 @@ func TestCriarCategoriaHandler_BodyInvalido(t *testing.T) {
 
 func TestAtualizarCategoriaHandler_Sucesso(t *testing.T) {
 	svc := &MockCategoriaService{
-		AtualizarFn: func(id, nome string) (*domain.Categoria, error) {
+		AtualizarFn: func(familiaID, id, nome string) (*domain.Categoria, error) {
 			return &domain.Categoria{
 				ID:   id,
 				Nome: nome,
@@ -172,7 +177,7 @@ func TestAtualizarCategoriaHandler_Sucesso(t *testing.T) {
 
 func TestAtualizarCategoriaHandler_NaoEncontrada(t *testing.T) {
 	svc := &MockCategoriaService{
-		AtualizarFn: func(id, nome string) (*domain.Categoria, error) {
+		AtualizarFn: func(familiaID, id, nome string) (*domain.Categoria, error) {
 			return nil, domain.ErrCategoriaNaoEncontrada
 		},
 	}
@@ -196,7 +201,7 @@ func TestAtualizarCategoriaHandler_NaoEncontrada(t *testing.T) {
 
 func TestExcluirCategoriaHandler_Sucesso(t *testing.T) {
 	svc := &MockCategoriaService{
-		ExcluirFn: func(id string) error {
+		ExcluirFn: func(familiaID, id string) error {
 			return nil
 		},
 	}
@@ -212,7 +217,7 @@ func TestExcluirCategoriaHandler_Sucesso(t *testing.T) {
 
 func TestExcluirCategoriaHandler_NaoEncontrada(t *testing.T) {
 	svc := &MockCategoriaService{
-		ExcluirFn: func(id string) error {
+		ExcluirFn: func(familiaID, id string) error {
 			return domain.ErrCategoriaNaoEncontrada
 		},
 	}
@@ -232,7 +237,7 @@ func TestExcluirCategoriaHandler_NaoEncontrada(t *testing.T) {
 
 func TestExcluirCategoriaHandler_ComVinculos(t *testing.T) {
 	svc := &MockCategoriaService{
-		ExcluirFn: func(id string) error {
+		ExcluirFn: func(familiaID, id string) error {
 			return domain.ErrCategoriaComVinculos
 		},
 	}

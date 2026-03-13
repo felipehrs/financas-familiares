@@ -22,7 +22,7 @@ type MockRendaVariavelRepository struct {
 	atualizarChamado bool
 }
 
-func (m *MockRendaVariavelRepository) Criar(r *domain.RendaVariavel) (*domain.RendaVariavel, error) {
+func (m *MockRendaVariavelRepository) Criar(familiaID string, r *domain.RendaVariavel) (*domain.RendaVariavel, error) {
 	m.criarChamado = true
 	if m.returnError != nil {
 		return nil, m.returnError
@@ -32,28 +32,28 @@ func (m *MockRendaVariavelRepository) Criar(r *domain.RendaVariavel) (*domain.Re
 	return &criado, nil
 }
 
-func (m *MockRendaVariavelRepository) BuscarPorID(id string) (*domain.RendaVariavel, error) {
+func (m *MockRendaVariavelRepository) BuscarPorID(familiaID, id string) (*domain.RendaVariavel, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnRenda, nil
 }
 
-func (m *MockRendaVariavelRepository) Listar() ([]*domain.RendaVariavel, error) {
+func (m *MockRendaVariavelRepository) Listar(familiaID string) ([]*domain.RendaVariavel, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnRendas, nil
 }
 
-func (m *MockRendaVariavelRepository) ListarPorMes(mes, ano int) ([]*domain.RendaVariavel, error) {
+func (m *MockRendaVariavelRepository) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaVariavel, error) {
 	if m.returnError != nil {
 		return nil, m.returnError
 	}
 	return m.returnRendas, nil
 }
 
-func (m *MockRendaVariavelRepository) Atualizar(r *domain.RendaVariavel) (*domain.RendaVariavel, error) {
+func (m *MockRendaVariavelRepository) Atualizar(familiaID string, r *domain.RendaVariavel) (*domain.RendaVariavel, error) {
 	m.atualizarChamado = true
 	if m.returnError != nil {
 		return nil, m.returnError
@@ -62,7 +62,7 @@ func (m *MockRendaVariavelRepository) Atualizar(r *domain.RendaVariavel) (*domai
 	return &atualizado, nil
 }
 
-func (m *MockRendaVariavelRepository) Excluir(id string) error {
+func (m *MockRendaVariavelRepository) Excluir(familiaID, id string) error {
 	m.excluirChamado = true
 	return m.returnError
 }
@@ -76,7 +76,7 @@ func TestCriarRendaVariavel_Sucesso(t *testing.T) {
 	mock := &MockRendaVariavelRepository{}
 	svc := service.NewRendaVariavelService(mock)
 
-	renda, err := svc.Criar("Freelance março", "membro-1", 3, 2026, 1500.00, dataRecebimentoValida)
+	renda, err := svc.Criar("familia-id", "Freelance março", "membro-1", 3, 2026, 1500.00, dataRecebimentoValida)
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-gerado-mock", renda.ID)
@@ -92,7 +92,7 @@ func TestCriarRendaVariavel_SemDescricao(t *testing.T) {
 	mock := &MockRendaVariavelRepository{}
 	svc := service.NewRendaVariavelService(mock)
 
-	_, err := svc.Criar("", "membro-1", 3, 2026, 1500.00, dataRecebimentoValida)
+	_, err := svc.Criar("familia-id", "", "membro-1", 3, 2026, 1500.00, dataRecebimentoValida)
 
 	assert.ErrorIs(t, err, domain.ErrDescricaoRendaVariavelObrigatoria)
 	assert.False(t, mock.criarChamado, "repositório não deve ser chamado com descrição vazia")
@@ -102,7 +102,7 @@ func TestCriarRendaVariavel_SemMembroID(t *testing.T) {
 	mock := &MockRendaVariavelRepository{}
 	svc := service.NewRendaVariavelService(mock)
 
-	_, err := svc.Criar("Freelance março", "", 3, 2026, 1500.00, dataRecebimentoValida)
+	_, err := svc.Criar("familia-id", "Freelance março", "", 3, 2026, 1500.00, dataRecebimentoValida)
 
 	assert.ErrorIs(t, err, domain.ErrMembroIDRendaVariavelObrigatorio)
 	assert.False(t, mock.criarChamado)
@@ -112,7 +112,7 @@ func TestCriarRendaVariavel_MesReferenciaZero(t *testing.T) {
 	mock := &MockRendaVariavelRepository{}
 	svc := service.NewRendaVariavelService(mock)
 
-	_, err := svc.Criar("Freelance março", "membro-1", 0, 2026, 1500.00, dataRecebimentoValida)
+	_, err := svc.Criar("familia-id", "Freelance março", "membro-1", 0, 2026, 1500.00, dataRecebimentoValida)
 
 	assert.ErrorIs(t, err, domain.ErrMesReferenciaRendaVariavelInvalido)
 	assert.False(t, mock.criarChamado)
@@ -122,7 +122,7 @@ func TestCriarRendaVariavel_MesReferenciaTreze(t *testing.T) {
 	mock := &MockRendaVariavelRepository{}
 	svc := service.NewRendaVariavelService(mock)
 
-	_, err := svc.Criar("Freelance março", "membro-1", 13, 2026, 1500.00, dataRecebimentoValida)
+	_, err := svc.Criar("familia-id", "Freelance março", "membro-1", 13, 2026, 1500.00, dataRecebimentoValida)
 
 	assert.ErrorIs(t, err, domain.ErrMesReferenciaRendaVariavelInvalido)
 	assert.False(t, mock.criarChamado)
@@ -132,7 +132,7 @@ func TestCriarRendaVariavel_AnoReferenciaZero(t *testing.T) {
 	mock := &MockRendaVariavelRepository{}
 	svc := service.NewRendaVariavelService(mock)
 
-	_, err := svc.Criar("Freelance março", "membro-1", 3, 0, 1500.00, dataRecebimentoValida)
+	_, err := svc.Criar("familia-id", "Freelance março", "membro-1", 3, 0, 1500.00, dataRecebimentoValida)
 
 	assert.ErrorIs(t, err, domain.ErrAnoReferenciaRendaVariavelInvalido)
 	assert.False(t, mock.criarChamado)
@@ -142,7 +142,7 @@ func TestCriarRendaVariavel_ValorZero(t *testing.T) {
 	mock := &MockRendaVariavelRepository{}
 	svc := service.NewRendaVariavelService(mock)
 
-	_, err := svc.Criar("Freelance março", "membro-1", 3, 2026, 0, dataRecebimentoValida)
+	_, err := svc.Criar("familia-id", "Freelance março", "membro-1", 3, 2026, 0, dataRecebimentoValida)
 
 	assert.ErrorIs(t, err, domain.ErrValorRendaVariavelInvalido)
 	assert.False(t, mock.criarChamado)
@@ -152,7 +152,7 @@ func TestCriarRendaVariavel_ValorNegativo(t *testing.T) {
 	mock := &MockRendaVariavelRepository{}
 	svc := service.NewRendaVariavelService(mock)
 
-	_, err := svc.Criar("Freelance março", "membro-1", 3, 2026, -100.00, dataRecebimentoValida)
+	_, err := svc.Criar("familia-id", "Freelance março", "membro-1", 3, 2026, -100.00, dataRecebimentoValida)
 
 	assert.ErrorIs(t, err, domain.ErrValorRendaVariavelInvalido)
 	assert.False(t, mock.criarChamado)
@@ -162,7 +162,7 @@ func TestCriarRendaVariavel_DataRecebimentoZero(t *testing.T) {
 	mock := &MockRendaVariavelRepository{}
 	svc := service.NewRendaVariavelService(mock)
 
-	_, err := svc.Criar("Freelance março", "membro-1", 3, 2026, 1500.00, time.Time{})
+	_, err := svc.Criar("familia-id", "Freelance março", "membro-1", 3, 2026, 1500.00, time.Time{})
 
 	assert.ErrorIs(t, err, domain.ErrDataRecebimentoRendaVariavelObrigatoria)
 	assert.False(t, mock.criarChamado)
@@ -183,7 +183,7 @@ func TestBuscarPorIDRendaVariavel_Existente(t *testing.T) {
 	mock := &MockRendaVariavelRepository{returnRenda: existente}
 	svc := service.NewRendaVariavelService(mock)
 
-	resultado, err := svc.BuscarPorID("uuid-1")
+	resultado, err := svc.BuscarPorID("familia-id", "uuid-1")
 
 	require.NoError(t, err)
 	assert.Equal(t, "uuid-1", resultado.ID)
@@ -194,7 +194,7 @@ func TestBuscarPorIDRendaVariavel_Inexistente(t *testing.T) {
 	mock := &MockRendaVariavelRepository{returnError: domain.ErrRendaVariavelNaoEncontrada}
 	svc := service.NewRendaVariavelService(mock)
 
-	_, err := svc.BuscarPorID("uuid-inexistente")
+	_, err := svc.BuscarPorID("familia-id", "uuid-inexistente")
 
 	assert.ErrorIs(t, err, domain.ErrRendaVariavelNaoEncontrada)
 }
@@ -209,7 +209,7 @@ func TestListarRendasVariaveis_RetornaLista(t *testing.T) {
 	mock := &MockRendaVariavelRepository{returnRendas: rendas}
 	svc := service.NewRendaVariavelService(mock)
 
-	resultado, err := svc.Listar()
+	resultado, err := svc.Listar("familia-id")
 
 	require.NoError(t, err)
 	assert.Len(t, resultado, 2)
@@ -227,7 +227,7 @@ func TestListarRendasVariaveisPorMes_RetornaListaFiltrada(t *testing.T) {
 	mock := &MockRendaVariavelRepository{returnRendas: rendas}
 	svc := service.NewRendaVariavelService(mock)
 
-	resultado, err := svc.ListarPorMes(3, 2026)
+	resultado, err := svc.ListarPorMes("familia-id", 3, 2026)
 
 	require.NoError(t, err)
 	assert.Len(t, resultado, 2)
@@ -240,7 +240,7 @@ func TestExcluirRendaVariavel_Existente(t *testing.T) {
 	mock := &MockRendaVariavelRepository{returnRenda: existente}
 	svc := service.NewRendaVariavelService(mock)
 
-	err := svc.Excluir("uuid-1")
+	err := svc.Excluir("familia-id", "uuid-1")
 
 	require.NoError(t, err)
 	assert.True(t, mock.excluirChamado)
@@ -250,7 +250,7 @@ func TestExcluirRendaVariavel_Inexistente(t *testing.T) {
 	mock := &MockRendaVariavelRepository{returnError: domain.ErrRendaVariavelNaoEncontrada}
 	svc := service.NewRendaVariavelService(mock)
 
-	err := svc.Excluir("uuid-inexistente")
+	err := svc.Excluir("familia-id", "uuid-inexistente")
 
 	assert.ErrorIs(t, err, domain.ErrRendaVariavelNaoEncontrada)
 	assert.False(t, mock.excluirChamado)

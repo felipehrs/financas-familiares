@@ -49,13 +49,13 @@ func (r despesaGeralRow) toDomain() *domain.DespesaGeral {
 }
 
 // Criar persiste uma nova despesa geral no banco e retorna o registro criado (com ID gerado).
-func (r *DespesaGeralRepository) Criar(d *domain.DespesaGeral) (*domain.DespesaGeral, error) {
+func (r *DespesaGeralRepository) Criar(familiaID string, d *domain.DespesaGeral) (*domain.DespesaGeral, error) {
 	var row despesaGeralRow
 	err := r.db.QueryRowx(`
-		INSERT INTO despesas_gerais (membro_id, categoria_id, descricao, data, valor, forma_pagamento, observacoes)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO despesas_gerais (familia_id, membro_id, categoria_id, descricao, data, valor, forma_pagamento, observacoes)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, membro_id, categoria_id, descricao, data, valor, forma_pagamento, observacoes, created_at, updated_at
-	`, d.MembroID, d.CategoriaID, d.Descricao, d.Data, d.Valor, d.FormaPagamento, d.Observacoes).StructScan(&row)
+	`, familiaID, d.MembroID, d.CategoriaID, d.Descricao, d.Data, d.Valor, d.FormaPagamento, d.Observacoes).StructScan(&row)
 	if err != nil {
 		return nil, err
 	}
@@ -64,13 +64,13 @@ func (r *DespesaGeralRepository) Criar(d *domain.DespesaGeral) (*domain.DespesaG
 
 // BuscarPorID busca uma despesa geral pelo seu UUID.
 // Retorna domain.ErrDespesaGeralNaoEncontrada se não existir ou estiver soft-deleted.
-func (r *DespesaGeralRepository) BuscarPorID(id string) (*domain.DespesaGeral, error) {
+func (r *DespesaGeralRepository) BuscarPorID(familiaID, id string) (*domain.DespesaGeral, error) {
 	var row despesaGeralRow
 	err := r.db.QueryRowx(`
 		SELECT id, membro_id, categoria_id, descricao, data, valor, forma_pagamento, observacoes, created_at, updated_at
 		FROM despesas_gerais
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id).StructScan(&row)
+		WHERE id = $1 AND familia_id = $2 AND deleted_at IS NULL
+	`, id, familiaID).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrDespesaGeralNaoEncontrada
@@ -81,14 +81,14 @@ func (r *DespesaGeralRepository) BuscarPorID(id string) (*domain.DespesaGeral, e
 }
 
 // Listar retorna todas as despesas gerais não excluídas, ordenadas por data decrescente.
-func (r *DespesaGeralRepository) Listar() ([]*domain.DespesaGeral, error) {
+func (r *DespesaGeralRepository) Listar(familiaID string) ([]*domain.DespesaGeral, error) {
 	var rows []despesaGeralRow
 	err := r.db.Select(&rows, `
 		SELECT id, membro_id, categoria_id, descricao, data, valor, forma_pagamento, observacoes, created_at, updated_at
 		FROM despesas_gerais
-		WHERE deleted_at IS NULL
+		WHERE familia_id = $1 AND deleted_at IS NULL
 		ORDER BY data DESC
-	`)
+	`, familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -101,16 +101,17 @@ func (r *DespesaGeralRepository) Listar() ([]*domain.DespesaGeral, error) {
 }
 
 // ListarPorMes retorna as despesas gerais do mês e ano especificados, ordenadas por data decrescente.
-func (r *DespesaGeralRepository) ListarPorMes(mes, ano int) ([]*domain.DespesaGeral, error) {
+func (r *DespesaGeralRepository) ListarPorMes(familiaID string, mes, ano int) ([]*domain.DespesaGeral, error) {
 	var rows []despesaGeralRow
 	err := r.db.Select(&rows, `
 		SELECT id, membro_id, categoria_id, descricao, data, valor, forma_pagamento, observacoes, created_at, updated_at
 		FROM despesas_gerais
-		WHERE deleted_at IS NULL
-		  AND EXTRACT(MONTH FROM data) = $1
-		  AND EXTRACT(YEAR FROM data) = $2
+		WHERE familia_id = $1
+		  AND deleted_at IS NULL
+		  AND EXTRACT(MONTH FROM data) = $2
+		  AND EXTRACT(YEAR FROM data) = $3
 		ORDER BY data DESC
-	`, mes, ano)
+	`, familiaID, mes, ano)
 	if err != nil {
 		return nil, err
 	}
@@ -124,14 +125,14 @@ func (r *DespesaGeralRepository) ListarPorMes(mes, ano int) ([]*domain.DespesaGe
 
 // Atualizar atualiza os campos de uma despesa geral existente.
 // Retorna o registro atualizado ou ErrDespesaGeralNaoEncontrada se não existir.
-func (r *DespesaGeralRepository) Atualizar(d *domain.DespesaGeral) (*domain.DespesaGeral, error) {
+func (r *DespesaGeralRepository) Atualizar(familiaID string, d *domain.DespesaGeral) (*domain.DespesaGeral, error) {
 	var row despesaGeralRow
 	err := r.db.QueryRowx(`
 		UPDATE despesas_gerais
-		SET membro_id=$2, categoria_id=$3, descricao=$4, data=$5, valor=$6, forma_pagamento=$7, observacoes=$8, updated_at=NOW()
-		WHERE id=$1 AND deleted_at IS NULL
+		SET membro_id=$3, categoria_id=$4, descricao=$5, data=$6, valor=$7, forma_pagamento=$8, observacoes=$9, updated_at=NOW()
+		WHERE id=$2 AND familia_id=$1 AND deleted_at IS NULL
 		RETURNING id, membro_id, categoria_id, descricao, data, valor, forma_pagamento, observacoes, created_at, updated_at
-	`, d.ID, d.MembroID, d.CategoriaID, d.Descricao, d.Data, d.Valor, d.FormaPagamento, d.Observacoes).StructScan(&row)
+	`, familiaID, d.ID, d.MembroID, d.CategoriaID, d.Descricao, d.Data, d.Valor, d.FormaPagamento, d.Observacoes).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrDespesaGeralNaoEncontrada
@@ -143,12 +144,12 @@ func (r *DespesaGeralRepository) Atualizar(d *domain.DespesaGeral) (*domain.Desp
 
 // Excluir realiza o soft-delete de uma despesa geral existente.
 // Retorna ErrDespesaGeralNaoEncontrada se não existir ou já estiver excluída.
-func (r *DespesaGeralRepository) Excluir(id string) error {
+func (r *DespesaGeralRepository) Excluir(familiaID, id string) error {
 	result, err := r.db.Exec(`
 		UPDATE despesas_gerais
 		SET deleted_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id)
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
+	`, familiaID, id)
 	if err != nil {
 		return err
 	}

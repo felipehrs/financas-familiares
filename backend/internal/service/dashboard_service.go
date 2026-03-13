@@ -10,43 +10,43 @@ import (
 // RendaFixaRepositoryForDashboard define os métodos de renda fixa usados pelo DashboardService.
 // Redeclarada aqui para evitar import circular e manter desacoplamento.
 type RendaFixaRepositoryForDashboard interface {
-	ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error)
+	ListarVigentesPorMes(familiaID string, mes, ano int) ([]*domain.RendaFixa, error)
 }
 
 // DespesaCartaoRepositoryForDashboard define os métodos de despesa de cartão usados pelo DashboardService.
 // Redeclarada aqui para evitar import circular e manter desacoplamento.
 type DespesaCartaoRepositoryForDashboard interface {
-	ListarPorFaturaGlobal(mes, ano int) ([]*domain.DespesaCartao, error)
+	ListarPorFaturaGlobal(familiaID string, mes, ano int) ([]*domain.DespesaCartao, error)
 }
 
 // RendaVariavelRepositoryForDashboard define os métodos de renda variável usados pelo DashboardService.
 type RendaVariavelRepositoryForDashboard interface {
-	ListarPorMes(mes, ano int) ([]*domain.RendaVariavel, error)
+	ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaVariavel, error)
 }
 
 // RendaExtraRepositoryForDashboard define os métodos de renda extra usados pelo DashboardService.
 type RendaExtraRepositoryForDashboard interface {
-	ListarPorMes(mes, ano int) ([]*domain.RendaExtra, error)
+	ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaExtra, error)
 }
 
 // RendimentoRepositoryForDashboard define os métodos de rendimento de investimento usados pelo DashboardService.
 type RendimentoRepositoryForDashboard interface {
-	ListarPorMes(mes, ano int) ([]*domain.RendimentoInvestimento, error)
+	ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendimentoInvestimento, error)
 }
 
 // AssinaturaRepositoryForDashboard define os métodos de assinatura usados pelo DashboardService.
 type AssinaturaRepositoryForDashboard interface {
-	ListarAtivas() ([]*domain.Assinatura, error)
+	ListarAtivas(familiaID string) ([]*domain.Assinatura, error)
 }
 
 // ContaFixaRepositoryForDashboard define os métodos de conta fixa usados pelo DashboardService.
 type ContaFixaRepositoryForDashboard interface {
-	ListarAtivas() ([]*domain.ContaFixa, error)
+	ListarAtivas(familiaID string) ([]*domain.ContaFixa, error)
 }
 
 // DespesaGeralRepositoryForDashboard define os métodos de despesa geral usados pelo DashboardService.
 type DespesaGeralRepositoryForDashboard interface {
-	ListarPorMes(mes, ano int) ([]*domain.DespesaGeral, error)
+	ListarPorMes(familiaID string, mes, ano int) ([]*domain.DespesaGeral, error)
 }
 
 // CategoriaDespesa representa uma categoria com seu total e percentual de despesas do mês.
@@ -66,7 +66,7 @@ type ResumoCategorias struct {
 
 // DashboardRepositoryForCategorias define a query agregada de despesas por categoria.
 type DashboardRepositoryForCategorias interface {
-	DespesasPorCategoria(mes, ano int) ([]domain.CategoriaTotalRaw, error)
+	DespesasPorCategoria(familiaID string, mes, ano int) ([]domain.CategoriaTotalRaw, error)
 }
 
 // ResumoMensal contém os totais calculados para um determinado mês/ano.
@@ -157,9 +157,9 @@ func ValorProporcionado(r *domain.RendaFixa, mes, ano int) float64 {
 // TotalRendimentoInvestimento = soma(Valor) dos rendimentos — informativo apenas (RN08).
 // TotalDespesas = FaturaCartoes + Assinaturas + ContasFixas + DespesasGerais.
 // Saldo = TotalRendasOperacionais − TotalDespesas.
-func (s *DashboardService) ResumoMensal(mes, ano int) (*ResumoMensal, error) {
+func (s *DashboardService) ResumoMensal(familiaID string, mes, ano int) (*ResumoMensal, error) {
 	// --- Renda Fixa ---
-	rendas, err := s.rendaRepo.ListarVigentesPorMes(mes, ano)
+	rendas, err := s.rendaRepo.ListarVigentesPorMes(familiaID, mes, ano)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +169,7 @@ func (s *DashboardService) ResumoMensal(mes, ano int) (*ResumoMensal, error) {
 	}
 
 	// --- Despesas de Cartão ---
-	despesasCartao, err := s.despesaRepo.ListarPorFaturaGlobal(mes, ano)
+	despesasCartao, err := s.despesaRepo.ListarPorFaturaGlobal(familiaID, mes, ano)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func (s *DashboardService) ResumoMensal(mes, ano int) (*ResumoMensal, error) {
 	}
 
 	// --- Renda Variável ---
-	rendasVariaveis, err := s.rendaVariavelRepo.ListarPorMes(mes, ano)
+	rendasVariaveis, err := s.rendaVariavelRepo.ListarPorMes(familiaID, mes, ano)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func (s *DashboardService) ResumoMensal(mes, ano int) (*ResumoMensal, error) {
 	}
 
 	// --- Renda Extra ---
-	rendasExtras, err := s.rendaExtraRepo.ListarPorMes(mes, ano)
+	rendasExtras, err := s.rendaExtraRepo.ListarPorMes(familiaID, mes, ano)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +199,7 @@ func (s *DashboardService) ResumoMensal(mes, ano int) (*ResumoMensal, error) {
 	}
 
 	// --- Rendimentos de Investimento ---
-	rendimentos, err := s.rendimentoRepo.ListarPorMes(mes, ano)
+	rendimentos, err := s.rendimentoRepo.ListarPorMes(familiaID, mes, ano)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +211,7 @@ func (s *DashboardService) ResumoMensal(mes, ano int) (*ResumoMensal, error) {
 	}
 
 	// --- Assinaturas Ativas ---
-	assinaturas, err := s.assinaturaRepo.ListarAtivas()
+	assinaturas, err := s.assinaturaRepo.ListarAtivas(familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +221,7 @@ func (s *DashboardService) ResumoMensal(mes, ano int) (*ResumoMensal, error) {
 	}
 
 	// --- Contas Fixas Ativas ---
-	contasFixas, err := s.contaFixaRepo.ListarAtivas()
+	contasFixas, err := s.contaFixaRepo.ListarAtivas(familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +231,7 @@ func (s *DashboardService) ResumoMensal(mes, ano int) (*ResumoMensal, error) {
 	}
 
 	// --- Despesas Gerais ---
-	despesasGerais, err := s.despesaGeralRepo.ListarPorMes(mes, ano)
+	despesasGerais, err := s.despesaGeralRepo.ListarPorMes(familiaID, mes, ano)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +273,7 @@ type PontoEvolucao struct {
 }
 
 // EvolucaoMensal retorna os totais dos últimos qtdMeses meses em ordem cronológica crescente.
-func (s *DashboardService) EvolucaoMensal(qtdMeses int) ([]PontoEvolucao, error) {
+func (s *DashboardService) EvolucaoMensal(familiaID string, qtdMeses int) ([]PontoEvolucao, error) {
 	agora := time.Now()
 	inicio := agora.AddDate(0, -(qtdMeses - 1), 0)
 	inicio = time.Date(inicio.Year(), inicio.Month(), 1, 0, 0, 0, 0, time.UTC)
@@ -281,7 +281,7 @@ func (s *DashboardService) EvolucaoMensal(qtdMeses int) ([]PontoEvolucao, error)
 	pontos := make([]PontoEvolucao, 0, qtdMeses)
 	for i := 0; i < qtdMeses; i++ {
 		mesAtual := inicio.AddDate(0, i, 0)
-		resumo, err := s.ResumoMensal(int(mesAtual.Month()), mesAtual.Year())
+		resumo, err := s.ResumoMensal(familiaID, int(mesAtual.Month()), mesAtual.Year())
 		if err != nil {
 			return nil, err
 		}
@@ -312,9 +312,9 @@ type MesProjecao struct {
 // para os próximos qtdMeses meses a partir do mês atual.
 // Entram: RendaFixa (com RN10), parcelas de cartão futuras, assinaturas ativas, contas fixas ativas.
 // Não entram: RendaVariavel, RendaExtra, RendimentoInvestimento, DespesaGeral.
-func (s *DashboardService) ProjecaoProximosMeses(qtdMeses int) ([]MesProjecao, error) {
+func (s *DashboardService) ProjecaoProximosMeses(familiaID string, qtdMeses int) ([]MesProjecao, error) {
 	// ListarAtivas é independente do mês — buscar uma vez e reusar
-	assinaturas, err := s.assinaturaRepo.ListarAtivas()
+	assinaturas, err := s.assinaturaRepo.ListarAtivas(familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +323,7 @@ func (s *DashboardService) ProjecaoProximosMeses(qtdMeses int) ([]MesProjecao, e
 		totalAssinaturasFixo += a.Valor
 	}
 
-	contasFixas, err := s.contaFixaRepo.ListarAtivas()
+	contasFixas, err := s.contaFixaRepo.ListarAtivas(familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +340,7 @@ func (s *DashboardService) ProjecaoProximosMeses(qtdMeses int) ([]MesProjecao, e
 		mes := int(mesAlvo.Month())
 		ano := mesAlvo.Year()
 
-		rendas, err := s.rendaRepo.ListarVigentesPorMes(mes, ano)
+		rendas, err := s.rendaRepo.ListarVigentesPorMes(familiaID, mes, ano)
 		if err != nil {
 			return nil, err
 		}
@@ -349,7 +349,7 @@ func (s *DashboardService) ProjecaoProximosMeses(qtdMeses int) ([]MesProjecao, e
 			totalRendas += ValorProporcionado(r, mes, ano)
 		}
 
-		despesas, err := s.despesaRepo.ListarPorFaturaGlobal(mes, ano)
+		despesas, err := s.despesaRepo.ListarPorFaturaGlobal(familiaID, mes, ano)
 		if err != nil {
 			return nil, err
 		}
@@ -376,8 +376,8 @@ func (s *DashboardService) ProjecaoProximosMeses(qtdMeses int) ([]MesProjecao, e
 }
 
 // DespesasPorCategoria retorna o resumo de despesas agrupadas por categoria para um mês/ano.
-func (s *DashboardService) DespesasPorCategoria(mes, ano int) (*ResumoCategorias, error) {
-	rows, err := s.categoriasRepo.DespesasPorCategoria(mes, ano)
+func (s *DashboardService) DespesasPorCategoria(familiaID string, mes, ano int) (*ResumoCategorias, error) {
+	rows, err := s.categoriasRepo.DespesasPorCategoria(familiaID, mes, ano)
 	if err != nil {
 		return nil, err
 	}

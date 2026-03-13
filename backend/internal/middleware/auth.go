@@ -12,7 +12,7 @@ import (
 
 // AuthMiddleware extrai e valida o Bearer token do header Authorization.
 // Se inválido ou ausente: retorna 401 e aborta a requisição.
-// Se válido: adiciona o userID ao contexto Gin como "userID".
+// Se válido: adiciona o userID e familiaID ao contexto Gin.
 func AuthMiddleware(authService service.AuthServiceInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -28,7 +28,7 @@ func AuthMiddleware(authService service.AuthServiceInterface) gin.HandlerFunc {
 		}
 
 		token := parts[1]
-		usuarioID, err := authService.ValidateAccessToken(token)
+		usuarioID, familiaID, err := authService.ValidateAccessToken(token)
 		if err != nil {
 			if errors.Is(err, domain.ErrTokenExpirado) {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token expirado"})
@@ -39,6 +39,7 @@ func AuthMiddleware(authService service.AuthServiceInterface) gin.HandlerFunc {
 		}
 
 		c.Set("userID", usuarioID)
+		c.Set("familiaID", familiaID)
 		c.Next()
 	}
 }

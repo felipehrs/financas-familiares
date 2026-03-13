@@ -32,13 +32,13 @@ func (r categoriaRow) toDomain() *domain.Categoria {
 }
 
 // Criar persiste uma nova categoria no banco e retorna o registro criado (com ID gerado).
-func (r *CategoriaRepository) Criar(categoria *domain.Categoria) (*domain.Categoria, error) {
+func (r *CategoriaRepository) Criar(familiaID string, categoria *domain.Categoria) (*domain.Categoria, error) {
 	var row categoriaRow
 	err := r.db.QueryRowx(`
-		INSERT INTO categorias (nome)
-		VALUES ($1)
+		INSERT INTO categorias (familia_id, nome)
+		VALUES ($1, $2)
 		RETURNING id, nome
-	`, categoria.Nome).StructScan(&row)
+	`, familiaID, categoria.Nome).StructScan(&row)
 	if err != nil {
 		return nil, err
 	}
@@ -46,14 +46,14 @@ func (r *CategoriaRepository) Criar(categoria *domain.Categoria) (*domain.Catego
 }
 
 // Listar retorna todas as categorias não excluídas, ordenadas por nome.
-func (r *CategoriaRepository) Listar() ([]*domain.Categoria, error) {
+func (r *CategoriaRepository) Listar(familiaID string) ([]*domain.Categoria, error) {
 	var rows []categoriaRow
 	err := r.db.Select(&rows, `
 		SELECT id, nome
 		FROM categorias
-		WHERE deleted_at IS NULL
+		WHERE familia_id = $1 AND deleted_at IS NULL
 		ORDER BY nome ASC
-	`)
+	`, familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -67,13 +67,13 @@ func (r *CategoriaRepository) Listar() ([]*domain.Categoria, error) {
 
 // BuscarPorID busca uma categoria pelo seu UUID.
 // Retorna domain.ErrCategoriaNaoEncontrada se não existir ou estiver soft-deleted.
-func (r *CategoriaRepository) BuscarPorID(id string) (*domain.Categoria, error) {
+func (r *CategoriaRepository) BuscarPorID(familiaID, id string) (*domain.Categoria, error) {
 	var row categoriaRow
 	err := r.db.QueryRowx(`
 		SELECT id, nome
 		FROM categorias
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id).StructScan(&row)
+		WHERE id = $1 AND familia_id = $2 AND deleted_at IS NULL
+	`, id, familiaID).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrCategoriaNaoEncontrada
@@ -84,14 +84,14 @@ func (r *CategoriaRepository) BuscarPorID(id string) (*domain.Categoria, error) 
 }
 
 // Atualizar atualiza o nome de uma categoria existente e retorna o registro atualizado.
-func (r *CategoriaRepository) Atualizar(categoria *domain.Categoria) (*domain.Categoria, error) {
+func (r *CategoriaRepository) Atualizar(familiaID string, categoria *domain.Categoria) (*domain.Categoria, error) {
 	var row categoriaRow
 	err := r.db.QueryRowx(`
 		UPDATE categorias
-		SET nome = $2, updated_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
+		SET nome = $3, updated_at = NOW()
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
 		RETURNING id, nome
-	`, categoria.ID, categoria.Nome).StructScan(&row)
+	`, familiaID, categoria.ID, categoria.Nome).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrCategoriaNaoEncontrada
@@ -104,19 +104,19 @@ func (r *CategoriaRepository) Atualizar(categoria *domain.Categoria) (*domain.Ca
 // Excluir realiza o soft delete de uma categoria.
 // Antes verifica se há registros vinculados em despesas_cartao, assinaturas,
 // contas_fixas e despesas_gerais. Se houver, retorna ErrCategoriaComVinculos.
-func (r *CategoriaRepository) Excluir(id string) error {
+func (r *CategoriaRepository) Excluir(familiaID, id string) error {
 	var count int
 	err := r.db.QueryRowx(`
 		SELECT COUNT(*) FROM (
-			SELECT id FROM despesas_cartao WHERE categoria_id = $1 AND deleted_at IS NULL
+			SELECT id FROM despesas_cartao WHERE categoria_id = $1 AND familia_id = $2 AND deleted_at IS NULL
 			UNION ALL
-			SELECT id FROM assinaturas WHERE categoria_id = $1 AND deleted_at IS NULL
+			SELECT id FROM assinaturas WHERE categoria_id = $1 AND familia_id = $2 AND deleted_at IS NULL
 			UNION ALL
-			SELECT id FROM contas_fixas WHERE categoria_id = $1 AND deleted_at IS NULL
+			SELECT id FROM contas_fixas WHERE categoria_id = $1 AND familia_id = $2 AND deleted_at IS NULL
 			UNION ALL
-			SELECT id FROM despesas_gerais WHERE categoria_id = $1 AND deleted_at IS NULL
+			SELECT id FROM despesas_gerais WHERE categoria_id = $1 AND familia_id = $2 AND deleted_at IS NULL
 		) AS vinculos
-	`, id).Scan(&count)
+	`, id, familiaID).Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -128,8 +128,8 @@ func (r *CategoriaRepository) Excluir(id string) error {
 	result, err := r.db.Exec(`
 		UPDATE categorias
 		SET deleted_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id)
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
+	`, familiaID, id)
 	if err != nil {
 		return err
 	}

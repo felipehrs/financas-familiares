@@ -135,7 +135,7 @@ Em `frontend/src/lib/syncQueue.ts`, a fila armazena `endpoint`, `method` e `body
 
 Para suportar múltiplas famílias/tenants isolados, estas são as mudanças necessárias:
 
-### 1. Modelo de Dados
+### 1. Modelo de Dados (TT-07)
 
 Criar tabela `familias`:
 
@@ -164,7 +164,7 @@ Adicionar `familia_id UUID NOT NULL REFERENCES familias(id)` a todas as tabelas:
 
 ---
 
-### 2. Autenticação e JWT
+### 2. Autenticação e JWT (TT-07)
 
 **Atual**: JWT contém apenas `sub` (usuarioID).
 
@@ -193,7 +193,7 @@ O `AuthMiddleware` deve validar o `familia_id` do JWT e disponibilizá-lo no con
 
 ---
 
-### 3. Isolamento de Queries
+### 3. Isolamento de Queries (TT-10)
 
 Todos os repositórios precisam receber `familiaID` como parâmetro:
 
@@ -215,7 +215,7 @@ Impacto: **ALTO** — risco de vazamento se algum repositório for esquecido
 
 ---
 
-### 4. Dashboard e Projeção
+### 4. Dashboard e Projeção (TT-10)
 
 `dashboard_service.go` deve receber `familiaID` e passá-lo a todas as chamadas de repositório:
 
@@ -231,7 +231,7 @@ Impacto: **MÉDIO** — 1 dia de trabalho
 
 ---
 
-### 5. Seed de Dados
+### 5. Seed de Dados (TT-10)
 
 Modificar o seed de categorias para criar categorias por família:
 
@@ -326,15 +326,15 @@ Impacto: **BAIXO** (defesa extra) — 1-2 dias de implementação
 
 | Componente | Estimativa | Impacto |
 |------------|-----------|---------|
-| Modelo de dados (migrations + familia_id) | 2-3 dias | **ALTO** |
-| Autenticação + JWT com familia_id | 3-4 dias | **ALTO** |
-| Isolamento de queries (15+ repos) | 4-5 dias | **ALTO** |
-| Dashboard e projeção | 1 dia | **MÉDIO** |
-| Seed por família | 1 dia | **BAIXO** |
+| Modelo de dados (migrations + familia_id) | 2-3 dias | **ALTO** (TT-07) |
+| Autenticação + JWT com familia_id | 3-4 dias | **ALTO** (TT-07) |
+| Isolamento de queries (15+ repos) | 4-5 dias | **ALTO** (TT-10) |
+| Dashboard e projeção | 1 dia | **MÉDIO** (TT-10) |
+| Seed por família | 1 dia | **BAIXO** (TT-10) |
 | Frontend (estado + UI de troca de família) | 2 dias | **MÉDIO** |
 | Offline sync com familia_id | 1 dia | **BAIXO** |
 | PostgreSQL RLS | 1-2 dias | **BAIXO** |
-| Testes de regressão e isolamento | 2-3 dias | **ALTO** |
+| Testes de regressão e isolamento | 2-3 dias | **ALTO** (TT-10) |
 | **TOTAL** | **17-25 dias** | |
 
 ---

@@ -6,26 +6,26 @@ import (
 
 // RendaFixaRepositoryForHistorico define os métodos de renda fixa usados pelo RendaHistoricoService.
 type RendaFixaRepositoryForHistorico interface {
-	Listar() ([]*domain.RendaFixa, error)
-	ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error)
+	Listar(familiaID string) ([]*domain.RendaFixa, error)
+	ListarVigentesPorMes(familiaID string, mes, ano int) ([]*domain.RendaFixa, error)
 }
 
 // RendaVariavelRepositoryForHistorico define os métodos de renda variável usados pelo RendaHistoricoService.
 type RendaVariavelRepositoryForHistorico interface {
-	Listar() ([]*domain.RendaVariavel, error)
-	ListarPorMes(mes, ano int) ([]*domain.RendaVariavel, error)
+	Listar(familiaID string) ([]*domain.RendaVariavel, error)
+	ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaVariavel, error)
 }
 
 // RendaExtraRepositoryForHistorico define os métodos de renda extra usados pelo RendaHistoricoService.
 type RendaExtraRepositoryForHistorico interface {
-	Listar() ([]*domain.RendaExtra, error)
-	ListarPorMes(mes, ano int) ([]*domain.RendaExtra, error)
+	Listar(familiaID string) ([]*domain.RendaExtra, error)
+	ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaExtra, error)
 }
 
 // RendimentoRepositoryForHistorico define os métodos de rendimento de investimento usados pelo RendaHistoricoService.
 type RendimentoRepositoryForHistorico interface {
-	Listar() ([]*domain.RendimentoInvestimento, error)
-	ListarPorMes(mes, ano int) ([]*domain.RendimentoInvestimento, error)
+	Listar(familiaID string) ([]*domain.RendimentoInvestimento, error)
+	ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendimentoInvestimento, error)
 }
 
 // RendaHistoricoService implementa a lógica de busca e filtro do histórico de rendas.
@@ -58,7 +58,7 @@ func NewRendaHistoricoService(
 //   - sem filtro de data: usa Listar()
 //
 // O filtro membro_id e tipo são sempre aplicados em memória após a busca.
-func (s *RendaHistoricoService) BuscarHistorico(filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error) {
+func (s *RendaHistoricoService) BuscarHistorico(familiaID string, filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error) {
 	itens := make([]domain.ItemRendaHistorico, 0)
 
 	comMesEAno := filtro.Mes != 0 && filtro.Ano != 0
@@ -74,9 +74,9 @@ func (s *RendaHistoricoService) BuscarHistorico(filtro domain.FiltroHistoricoRen
 		var rendas []*domain.RendaFixa
 		var err error
 		if comMesEAno {
-			rendas, err = s.rendaFixaRepo.ListarVigentesPorMes(filtro.Mes, filtro.Ano)
+			rendas, err = s.rendaFixaRepo.ListarVigentesPorMes(familiaID, filtro.Mes, filtro.Ano)
 		} else {
-			rendas, err = s.rendaFixaRepo.Listar()
+			rendas, err = s.rendaFixaRepo.Listar(familiaID)
 		}
 		if err != nil {
 			return nil, err
@@ -127,9 +127,9 @@ func (s *RendaHistoricoService) BuscarHistorico(filtro domain.FiltroHistoricoRen
 		var rendas []*domain.RendaVariavel
 		var err error
 		if comMesEAno {
-			rendas, err = s.rendaVariavelRepo.ListarPorMes(filtro.Mes, filtro.Ano)
+			rendas, err = s.rendaVariavelRepo.ListarPorMes(familiaID, filtro.Mes, filtro.Ano)
 		} else {
-			rendas, err = s.rendaVariavelRepo.Listar()
+			rendas, err = s.rendaVariavelRepo.Listar(familiaID)
 		}
 		if err != nil {
 			return nil, err
@@ -162,9 +162,9 @@ func (s *RendaHistoricoService) BuscarHistorico(filtro domain.FiltroHistoricoRen
 		var rendas []*domain.RendaExtra
 		var err error
 		if comMesEAno {
-			rendas, err = s.rendaExtraRepo.ListarPorMes(filtro.Mes, filtro.Ano)
+			rendas, err = s.rendaExtraRepo.ListarPorMes(familiaID, filtro.Mes, filtro.Ano)
 		} else {
-			rendas, err = s.rendaExtraRepo.Listar()
+			rendas, err = s.rendaExtraRepo.Listar(familiaID)
 		}
 		if err != nil {
 			return nil, err
@@ -195,9 +195,9 @@ func (s *RendaHistoricoService) BuscarHistorico(filtro domain.FiltroHistoricoRen
 		var rendimentos []*domain.RendimentoInvestimento
 		var err error
 		if comMesEAno {
-			rendimentos, err = s.rendimentoRepo.ListarPorMes(filtro.Mes, filtro.Ano)
+			rendimentos, err = s.rendimentoRepo.ListarPorMes(familiaID, filtro.Mes, filtro.Ano)
 		} else {
-			rendimentos, err = s.rendimentoRepo.Listar()
+			rendimentos, err = s.rendimentoRepo.Listar(familiaID)
 		}
 		if err != nil {
 			return nil, err

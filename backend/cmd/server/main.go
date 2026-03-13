@@ -44,16 +44,14 @@ func main() {
 		log.Fatalf("erro ao rodar migrations: %v", err)
 	}
 
-	// Rodar seeds
+	// Rodar seeds (SeedUsuarios já chama SeedCategorias internamente)
 	if err := repository.SeedUsuarios(db, &cfg.Seed); err != nil {
 		log.Printf("aviso: erro no seed de usuários: %v", err)
-	}
-	if err := repository.SeedCategorias(db); err != nil {
-		log.Printf("aviso: erro no seed de categorias: %v", err)
 	}
 
 	// Inicializar repositórios
 	authRepo := repository.NewAuthRepository(db)
+	familiaRepo := repository.NewFamiliaRepository(db)
 	membroRepo := repository.NewMembroRepository(db)
 	categoriaRepo := repository.NewCategoriaRepository(db)
 	cartaoRepo := repository.NewCartaoCreditoRepository(db)
@@ -68,7 +66,7 @@ func main() {
 	dashboardRepo := repository.NewDashboardRepository(db)
 
 	// Inicializar serviços
-	authService := service.NewAuthService(authRepo, cfg.JWT.Secret)
+	authService := service.NewAuthService(authRepo, familiaRepo, cfg.JWT.Secret)
 	membroSvc := service.NewMembroService(membroRepo)
 	categoriaSvc := service.NewCategoriaService(categoriaRepo)
 	cartaoSvc := service.NewCartaoCreditoService(cartaoRepo)
@@ -113,7 +111,7 @@ func main() {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowAllOrigins:  true,
+		AllowOrigins:     cfg.CORS.AllowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -133,7 +131,12 @@ func main() {
 		// Rotas públicas de autenticação
 		authGroup := v1.Group("/auth")
 		{
-			authGroup.POST("/login", authHandler.Login)
+			// Rate limit no login: proteger contra força bruta
+			authGroup.POST("/login",
+				middleware.RateLimitMiddleware(cfg.RateLimit.LoginRate),
+				authHandler.Login)
+
+			// Refresh token sem rate limit (já é protegido pelo token válido)
 			authGroup.POST("/refresh", authHandler.Refresh)
 		}
 

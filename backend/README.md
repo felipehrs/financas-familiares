@@ -77,6 +77,59 @@ cp .env.example .env
 | `SEED_USER2_EMAIL` | E-mail do usuário 2 | `usuario2@email.com` |
 | `SEED_USER2_NOME` | Nome do usuário 2 | `Ana` |
 | `SEED_USER2_SENHA` | Senha do usuário 2 (plaintext) | `senha-segura` |
+| `ALLOWED_ORIGINS` | Origens permitidas no CORS (separadas por vírgula) | `http://localhost:5173` |
+
+---
+
+## Segurança
+
+### CORS (Cross-Origin Resource Sharing)
+
+O backend restringe requisições apenas a origens autorizadas para prevenir ataques CSRF.
+
+**Configuração:**
+
+```env
+# Lista de origens permitidas (separadas por vírgula)
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+```
+
+**Produção (Railway):**
+
+```env
+CORS_ALLOWED_ORIGINS=https://financas-familiares.vercel.app
+```
+
+Para múltiplos domínios (ex: preview branches do Vercel):
+
+```env
+CORS_ALLOWED_ORIGINS=https://financas-familiares.vercel.app,https://preview-branch.vercel.app
+```
+
+---
+
+### Rate Limiting
+
+Proteção contra força bruta no endpoint de login (`POST /api/v1/auth/login`).
+
+**Configuração:**
+
+```env
+# Formato: "X-Y" onde X = número de requests, Y = período (S, M, H, D)
+RATE_LIMIT_LOGIN=5-M  # 5 tentativas por minuto
+```
+
+**Comportamento:**
+- Após 5 tentativas de login do mesmo IP em 1 minuto, o servidor retorna HTTP 429 (Too Many Requests)
+- O limite reseta automaticamente após 60 segundos
+- Headers de resposta incluem informações do rate limit:
+  - `X-RateLimit-Limit`: Limite total
+  - `X-RateLimit-Remaining`: Tentativas restantes
+  - `X-RateLimit-Reset`: Timestamp Unix quando o limite reseta
+
+**Nota de produção:**
+
+O rate limiting atual usa um store em memória, adequado para deploy single-instance (Railway). Para escalar horizontalmente (múltiplas instâncias), considere migrar para Redis.
 
 ---
 
@@ -190,3 +243,140 @@ Todos os endpoints (exceto `/health` e `/api/v1/auth/*`) requerem `Authorization
 | 014 | unique constraint em `categorias.nome` |
 | 015 | campo `num_parcelas` em `despesas_cartao` |
 | 016 | campos `data_inicio` / `data_fim` em `rendas_fixas` |
+| 017 | tabelas `familias` + `familia_usuarios`; coluna `familia_id` em todas as tabelas de dados |
+| 018 | índices de performance: `familia_id` + `deleted_at` parciais; índice composto para fatura; índices em datas |
+
+---
+
+## Índices de Performance
+
+**Criados em:** Sprint 9 (TT-09) — 12/03/2026
+**Migration:** `000018_add_performance_indexes.up.sql`
+
+### Objetivo
+
+Otimizar queries de listagem, cálculo de faturas, e dashboard. Todos os índices são **parciais** (`WHERE deleted_at IS NULL`) para reduzir tamanho e melhorar performance.
+
+### Índices Criados
+
+#### 1. Índices em `familia_id` (Isolamento Multi-Tenant)
+
+Todas as queries de domínio filtram por `familia_id` após TT-07.
+
+| Tabela | Índice | Tipo |
+|--------|--------|------|
+| `membros` | `idx_membros_familia_id_active` | Parcial |
+| `categorias` | `idx_categorias_familia_id_active` | Parcial |
+| `cartoes_credito` | `idx_cartoes_credito_familia_id_active` | Parcial |
+| `despesas_cartao` | `idx_despesas_cartao_familia_id_active` | Parcial |
+| `assinaturas` | `idx_assinaturas_familia_id_active` | Parcial |
+| `contas_fixas` | `idx_contas_fixas_familia_id_active` | Parcial |
+| `despesas_gerais` | `idx_despesas_gerais_familia_id_active` | Parcial |
+| `rendas_fixas` | `idx_rendas_fixas_familia_id_active` | Parcial |
+| `rendas_variaveis` | `idx_rendas_variaveis_familia_id_active` | Parcial |
+| `rendas_extras` | `idx_rendas_extras_familia_id_active` | Parcial |
+| `rendimentos_investimento` | `idx_rendimentos_investimento_familia_id_active` | Parcial |
+
+#### 2. Índice Composto para Cálculo de Fatura
+
+**Query otimizada:** `SELECT SUM(valor_parcela) WHERE familia_id = X AND cartao_id = Y AND fatura_ano = Z AND fatura_mes = W`
+
+| Índice | Colunas |
+|--------|---------|
+| `idx_despesas_cartao_fatura` | `(familia_id, cartao_id, fatura_ano, fatura_mes)` |
+
+**Ganho de performance:** 50-100x mais rápido em tabelas com 1000+ despesas.
+
+#### 3. Índices em Campos de Data
+
+Otimizam queries de dashboard, relatórios e projeções.
+
+| Tabela | Índice | Colunas |
+|--------|--------|---------|
+| `despesas_cartao` | `idx_despesas_cartao_data_compra` | `(familia_id, data_compra)` |
+| `despesas_gerais` | `idx_despesas_gerais_data` | `(familia_id, data)` |
+| `rendas_variaveis` | `idx_rendas_variaveis_mes_ano` | `(familia_id, ano DESC, mes DESC)` |
+| `rendas_extras` | `idx_rendas_extras_mes_ano` | `(familia_id, ano DESC, mes DESC)` |
+| `rendimentos_investimento` | `idx_rendimentos_investimento_mes_ano` | `(familia_id, ano DESC, mes DESC)` |
+| `rendas_fixas` | `idx_rendas_fixas_vigencia` | `(familia_id, data_inicio, data_fim)` |
+
+#### 4. Índices de Ordenação
+
+Otimizam listagens ordenadas por `created_at DESC`.
+
+| Tabela | Índice | Colunas |
+|--------|--------|---------|
+| `membros` | `idx_membros_created_at` | `(familia_id, created_at DESC)` |
+| `categorias` | `idx_categorias_created_at` | `(familia_id, created_at DESC)` |
+| `cartoes_credito` | `idx_cartoes_credito_created_at` | `(familia_id, created_at DESC)` |
+
+### Como Verificar se Índices Estão Sendo Usados
+
+#### Listar todos os índices criados:
+
+```bash
+psql $DATABASE_URL -c "
+SELECT tablename, indexname
+FROM pg_indexes
+WHERE schemaname = 'public' AND indexname LIKE 'idx_%'
+ORDER BY tablename, indexname;
+"
+```
+
+#### Verificar uso dos índices (estatísticas):
+
+```bash
+psql $DATABASE_URL -c "
+SELECT tablename, indexrelname AS index_name, idx_scan AS index_scans
+FROM pg_stat_user_indexes
+WHERE schemaname = 'public' AND indexrelname LIKE 'idx_%'
+ORDER BY idx_scan DESC;
+"
+```
+
+**Índices com `idx_scan > 0`** → Estão sendo usados.
+**Índices com `idx_scan = 0`** → Nunca foram usados (reavaliar necessidade).
+
+#### Validar com EXPLAIN ANALYZE:
+
+```bash
+psql $DATABASE_URL <<EOF
+EXPLAIN ANALYZE
+SELECT SUM(valor_parcela)
+FROM despesas_cartao
+WHERE familia_id = (SELECT id FROM familias LIMIT 1)
+  AND cartao_id = (SELECT id FROM cartoes_credito LIMIT 1)
+  AND fatura_ano = 2026
+  AND fatura_mes = 3
+  AND deleted_at IS NULL;
+EOF
+```
+
+**Resultado esperado:** `Index Scan using idx_despesas_cartao_fatura`
+
+### Manutenção de Índices
+
+#### Atualizar estatísticas (após inserções/atualizações em massa):
+
+```bash
+psql $DATABASE_URL -c "ANALYZE despesas_cartao;"
+```
+
+#### Verificar índices inválidos:
+
+```bash
+psql $DATABASE_URL -c "SELECT indexrelid::regclass AS index_name FROM pg_index WHERE NOT indisvalid;"
+```
+
+Se houver índices inválidos, recriá-los:
+
+```bash
+psql $DATABASE_URL -c "DROP INDEX CONCURRENTLY nome_do_indice_invalido;"
+psql $DATABASE_URL -c "CREATE INDEX CONCURRENTLY nome_do_indice ..."
+```
+
+### Referências
+
+- [Plano técnico TT-09](../docs/tecnico/06-plano-tt09-indices-performance.md)
+- [PostgreSQL: Indexes](https://www.postgresql.org/docs/current/indexes.html)
+- [Use The Index, Luke!](https://use-the-index-luke.com/)

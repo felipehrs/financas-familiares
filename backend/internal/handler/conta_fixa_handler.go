@@ -11,11 +11,11 @@ import (
 // ContaFixaServiceInterface define os métodos do service usados pelo handler.
 // Redeclarada aqui para desacoplar o pacote handler do service sem importação circular.
 type ContaFixaServiceInterface interface {
-	Criar(descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error)
-	BuscarPorID(id string) (*domain.ContaFixa, error)
-	Listar() ([]*domain.ContaFixa, error)
-	Atualizar(id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error)
-	AlterarAtivo(id string, ativa bool) (*domain.ContaFixa, error)
+	Criar(familiaID, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string) (*domain.ContaFixa, error)
+	BuscarPorID(familiaID, id string) (*domain.ContaFixa, error)
+	Listar(familiaID string) ([]*domain.ContaFixa, error)
+	Atualizar(familiaID, id, descricao, membroID string, categoriaID *string, valor float64, diaVencimento int, formaPagamento string, ativa bool) (*domain.ContaFixa, error)
+	AlterarAtivo(familiaID, id string, ativa bool) (*domain.ContaFixa, error)
 }
 
 // ContaFixaHandler contém os handlers HTTP para contas fixas mensais.
@@ -94,7 +94,12 @@ func contaFixaErroParaHTTP(c *gin.Context, err error) {
 // Listar retorna todas as contas fixas mensais.
 // GET /api/v1/contas-fixas
 func (h *ContaFixaHandler) Listar(c *gin.Context) {
-	contas, err := h.svc.Listar()
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
+	contas, err := h.svc.Listar(familiaID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
@@ -111,13 +116,18 @@ func (h *ContaFixaHandler) Listar(c *gin.Context) {
 // Criar cria uma nova conta fixa mensal.
 // POST /api/v1/contas-fixas
 func (h *ContaFixaHandler) Criar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	var req criarContaFixaRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
 		return
 	}
 
-	conta, err := h.svc.Criar(req.Descricao, req.MembroID, req.CategoriaID, req.Valor, req.DiaVencimento, req.FormaPagamento)
+	conta, err := h.svc.Criar(familiaID, req.Descricao, req.MembroID, req.CategoriaID, req.Valor, req.DiaVencimento, req.FormaPagamento)
 	if err != nil {
 		contaFixaErroParaHTTP(c, err)
 		return
@@ -129,9 +139,14 @@ func (h *ContaFixaHandler) Criar(c *gin.Context) {
 // BuscarPorID retorna uma conta fixa pelo seu ID.
 // GET /api/v1/contas-fixas/:id
 func (h *ContaFixaHandler) BuscarPorID(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	conta, err := h.svc.BuscarPorID(id)
+	conta, err := h.svc.BuscarPorID(familiaID, id)
 	if err != nil {
 		contaFixaErroParaHTTP(c, err)
 		return
@@ -143,6 +158,11 @@ func (h *ContaFixaHandler) BuscarPorID(c *gin.Context) {
 // Atualizar atualiza os dados de uma conta fixa existente.
 // PUT /api/v1/contas-fixas/:id
 func (h *ContaFixaHandler) Atualizar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
 	var req atualizarContaFixaRequest
@@ -151,7 +171,7 @@ func (h *ContaFixaHandler) Atualizar(c *gin.Context) {
 		return
 	}
 
-	conta, err := h.svc.Atualizar(id, req.Descricao, req.MembroID, req.CategoriaID, req.Valor, req.DiaVencimento, req.FormaPagamento, req.Ativa)
+	conta, err := h.svc.Atualizar(familiaID, id, req.Descricao, req.MembroID, req.CategoriaID, req.Valor, req.DiaVencimento, req.FormaPagamento, req.Ativa)
 	if err != nil {
 		contaFixaErroParaHTTP(c, err)
 		return
@@ -163,6 +183,11 @@ func (h *ContaFixaHandler) Atualizar(c *gin.Context) {
 // AlterarAtivo altera o estado ativo/inativo de uma conta fixa existente.
 // PATCH /api/v1/contas-fixas/:id/ativo
 func (h *ContaFixaHandler) AlterarAtivo(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
 	var req alterarAtivoRequest
@@ -171,7 +196,7 @@ func (h *ContaFixaHandler) AlterarAtivo(c *gin.Context) {
 		return
 	}
 
-	conta, err := h.svc.AlterarAtivo(id, req.Ativa)
+	conta, err := h.svc.AlterarAtivo(familiaID, id, req.Ativa)
 	if err != nil {
 		contaFixaErroParaHTTP(c, err)
 		return

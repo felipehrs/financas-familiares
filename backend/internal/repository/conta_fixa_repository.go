@@ -47,13 +47,13 @@ func (r contaFixaRow) toDomain() *domain.ContaFixa {
 }
 
 // Criar persiste uma nova conta fixa no banco e retorna o registro criado (com ID gerado).
-func (r *ContaFixaRepository) Criar(c *domain.ContaFixa) (*domain.ContaFixa, error) {
+func (r *ContaFixaRepository) Criar(familiaID string, c *domain.ContaFixa) (*domain.ContaFixa, error) {
 	var row contaFixaRow
 	err := r.db.QueryRowx(`
-		INSERT INTO contas_fixas (descricao, membro_id, categoria_id, valor, dia_vencimento, forma_pagamento, ativa)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO contas_fixas (familia_id, descricao, membro_id, categoria_id, valor, dia_vencimento, forma_pagamento, ativa)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, descricao, membro_id, categoria_id, valor, dia_vencimento, forma_pagamento, ativa, created_at
-	`, c.Descricao, c.MembroID, c.CategoriaID, c.Valor, c.DiaVencimento, c.FormaPagamento, c.Ativa).StructScan(&row)
+	`, familiaID, c.Descricao, c.MembroID, c.CategoriaID, c.Valor, c.DiaVencimento, c.FormaPagamento, c.Ativa).StructScan(&row)
 	if err != nil {
 		return nil, err
 	}
@@ -62,13 +62,13 @@ func (r *ContaFixaRepository) Criar(c *domain.ContaFixa) (*domain.ContaFixa, err
 
 // BuscarPorID busca uma conta fixa pelo seu UUID.
 // Retorna domain.ErrContaFixaNaoEncontrada se não existir ou estiver soft-deleted.
-func (r *ContaFixaRepository) BuscarPorID(id string) (*domain.ContaFixa, error) {
+func (r *ContaFixaRepository) BuscarPorID(familiaID, id string) (*domain.ContaFixa, error) {
 	var row contaFixaRow
 	err := r.db.QueryRowx(`
 		SELECT id, descricao, membro_id, categoria_id, valor, dia_vencimento, forma_pagamento, ativa, created_at
 		FROM contas_fixas
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id).StructScan(&row)
+		WHERE id = $1 AND familia_id = $2 AND deleted_at IS NULL
+	`, id, familiaID).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrContaFixaNaoEncontrada
@@ -79,14 +79,14 @@ func (r *ContaFixaRepository) BuscarPorID(id string) (*domain.ContaFixa, error) 
 }
 
 // Listar retorna todas as contas fixas não excluídas, ordenadas por descrição.
-func (r *ContaFixaRepository) Listar() ([]*domain.ContaFixa, error) {
+func (r *ContaFixaRepository) Listar(familiaID string) ([]*domain.ContaFixa, error) {
 	var rows []contaFixaRow
 	err := r.db.Select(&rows, `
 		SELECT id, descricao, membro_id, categoria_id, valor, dia_vencimento, forma_pagamento, ativa, created_at
 		FROM contas_fixas
-		WHERE deleted_at IS NULL
+		WHERE familia_id = $1 AND deleted_at IS NULL
 		ORDER BY descricao ASC
-	`)
+	`, familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -100,14 +100,14 @@ func (r *ContaFixaRepository) Listar() ([]*domain.ContaFixa, error) {
 
 // Atualizar atualiza os campos de uma conta fixa existente.
 // Retorna o registro atualizado ou ErrContaFixaNaoEncontrada se não existir.
-func (r *ContaFixaRepository) Atualizar(c *domain.ContaFixa) (*domain.ContaFixa, error) {
+func (r *ContaFixaRepository) Atualizar(familiaID string, c *domain.ContaFixa) (*domain.ContaFixa, error) {
 	var row contaFixaRow
 	err := r.db.QueryRowx(`
 		UPDATE contas_fixas
-		SET descricao=$2, membro_id=$3, categoria_id=$4, valor=$5, dia_vencimento=$6, forma_pagamento=$7, ativa=$8, updated_at=NOW()
-		WHERE id=$1 AND deleted_at IS NULL
+		SET descricao=$3, membro_id=$4, categoria_id=$5, valor=$6, dia_vencimento=$7, forma_pagamento=$8, ativa=$9, updated_at=NOW()
+		WHERE id=$2 AND familia_id=$1 AND deleted_at IS NULL
 		RETURNING id, descricao, membro_id, categoria_id, valor, dia_vencimento, forma_pagamento, ativa, created_at
-	`, c.ID, c.Descricao, c.MembroID, c.CategoriaID, c.Valor, c.DiaVencimento, c.FormaPagamento, c.Ativa).StructScan(&row)
+	`, familiaID, c.ID, c.Descricao, c.MembroID, c.CategoriaID, c.Valor, c.DiaVencimento, c.FormaPagamento, c.Ativa).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrContaFixaNaoEncontrada
@@ -118,15 +118,15 @@ func (r *ContaFixaRepository) Atualizar(c *domain.ContaFixa) (*domain.ContaFixa,
 }
 
 // ListarAtivas retorna todas as contas fixas com ativa = true e não excluídas.
-func (r *ContaFixaRepository) ListarAtivas() ([]*domain.ContaFixa, error) {
+func (r *ContaFixaRepository) ListarAtivas(familiaID string) ([]*domain.ContaFixa, error) {
 	var rows []contaFixaRow
 	err := r.db.Select(&rows, `
 		SELECT id, descricao, membro_id, categoria_id, valor, dia_vencimento, forma_pagamento, ativa, created_at
 		FROM contas_fixas
-		WHERE deleted_at IS NULL
+		WHERE familia_id = $1 AND deleted_at IS NULL
 		  AND ativa = true
 		ORDER BY descricao ASC
-	`)
+	`, familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -139,14 +139,14 @@ func (r *ContaFixaRepository) ListarAtivas() ([]*domain.ContaFixa, error) {
 
 // AlterarAtivo atualiza apenas o estado ativa de uma conta fixa existente.
 // Retorna o registro atualizado ou ErrContaFixaNaoEncontrada se não existir.
-func (r *ContaFixaRepository) AlterarAtivo(id string, ativa bool) (*domain.ContaFixa, error) {
+func (r *ContaFixaRepository) AlterarAtivo(familiaID, id string, ativa bool) (*domain.ContaFixa, error) {
 	var row contaFixaRow
 	err := r.db.QueryRowx(`
 		UPDATE contas_fixas
-		SET ativa=$2, updated_at=NOW()
-		WHERE id=$1 AND deleted_at IS NULL
+		SET ativa=$3, updated_at=NOW()
+		WHERE id=$2 AND familia_id=$1 AND deleted_at IS NULL
 		RETURNING id, descricao, membro_id, categoria_id, valor, dia_vencimento, forma_pagamento, ativa, created_at
-	`, id, ativa).StructScan(&row)
+	`, familiaID, id, ativa).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrContaFixaNaoEncontrada

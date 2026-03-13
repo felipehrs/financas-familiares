@@ -43,13 +43,13 @@ func (r rendaExtraRow) toDomain() *domain.RendaExtra {
 }
 
 // Criar persiste uma nova renda extra no banco e retorna o registro criado (com ID gerado).
-func (r *RendaExtraRepository) Criar(re *domain.RendaExtra) (*domain.RendaExtra, error) {
+func (r *RendaExtraRepository) Criar(familiaID string, re *domain.RendaExtra) (*domain.RendaExtra, error) {
 	var row rendaExtraRow
 	err := r.db.QueryRowx(`
-		INSERT INTO rendas_extras (descricao, membro_id, data_recebimento, valor)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO rendas_extras (familia_id, descricao, membro_id, data_recebimento, valor)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, descricao, membro_id, data_recebimento, valor, created_at, updated_at
-	`, re.Descricao, re.MembroID, re.DataRecebimento, re.Valor).StructScan(&row)
+	`, familiaID, re.Descricao, re.MembroID, re.DataRecebimento, re.Valor).StructScan(&row)
 	if err != nil {
 		return nil, err
 	}
@@ -58,13 +58,13 @@ func (r *RendaExtraRepository) Criar(re *domain.RendaExtra) (*domain.RendaExtra,
 
 // BuscarPorID busca uma renda extra pelo seu UUID.
 // Retorna domain.ErrRendaExtraNaoEncontrada se não existir ou estiver soft-deleted.
-func (r *RendaExtraRepository) BuscarPorID(id string) (*domain.RendaExtra, error) {
+func (r *RendaExtraRepository) BuscarPorID(familiaID, id string) (*domain.RendaExtra, error) {
 	var row rendaExtraRow
 	err := r.db.QueryRowx(`
 		SELECT id, descricao, membro_id, data_recebimento, valor, created_at, updated_at
 		FROM rendas_extras
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id).StructScan(&row)
+		WHERE id = $1 AND familia_id = $2 AND deleted_at IS NULL
+	`, id, familiaID).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRendaExtraNaoEncontrada
@@ -75,14 +75,14 @@ func (r *RendaExtraRepository) BuscarPorID(id string) (*domain.RendaExtra, error
 }
 
 // Listar retorna todas as rendas extras não excluídas, ordenadas por data_recebimento decrescente.
-func (r *RendaExtraRepository) Listar() ([]*domain.RendaExtra, error) {
+func (r *RendaExtraRepository) Listar(familiaID string) ([]*domain.RendaExtra, error) {
 	var rows []rendaExtraRow
 	err := r.db.Select(&rows, `
 		SELECT id, descricao, membro_id, data_recebimento, valor, created_at, updated_at
 		FROM rendas_extras
-		WHERE deleted_at IS NULL
+		WHERE familia_id = $1 AND deleted_at IS NULL
 		ORDER BY data_recebimento DESC
-	`)
+	`, familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -95,16 +95,17 @@ func (r *RendaExtraRepository) Listar() ([]*domain.RendaExtra, error) {
 }
 
 // ListarPorMes retorna as rendas extras cujo mês e ano de data_recebimento correspondam aos parâmetros.
-func (r *RendaExtraRepository) ListarPorMes(mes, ano int) ([]*domain.RendaExtra, error) {
+func (r *RendaExtraRepository) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaExtra, error) {
 	var rows []rendaExtraRow
 	err := r.db.Select(&rows, `
 		SELECT id, descricao, membro_id, data_recebimento, valor, created_at, updated_at
 		FROM rendas_extras
-		WHERE deleted_at IS NULL
-		  AND EXTRACT(MONTH FROM data_recebimento) = $1
-		  AND EXTRACT(YEAR FROM data_recebimento) = $2
+		WHERE familia_id = $1
+		  AND deleted_at IS NULL
+		  AND EXTRACT(MONTH FROM data_recebimento) = $2
+		  AND EXTRACT(YEAR FROM data_recebimento) = $3
 		ORDER BY data_recebimento DESC
-	`, mes, ano)
+	`, familiaID, mes, ano)
 	if err != nil {
 		return nil, err
 	}
@@ -118,14 +119,14 @@ func (r *RendaExtraRepository) ListarPorMes(mes, ano int) ([]*domain.RendaExtra,
 
 // Atualizar atualiza os campos de uma renda extra existente.
 // Retorna o registro atualizado ou ErrRendaExtraNaoEncontrada se não existir.
-func (r *RendaExtraRepository) Atualizar(re *domain.RendaExtra) (*domain.RendaExtra, error) {
+func (r *RendaExtraRepository) Atualizar(familiaID string, re *domain.RendaExtra) (*domain.RendaExtra, error) {
 	var row rendaExtraRow
 	err := r.db.QueryRowx(`
 		UPDATE rendas_extras
-		SET descricao=$2, membro_id=$3, data_recebimento=$4, valor=$5, updated_at=NOW()
-		WHERE id=$1 AND deleted_at IS NULL
+		SET descricao=$3, membro_id=$4, data_recebimento=$5, valor=$6, updated_at=NOW()
+		WHERE id=$2 AND familia_id=$1 AND deleted_at IS NULL
 		RETURNING id, descricao, membro_id, data_recebimento, valor, created_at, updated_at
-	`, re.ID, re.Descricao, re.MembroID, re.DataRecebimento, re.Valor).StructScan(&row)
+	`, familiaID, re.ID, re.Descricao, re.MembroID, re.DataRecebimento, re.Valor).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRendaExtraNaoEncontrada
@@ -137,12 +138,12 @@ func (r *RendaExtraRepository) Atualizar(re *domain.RendaExtra) (*domain.RendaEx
 
 // Excluir realiza o soft-delete de uma renda extra existente.
 // Retorna ErrRendaExtraNaoEncontrada se não existir ou já estiver excluída.
-func (r *RendaExtraRepository) Excluir(id string) error {
+func (r *RendaExtraRepository) Excluir(familiaID, id string) error {
 	result, err := r.db.Exec(`
 		UPDATE rendas_extras
 		SET deleted_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id)
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
+	`, familiaID, id)
 	if err != nil {
 		return err
 	}

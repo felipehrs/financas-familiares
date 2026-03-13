@@ -11,11 +11,11 @@ import (
 // AssinaturaServiceInterface define os métodos do service usados pelo handler.
 // Redeclarada aqui para desacoplar o pacote handler do service sem importação circular.
 type AssinaturaServiceInterface interface {
-	Criar(nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error)
-	BuscarPorID(id string) (*domain.Assinatura, error)
-	Listar() ([]*domain.Assinatura, error)
-	Atualizar(id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error)
-	AlterarStatus(id, status string) (*domain.Assinatura, error)
+	Criar(familiaID, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error)
+	BuscarPorID(familiaID, id string) (*domain.Assinatura, error)
+	Listar(familiaID string) ([]*domain.Assinatura, error)
+	Atualizar(familiaID, id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error)
+	AlterarStatus(familiaID, id, status string) (*domain.Assinatura, error)
 }
 
 // AssinaturaHandler contém os handlers HTTP para assinaturas recorrentes.
@@ -95,7 +95,12 @@ func assinaturaErroParaHTTP(c *gin.Context, err error) {
 // Listar retorna todas as assinaturas recorrentes.
 // GET /api/v1/assinaturas
 func (h *AssinaturaHandler) Listar(c *gin.Context) {
-	assinaturas, err := h.svc.Listar()
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
+	assinaturas, err := h.svc.Listar(familiaID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
@@ -112,13 +117,18 @@ func (h *AssinaturaHandler) Listar(c *gin.Context) {
 // Criar cria uma nova assinatura recorrente.
 // POST /api/v1/assinaturas
 func (h *AssinaturaHandler) Criar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	var req criarAssinaturaRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
 		return
 	}
 
-	assinatura, err := h.svc.Criar(req.Nome, req.MembroID, req.CategoriaID, req.Valor, req.DiaCobranca, req.FormaPagamento)
+	assinatura, err := h.svc.Criar(familiaID, req.Nome, req.MembroID, req.CategoriaID, req.Valor, req.DiaCobranca, req.FormaPagamento)
 	if err != nil {
 		assinaturaErroParaHTTP(c, err)
 		return
@@ -130,9 +140,14 @@ func (h *AssinaturaHandler) Criar(c *gin.Context) {
 // BuscarPorID retorna uma assinatura pelo seu ID.
 // GET /api/v1/assinaturas/:id
 func (h *AssinaturaHandler) BuscarPorID(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	assinatura, err := h.svc.BuscarPorID(id)
+	assinatura, err := h.svc.BuscarPorID(familiaID, id)
 	if err != nil {
 		assinaturaErroParaHTTP(c, err)
 		return
@@ -144,6 +159,11 @@ func (h *AssinaturaHandler) BuscarPorID(c *gin.Context) {
 // Atualizar atualiza os dados de uma assinatura existente.
 // PUT /api/v1/assinaturas/:id
 func (h *AssinaturaHandler) Atualizar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
 	var req atualizarAssinaturaRequest
@@ -152,7 +172,7 @@ func (h *AssinaturaHandler) Atualizar(c *gin.Context) {
 		return
 	}
 
-	assinatura, err := h.svc.Atualizar(id, req.Nome, req.MembroID, req.CategoriaID, req.Valor, req.DiaCobranca, req.FormaPagamento, req.Status)
+	assinatura, err := h.svc.Atualizar(familiaID, id, req.Nome, req.MembroID, req.CategoriaID, req.Valor, req.DiaCobranca, req.FormaPagamento, req.Status)
 	if err != nil {
 		assinaturaErroParaHTTP(c, err)
 		return
@@ -164,6 +184,11 @@ func (h *AssinaturaHandler) Atualizar(c *gin.Context) {
 // AlterarStatus altera o status de uma assinatura existente.
 // PATCH /api/v1/assinaturas/:id/status
 func (h *AssinaturaHandler) AlterarStatus(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
 	var req alterarStatusRequest
@@ -172,7 +197,7 @@ func (h *AssinaturaHandler) AlterarStatus(c *gin.Context) {
 		return
 	}
 
-	assinatura, err := h.svc.AlterarStatus(id, req.Status)
+	assinatura, err := h.svc.AlterarStatus(familiaID, id, req.Status)
 	if err != nil {
 		assinaturaErroParaHTTP(c, err)
 		return

@@ -27,24 +27,31 @@ type AuthRepository interface {
 	RevokeRefreshToken(tokenHash string) error
 }
 
+// FamiliaRepository define as operações de persistência necessárias para famílias.
+type FamiliaRepository interface {
+	BuscarFamiliaPorUsuario(usuarioID string) (string, error)
+}
+
 // AuthServiceInterface define os métodos públicos do serviço de autenticação.
 type AuthServiceInterface interface {
 	Login(email, senha string) (accessToken string, refreshToken string, err error)
 	RefreshToken(refreshToken string) (newAccessToken string, err error)
-	ValidateAccessToken(token string) (usuarioID string, err error)
+	ValidateAccessToken(token string) (usuarioID, familiaID string, err error)
 }
 
 // AuthService implementa a lógica de autenticação.
 type AuthService struct {
-	repo      AuthRepository
-	jwtSecret string
+	repo        AuthRepository
+	familiaRepo FamiliaRepository
+	jwtSecret   string
 }
 
 // NewAuthService cria uma nova instância do AuthService.
-func NewAuthService(repo AuthRepository, jwtSecret string) *AuthService {
+func NewAuthService(repo AuthRepository, familiaRepo FamiliaRepository, jwtSecret string) *AuthService {
 	return &AuthService{
-		repo:      repo,
-		jwtSecret: jwtSecret,
+		repo:        repo,
+		familiaRepo: familiaRepo,
+		jwtSecret:   jwtSecret,
 	}
 }
 
@@ -67,7 +74,12 @@ func (s *AuthService) Login(email, senha string) (string, string, error) {
 		return "", "", domain.ErrCredenciaisInvalidas
 	}
 
-	accessToken, err := criarAccessToken(usuario.ID, s.jwtSecret)
+	familiaID, err := s.familiaRepo.BuscarFamiliaPorUsuario(usuario.ID)
+	if err != nil {
+		return "", "", fmt.Errorf("erro ao buscar família do usuário: %w", err)
+	}
+
+	accessToken, err := criarAccessToken(usuario.ID, familiaID, s.jwtSecret)
 	if err != nil {
 		return "", "", fmt.Errorf("erro ao gerar access token: %w", err)
 	}
@@ -105,7 +117,12 @@ func (s *AuthService) RefreshToken(refreshToken string) (string, error) {
 	// revogar o token usado (refresh token rotation)
 	_ = s.repo.RevokeRefreshToken(tokenHash)
 
-	newAccessToken, err := criarAccessToken(record.UsuarioID, s.jwtSecret)
+	familiaID, err := s.familiaRepo.BuscarFamiliaPorUsuario(record.UsuarioID)
+	if err != nil {
+		return "", fmt.Errorf("erro ao buscar família do usuário: %w", err)
+	}
+
+	newAccessToken, err := criarAccessToken(record.UsuarioID, familiaID, s.jwtSecret)
 	if err != nil {
 		return "", fmt.Errorf("erro ao gerar access token: %w", err)
 	}
@@ -113,8 +130,8 @@ func (s *AuthService) RefreshToken(refreshToken string) (string, error) {
 	return newAccessToken, nil
 }
 
-// ValidateAccessToken valida um JWT e retorna o usuarioID extraído do claim "sub".
-func (s *AuthService) ValidateAccessToken(token string) (string, error) {
+// ValidateAccessToken valida um JWT e retorna o usuarioID e familiaID extraídos dos claims.
+func (s *AuthService) ValidateAccessToken(token string) (string, string, error) {
 	parsed, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("método de assinatura inesperado: %v", t.Header["alg"])
@@ -124,35 +141,38 @@ func (s *AuthService) ValidateAccessToken(token string) (string, error) {
 
 	if err != nil {
 		if isExpiredError(err) {
-			return "", domain.ErrTokenExpirado
+			return "", "", domain.ErrTokenExpirado
 		}
-		return "", domain.ErrTokenInvalido
+		return "", "", domain.ErrTokenInvalido
 	}
 
 	claims, ok := parsed.Claims.(jwt.MapClaims)
 	if !ok || !parsed.Valid {
-		return "", domain.ErrTokenInvalido
+		return "", "", domain.ErrTokenInvalido
 	}
 
 	sub, err := claims.GetSubject()
 	if err != nil || sub == "" {
-		return "", domain.ErrTokenInvalido
+		return "", "", domain.ErrTokenInvalido
 	}
 
-	return sub, nil
+	familiaID, _ := claims["familia_id"].(string)
+
+	return sub, familiaID, nil
 }
 
 // criarAccessToken gera um JWT com expiração de 15 minutos.
-func criarAccessToken(usuarioID, secret string) (string, error) {
-	return CriarAccessTokenComExpiracao(usuarioID, secret, time.Now().Add(accessTokenDuration))
+func criarAccessToken(usuarioID, familiaID, secret string) (string, error) {
+	return CriarAccessTokenComExpiracao(usuarioID, familiaID, secret, time.Now().Add(accessTokenDuration))
 }
 
 // CriarAccessTokenComExpiracao é exportada para uso nos testes (permite simular tokens expirados).
-func CriarAccessTokenComExpiracao(usuarioID, secret string, expiresAt time.Time) (string, error) {
+func CriarAccessTokenComExpiracao(usuarioID, familiaID, secret string, expiresAt time.Time) (string, error) {
 	claims := jwt.MapClaims{
-		"sub": usuarioID,
-		"exp": expiresAt.Unix(),
-		"iat": time.Now().Unix(),
+		"sub":        usuarioID,
+		"familia_id": familiaID,
+		"exp":        expiresAt.Unix(),
+		"iat":        time.Now().Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))

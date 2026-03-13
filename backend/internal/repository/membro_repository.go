@@ -36,13 +36,13 @@ func (r membroRow) toDomain() *domain.Membro {
 }
 
 // Criar persiste um novo membro no banco e retorna o registro criado (com ID gerado).
-func (r *MembroRepository) Criar(membro *domain.Membro) (*domain.Membro, error) {
+func (r *MembroRepository) Criar(familiaID string, membro *domain.Membro) (*domain.Membro, error) {
 	var row membroRow
 	err := r.db.QueryRowx(`
-		INSERT INTO membros (nome, relacionamento, ativo)
-		VALUES ($1, $2, $3)
+		INSERT INTO membros (familia_id, nome, relacionamento, ativo)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id, nome, relacionamento, ativo
-	`, membro.Nome, membro.Relacionamento, membro.Ativo).StructScan(&row)
+	`, familiaID, membro.Nome, membro.Relacionamento, membro.Ativo).StructScan(&row)
 	if err != nil {
 		return nil, err
 	}
@@ -51,13 +51,13 @@ func (r *MembroRepository) Criar(membro *domain.Membro) (*domain.Membro, error) 
 
 // BuscarPorID busca um membro pelo seu UUID.
 // Retorna domain.ErrMembroNaoEncontrado se não existir ou estiver soft-deleted.
-func (r *MembroRepository) BuscarPorID(id string) (*domain.Membro, error) {
+func (r *MembroRepository) BuscarPorID(familiaID, id string) (*domain.Membro, error) {
 	var row membroRow
 	err := r.db.QueryRowx(`
 		SELECT id, nome, relacionamento, ativo
 		FROM membros
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id).StructScan(&row)
+		WHERE id = $1 AND familia_id = $2 AND deleted_at IS NULL
+	`, id, familiaID).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrMembroNaoEncontrado
@@ -68,14 +68,14 @@ func (r *MembroRepository) BuscarPorID(id string) (*domain.Membro, error) {
 }
 
 // Listar retorna todos os membros não excluídos (ativos e inativos).
-func (r *MembroRepository) Listar() ([]*domain.Membro, error) {
+func (r *MembroRepository) Listar(familiaID string) ([]*domain.Membro, error) {
 	var rows []membroRow
 	err := r.db.Select(&rows, `
 		SELECT id, nome, relacionamento, ativo
 		FROM membros
-		WHERE deleted_at IS NULL
+		WHERE familia_id = $1 AND deleted_at IS NULL
 		ORDER BY nome ASC
-	`)
+	`, familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -89,14 +89,14 @@ func (r *MembroRepository) Listar() ([]*domain.Membro, error) {
 
 // Atualizar atualiza nome, relacionamento e ativo de um membro existente.
 // Retorna o registro atualizado.
-func (r *MembroRepository) Atualizar(membro *domain.Membro) (*domain.Membro, error) {
+func (r *MembroRepository) Atualizar(familiaID string, membro *domain.Membro) (*domain.Membro, error) {
 	var row membroRow
 	err := r.db.QueryRowx(`
 		UPDATE membros
-		SET nome = $2, relacionamento = $3, ativo = $4, updated_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
+		SET nome = $3, relacionamento = $4, ativo = $5, updated_at = NOW()
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
 		RETURNING id, nome, relacionamento, ativo
-	`, membro.ID, membro.Nome, membro.Relacionamento, membro.Ativo).StructScan(&row)
+	`, familiaID, membro.ID, membro.Nome, membro.Relacionamento, membro.Ativo).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrMembroNaoEncontrado
@@ -108,12 +108,12 @@ func (r *MembroRepository) Atualizar(membro *domain.Membro) (*domain.Membro, err
 
 // Inativar marca um membro como inativo sem excluir o registro.
 // Atualiza ativo=false e updated_at=NOW().
-func (r *MembroRepository) Inativar(id string) error {
+func (r *MembroRepository) Inativar(familiaID, id string) error {
 	result, err := r.db.Exec(`
 		UPDATE membros
 		SET ativo = FALSE, updated_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id)
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
+	`, familiaID, id)
 	if err != nil {
 		return err
 	}

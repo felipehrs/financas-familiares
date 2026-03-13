@@ -43,13 +43,13 @@ func (r rendimentoInvestimentoRow) toDomain() *domain.RendimentoInvestimento {
 }
 
 // Criar persiste um novo rendimento de investimento no banco e retorna o registro criado (com ID gerado).
-func (r *RendimentoInvestimentoRepository) Criar(ri *domain.RendimentoInvestimento) (*domain.RendimentoInvestimento, error) {
+func (r *RendimentoInvestimentoRepository) Criar(familiaID string, ri *domain.RendimentoInvestimento) (*domain.RendimentoInvestimento, error) {
 	var row rendimentoInvestimentoRow
 	err := r.db.QueryRowx(`
-		INSERT INTO rendimentos_investimento (descricao, membro_id, data, valor, valor_distribuido)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO rendimentos_investimento (familia_id, descricao, membro_id, data, valor, valor_distribuido)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, descricao, membro_id, data, valor, valor_distribuido, created_at
-	`, ri.Descricao, ri.MembroID, ri.Data, ri.Valor, ri.ValorDistribuido).StructScan(&row)
+	`, familiaID, ri.Descricao, ri.MembroID, ri.Data, ri.Valor, ri.ValorDistribuido).StructScan(&row)
 	if err != nil {
 		return nil, err
 	}
@@ -58,13 +58,13 @@ func (r *RendimentoInvestimentoRepository) Criar(ri *domain.RendimentoInvestimen
 
 // BuscarPorID busca um rendimento de investimento pelo seu UUID.
 // Retorna domain.ErrRendimentoInvestimentoNaoEncontrado se não existir ou estiver soft-deleted.
-func (r *RendimentoInvestimentoRepository) BuscarPorID(id string) (*domain.RendimentoInvestimento, error) {
+func (r *RendimentoInvestimentoRepository) BuscarPorID(familiaID, id string) (*domain.RendimentoInvestimento, error) {
 	var row rendimentoInvestimentoRow
 	err := r.db.QueryRowx(`
 		SELECT id, descricao, membro_id, data, valor, valor_distribuido, created_at
 		FROM rendimentos_investimento
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id).StructScan(&row)
+		WHERE id = $1 AND familia_id = $2 AND deleted_at IS NULL
+	`, id, familiaID).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRendimentoInvestimentoNaoEncontrado
@@ -75,14 +75,14 @@ func (r *RendimentoInvestimentoRepository) BuscarPorID(id string) (*domain.Rendi
 }
 
 // Listar retorna todos os rendimentos de investimento não excluídos, ordenados por data decrescente.
-func (r *RendimentoInvestimentoRepository) Listar() ([]*domain.RendimentoInvestimento, error) {
+func (r *RendimentoInvestimentoRepository) Listar(familiaID string) ([]*domain.RendimentoInvestimento, error) {
 	var rows []rendimentoInvestimentoRow
 	err := r.db.Select(&rows, `
 		SELECT id, descricao, membro_id, data, valor, valor_distribuido, created_at
 		FROM rendimentos_investimento
-		WHERE deleted_at IS NULL
+		WHERE familia_id = $1 AND deleted_at IS NULL
 		ORDER BY data DESC
-	`)
+	`, familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -95,16 +95,17 @@ func (r *RendimentoInvestimentoRepository) Listar() ([]*domain.RendimentoInvesti
 }
 
 // ListarPorMes retorna os rendimentos cujo mês e ano de data correspondam aos parâmetros.
-func (r *RendimentoInvestimentoRepository) ListarPorMes(mes, ano int) ([]*domain.RendimentoInvestimento, error) {
+func (r *RendimentoInvestimentoRepository) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendimentoInvestimento, error) {
 	var rows []rendimentoInvestimentoRow
 	err := r.db.Select(&rows, `
 		SELECT id, descricao, membro_id, data, valor, valor_distribuido, created_at
 		FROM rendimentos_investimento
-		WHERE deleted_at IS NULL
-		  AND EXTRACT(MONTH FROM data) = $1
-		  AND EXTRACT(YEAR FROM data) = $2
+		WHERE familia_id = $1
+		  AND deleted_at IS NULL
+		  AND EXTRACT(MONTH FROM data) = $2
+		  AND EXTRACT(YEAR FROM data) = $3
 		ORDER BY data DESC
-	`, mes, ano)
+	`, familiaID, mes, ano)
 	if err != nil {
 		return nil, err
 	}
@@ -118,14 +119,14 @@ func (r *RendimentoInvestimentoRepository) ListarPorMes(mes, ano int) ([]*domain
 
 // Atualizar atualiza os campos de um rendimento de investimento existente.
 // Retorna o registro atualizado ou ErrRendimentoInvestimentoNaoEncontrado se não existir.
-func (r *RendimentoInvestimentoRepository) Atualizar(ri *domain.RendimentoInvestimento) (*domain.RendimentoInvestimento, error) {
+func (r *RendimentoInvestimentoRepository) Atualizar(familiaID string, ri *domain.RendimentoInvestimento) (*domain.RendimentoInvestimento, error) {
 	var row rendimentoInvestimentoRow
 	err := r.db.QueryRowx(`
 		UPDATE rendimentos_investimento
-		SET descricao=$2, membro_id=$3, data=$4, valor=$5, valor_distribuido=$6, updated_at=NOW()
-		WHERE id=$1 AND deleted_at IS NULL
+		SET descricao=$3, membro_id=$4, data=$5, valor=$6, valor_distribuido=$7, updated_at=NOW()
+		WHERE id=$2 AND familia_id=$1 AND deleted_at IS NULL
 		RETURNING id, descricao, membro_id, data, valor, valor_distribuido, created_at
-	`, ri.ID, ri.Descricao, ri.MembroID, ri.Data, ri.Valor, ri.ValorDistribuido).StructScan(&row)
+	`, familiaID, ri.ID, ri.Descricao, ri.MembroID, ri.Data, ri.Valor, ri.ValorDistribuido).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRendimentoInvestimentoNaoEncontrado
@@ -137,12 +138,12 @@ func (r *RendimentoInvestimentoRepository) Atualizar(ri *domain.RendimentoInvest
 
 // Excluir realiza o soft-delete de um rendimento de investimento existente.
 // Retorna ErrRendimentoInvestimentoNaoEncontrado se não existir ou já estiver excluído.
-func (r *RendimentoInvestimentoRepository) Excluir(id string) error {
+func (r *RendimentoInvestimentoRepository) Excluir(familiaID, id string) error {
 	result, err := r.db.Exec(`
 		UPDATE rendimentos_investimento
 		SET deleted_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id)
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
+	`, familiaID, id)
 	if err != nil {
 		return err
 	}

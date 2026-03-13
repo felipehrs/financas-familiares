@@ -16,36 +16,41 @@ import (
 
 // MockMembroService implementa MembroServiceInterface (declarada no handler) para testes.
 type MockMembroService struct {
-	CriarFn     func(nome, relacionamento string) (*domain.Membro, error)
-	BuscarFn    func(id string) (*domain.Membro, error)
-	ListarFn    func() ([]*domain.Membro, error)
-	AtualizarFn func(id, nome, relacionamento string, ativo bool) (*domain.Membro, error)
-	InativarFn  func(id string) error
+	CriarFn     func(familiaID, nome, relacionamento string) (*domain.Membro, error)
+	BuscarFn    func(familiaID, id string) (*domain.Membro, error)
+	ListarFn    func(familiaID string) ([]*domain.Membro, error)
+	AtualizarFn func(familiaID, id, nome, relacionamento string, ativo bool) (*domain.Membro, error)
+	InativarFn  func(familiaID, id string) error
 }
 
-func (m *MockMembroService) Criar(nome, relacionamento string) (*domain.Membro, error) {
-	return m.CriarFn(nome, relacionamento)
+func (m *MockMembroService) Criar(familiaID, nome, relacionamento string) (*domain.Membro, error) {
+	return m.CriarFn(familiaID, nome, relacionamento)
 }
 
-func (m *MockMembroService) BuscarPorID(id string) (*domain.Membro, error) {
-	return m.BuscarFn(id)
+func (m *MockMembroService) BuscarPorID(familiaID, id string) (*domain.Membro, error) {
+	return m.BuscarFn(familiaID, id)
 }
 
-func (m *MockMembroService) Listar() ([]*domain.Membro, error) {
-	return m.ListarFn()
+func (m *MockMembroService) Listar(familiaID string) ([]*domain.Membro, error) {
+	return m.ListarFn(familiaID)
 }
 
-func (m *MockMembroService) Atualizar(id, nome, relacionamento string, ativo bool) (*domain.Membro, error) {
-	return m.AtualizarFn(id, nome, relacionamento, ativo)
+func (m *MockMembroService) Atualizar(familiaID, id, nome, relacionamento string, ativo bool) (*domain.Membro, error) {
+	return m.AtualizarFn(familiaID, id, nome, relacionamento, ativo)
 }
 
-func (m *MockMembroService) Inativar(id string) error {
-	return m.InativarFn(id)
+func (m *MockMembroService) Inativar(familiaID, id string) error {
+	return m.InativarFn(familiaID, id)
 }
 
 func setupMembroRouter(svc handler.MembroServiceInterface) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("userID", "usuario-teste-uuid")
+		c.Set("familiaID", "familia-teste-uuid")
+		c.Next()
+	})
 	h := handler.NewMembroHandler(svc)
 	v1 := r.Group("/api/v1")
 	{
@@ -66,7 +71,7 @@ func TestListarMembrosHandler_Sucesso(t *testing.T) {
 		{ID: "uuid-2", Nome: "Carlos Souza", Relacionamento: "filho", Ativo: true},
 	}
 	svc := &MockMembroService{
-		ListarFn: func() ([]*domain.Membro, error) {
+		ListarFn: func(familiaID string) ([]*domain.Membro, error) {
 			return membros, nil
 		},
 	}
@@ -90,7 +95,7 @@ func TestListarMembrosHandler_Sucesso(t *testing.T) {
 
 func TestCriarMembroHandler_Sucesso(t *testing.T) {
 	svc := &MockMembroService{
-		CriarFn: func(nome, relacionamento string) (*domain.Membro, error) {
+		CriarFn: func(familiaID, nome, relacionamento string) (*domain.Membro, error) {
 			return &domain.Membro{
 				ID:             "uuid-novo",
 				Nome:           nome,
@@ -123,7 +128,7 @@ func TestCriarMembroHandler_Sucesso(t *testing.T) {
 
 func TestCriarMembroHandler_NomeVazio(t *testing.T) {
 	svc := &MockMembroService{
-		CriarFn: func(nome, relacionamento string) (*domain.Membro, error) {
+		CriarFn: func(familiaID, nome, relacionamento string) (*domain.Membro, error) {
 			return nil, domain.ErrNomeObrigatorio
 		},
 	}
@@ -162,7 +167,7 @@ func TestCriarMembroHandler_BodyInvalido(t *testing.T) {
 
 func TestBuscarMembroHandler_Sucesso(t *testing.T) {
 	svc := &MockMembroService{
-		BuscarFn: func(id string) (*domain.Membro, error) {
+		BuscarFn: func(familiaID, id string) (*domain.Membro, error) {
 			return &domain.Membro{
 				ID:             id,
 				Nome:           "Pedro Alves",
@@ -188,7 +193,7 @@ func TestBuscarMembroHandler_Sucesso(t *testing.T) {
 
 func TestBuscarMembroHandler_NaoEncontrado(t *testing.T) {
 	svc := &MockMembroService{
-		BuscarFn: func(id string) (*domain.Membro, error) {
+		BuscarFn: func(familiaID, id string) (*domain.Membro, error) {
 			return nil, domain.ErrMembroNaoEncontrado
 		},
 	}
@@ -210,7 +215,7 @@ func TestBuscarMembroHandler_NaoEncontrado(t *testing.T) {
 
 func TestAtualizarMembroHandler_Sucesso(t *testing.T) {
 	svc := &MockMembroService{
-		AtualizarFn: func(id, nome, relacionamento string, ativo bool) (*domain.Membro, error) {
+		AtualizarFn: func(familiaID, id, nome, relacionamento string, ativo bool) (*domain.Membro, error) {
 			return &domain.Membro{
 				ID:             id,
 				Nome:           nome,
@@ -244,7 +249,7 @@ func TestAtualizarMembroHandler_Sucesso(t *testing.T) {
 
 func TestAtualizarMembroHandler_NaoEncontrado(t *testing.T) {
 	svc := &MockMembroService{
-		AtualizarFn: func(id, nome, relacionamento string, ativo bool) (*domain.Membro, error) {
+		AtualizarFn: func(familiaID, id, nome, relacionamento string, ativo bool) (*domain.Membro, error) {
 			return nil, domain.ErrMembroNaoEncontrado
 		},
 	}
@@ -284,7 +289,7 @@ func TestAtualizarMembroHandler_BodyInvalido(t *testing.T) {
 
 func TestInativarMembroHandler_Sucesso(t *testing.T) {
 	svc := &MockMembroService{
-		InativarFn: func(id string) error {
+		InativarFn: func(familiaID, id string) error {
 			return nil
 		},
 	}
@@ -304,7 +309,7 @@ func TestInativarMembroHandler_Sucesso(t *testing.T) {
 
 func TestInativarMembroHandler_NaoEncontrado(t *testing.T) {
 	svc := &MockMembroService{
-		InativarFn: func(id string) error {
+		InativarFn: func(familiaID, id string) error {
 			return domain.ErrMembroNaoEncontrado
 		},
 	}

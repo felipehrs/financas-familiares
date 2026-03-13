@@ -16,16 +16,21 @@ import (
 
 // MockRendaHistoricoService implementa RendaHistoricoServiceInterface para testes.
 type MockRendaHistoricoService struct {
-	BuscarHistoricoFn func(filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error)
+	BuscarHistoricoFn func(familiaID string, filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error)
 }
 
-func (m *MockRendaHistoricoService) BuscarHistorico(filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error) {
-	return m.BuscarHistoricoFn(filtro)
+func (m *MockRendaHistoricoService) BuscarHistorico(familiaID string, filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error) {
+	return m.BuscarHistoricoFn(familiaID, filtro)
 }
 
 func setupRendaHistoricoRouter(svc handler.RendaHistoricoServiceInterface) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("userID", "usuario-teste-uuid")
+		c.Set("familiaID", "familia-teste-uuid")
+		c.Next()
+	})
 	h := handler.NewRendaHistoricoHandler(svc)
 	v1 := r.Group("/api/v1")
 	v1.GET("/rendas/historico", h.Historico)
@@ -39,10 +44,9 @@ func historicoVazio() *domain.HistoricoRendas {
 	}
 }
 
-// TestRendaHistoricoHandler_SucessoSemFiltros verifica que a rota retorna 200 sem filtros.
 func TestRendaHistoricoHandler_SucessoSemFiltros(t *testing.T) {
 	svc := &MockRendaHistoricoService{
-		BuscarHistoricoFn: func(filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error) {
+		BuscarHistoricoFn: func(familiaID string, filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error) {
 			assert.Equal(t, domain.TipoRenda(""), filtro.Tipo)
 			assert.Equal(t, "", filtro.MembroID)
 			assert.Equal(t, 0, filtro.Mes)
@@ -65,10 +69,9 @@ func TestRendaHistoricoHandler_SucessoSemFiltros(t *testing.T) {
 	assert.Contains(t, resp, "resumo")
 }
 
-// TestRendaHistoricoHandler_SucessoComTodosOsFiltros verifica que todos os filtros são parseados corretamente.
 func TestRendaHistoricoHandler_SucessoComTodosOsFiltros(t *testing.T) {
 	svc := &MockRendaHistoricoService{
-		BuscarHistoricoFn: func(filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error) {
+		BuscarHistoricoFn: func(familiaID string, filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error) {
 			assert.Equal(t, domain.TipoRendaFixa, filtro.Tipo)
 			assert.Equal(t, "membro-abc", filtro.MembroID)
 			assert.Equal(t, 3, filtro.Mes)
@@ -109,7 +112,6 @@ func TestRendaHistoricoHandler_SucessoComTodosOsFiltros(t *testing.T) {
 	assert.Equal(t, 5000.0, resumo["total_geral"])
 }
 
-// TestRendaHistoricoHandler_TipoInvalido verifica que tipo inválido retorna 400.
 func TestRendaHistoricoHandler_TipoInvalido(t *testing.T) {
 	svc := &MockRendaHistoricoService{}
 	r := setupRendaHistoricoRouter(svc)
@@ -126,7 +128,6 @@ func TestRendaHistoricoHandler_TipoInvalido(t *testing.T) {
 	assert.NotEmpty(t, resp["error"])
 }
 
-// TestRendaHistoricoHandler_MesInvalido verifica que mes inválido retorna 400.
 func TestRendaHistoricoHandler_MesInvalido(t *testing.T) {
 	svc := &MockRendaHistoricoService{}
 	r := setupRendaHistoricoRouter(svc)
@@ -143,7 +144,6 @@ func TestRendaHistoricoHandler_MesInvalido(t *testing.T) {
 	assert.NotEmpty(t, resp["error"])
 }
 
-// TestRendaHistoricoHandler_MesNaoNumerico verifica que mes não numérico retorna 400.
 func TestRendaHistoricoHandler_MesNaoNumerico(t *testing.T) {
 	svc := &MockRendaHistoricoService{}
 	r := setupRendaHistoricoRouter(svc)
@@ -155,7 +155,6 @@ func TestRendaHistoricoHandler_MesNaoNumerico(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-// TestRendaHistoricoHandler_AnoInvalido verifica que ano <= 2000 retorna 400.
 func TestRendaHistoricoHandler_AnoInvalido(t *testing.T) {
 	svc := &MockRendaHistoricoService{}
 	r := setupRendaHistoricoRouter(svc)
@@ -172,7 +171,6 @@ func TestRendaHistoricoHandler_AnoInvalido(t *testing.T) {
 	assert.NotEmpty(t, resp["error"])
 }
 
-// TestRendaHistoricoHandler_AnoNaoNumerico verifica que ano não numérico retorna 400.
 func TestRendaHistoricoHandler_AnoNaoNumerico(t *testing.T) {
 	svc := &MockRendaHistoricoService{}
 	r := setupRendaHistoricoRouter(svc)
@@ -184,10 +182,9 @@ func TestRendaHistoricoHandler_AnoNaoNumerico(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-// TestRendaHistoricoHandler_ErroInterno verifica que erro do service retorna 500.
 func TestRendaHistoricoHandler_ErroInterno(t *testing.T) {
 	svc := &MockRendaHistoricoService{
-		BuscarHistoricoFn: func(filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error) {
+		BuscarHistoricoFn: func(familiaID string, filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error) {
 			return nil, errors.New("falha no banco de dados")
 		},
 	}
@@ -205,14 +202,13 @@ func TestRendaHistoricoHandler_ErroInterno(t *testing.T) {
 	assert.Equal(t, "erro interno", resp["error"])
 }
 
-// TestRendaHistoricoHandler_FiltroTiposValidos verifica todos os valores válidos de tipo.
 func TestRendaHistoricoHandler_FiltroTiposValidos(t *testing.T) {
 	tiposValidos := []string{"fixa", "variavel", "extra", "investimento"}
 
 	for _, tipo := range tiposValidos {
 		t.Run("tipo="+tipo, func(t *testing.T) {
 			svc := &MockRendaHistoricoService{
-				BuscarHistoricoFn: func(filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error) {
+				BuscarHistoricoFn: func(familiaID string, filtro domain.FiltroHistoricoRendas) (*domain.HistoricoRendas, error) {
 					return historicoVazio(), nil
 				},
 			}

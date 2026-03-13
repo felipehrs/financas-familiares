@@ -47,13 +47,13 @@ func (r rendaVariavelRow) toDomain() *domain.RendaVariavel {
 }
 
 // Criar persiste uma nova renda variável no banco e retorna o registro criado (com ID gerado).
-func (r *RendaVariavelRepository) Criar(rv *domain.RendaVariavel) (*domain.RendaVariavel, error) {
+func (r *RendaVariavelRepository) Criar(familiaID string, rv *domain.RendaVariavel) (*domain.RendaVariavel, error) {
 	var row rendaVariavelRow
 	err := r.db.QueryRowx(`
-		INSERT INTO rendas_variaveis (descricao, membro_id, mes_referencia, ano_referencia, valor, data_recebimento)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO rendas_variaveis (familia_id, descricao, membro_id, mes_referencia, ano_referencia, valor, data_recebimento)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, descricao, membro_id, mes_referencia, ano_referencia, valor, data_recebimento, created_at, updated_at
-	`, rv.Descricao, rv.MembroID, rv.MesReferencia, rv.AnoReferencia, rv.Valor, rv.DataRecebimento).StructScan(&row)
+	`, familiaID, rv.Descricao, rv.MembroID, rv.MesReferencia, rv.AnoReferencia, rv.Valor, rv.DataRecebimento).StructScan(&row)
 	if err != nil {
 		return nil, err
 	}
@@ -62,13 +62,13 @@ func (r *RendaVariavelRepository) Criar(rv *domain.RendaVariavel) (*domain.Renda
 
 // BuscarPorID busca uma renda variável pelo seu UUID.
 // Retorna domain.ErrRendaVariavelNaoEncontrada se não existir ou estiver soft-deleted.
-func (r *RendaVariavelRepository) BuscarPorID(id string) (*domain.RendaVariavel, error) {
+func (r *RendaVariavelRepository) BuscarPorID(familiaID, id string) (*domain.RendaVariavel, error) {
 	var row rendaVariavelRow
 	err := r.db.QueryRowx(`
 		SELECT id, descricao, membro_id, mes_referencia, ano_referencia, valor, data_recebimento, created_at, updated_at
 		FROM rendas_variaveis
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id).StructScan(&row)
+		WHERE id = $1 AND familia_id = $2 AND deleted_at IS NULL
+	`, id, familiaID).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRendaVariavelNaoEncontrada
@@ -79,14 +79,14 @@ func (r *RendaVariavelRepository) BuscarPorID(id string) (*domain.RendaVariavel,
 }
 
 // Listar retorna todas as rendas variáveis não excluídas, ordenadas por ano e mês de referência decrescentes.
-func (r *RendaVariavelRepository) Listar() ([]*domain.RendaVariavel, error) {
+func (r *RendaVariavelRepository) Listar(familiaID string) ([]*domain.RendaVariavel, error) {
 	var rows []rendaVariavelRow
 	err := r.db.Select(&rows, `
 		SELECT id, descricao, membro_id, mes_referencia, ano_referencia, valor, data_recebimento, created_at, updated_at
 		FROM rendas_variaveis
-		WHERE deleted_at IS NULL
+		WHERE familia_id = $1 AND deleted_at IS NULL
 		ORDER BY ano_referencia DESC, mes_referencia DESC
-	`)
+	`, familiaID)
 	if err != nil {
 		return nil, err
 	}
@@ -99,16 +99,17 @@ func (r *RendaVariavelRepository) Listar() ([]*domain.RendaVariavel, error) {
 }
 
 // ListarPorMes retorna as rendas variáveis do mês e ano de referência especificados.
-func (r *RendaVariavelRepository) ListarPorMes(mes, ano int) ([]*domain.RendaVariavel, error) {
+func (r *RendaVariavelRepository) ListarPorMes(familiaID string, mes, ano int) ([]*domain.RendaVariavel, error) {
 	var rows []rendaVariavelRow
 	err := r.db.Select(&rows, `
 		SELECT id, descricao, membro_id, mes_referencia, ano_referencia, valor, data_recebimento, created_at, updated_at
 		FROM rendas_variaveis
-		WHERE deleted_at IS NULL
-		  AND mes_referencia = $1
-		  AND ano_referencia = $2
+		WHERE familia_id = $1
+		  AND deleted_at IS NULL
+		  AND mes_referencia = $2
+		  AND ano_referencia = $3
 		ORDER BY data_recebimento DESC
-	`, mes, ano)
+	`, familiaID, mes, ano)
 	if err != nil {
 		return nil, err
 	}
@@ -122,14 +123,14 @@ func (r *RendaVariavelRepository) ListarPorMes(mes, ano int) ([]*domain.RendaVar
 
 // Atualizar atualiza os campos de uma renda variável existente.
 // Retorna o registro atualizado ou ErrRendaVariavelNaoEncontrada se não existir.
-func (r *RendaVariavelRepository) Atualizar(rv *domain.RendaVariavel) (*domain.RendaVariavel, error) {
+func (r *RendaVariavelRepository) Atualizar(familiaID string, rv *domain.RendaVariavel) (*domain.RendaVariavel, error) {
 	var row rendaVariavelRow
 	err := r.db.QueryRowx(`
 		UPDATE rendas_variaveis
-		SET descricao=$2, membro_id=$3, mes_referencia=$4, ano_referencia=$5, valor=$6, data_recebimento=$7, updated_at=NOW()
-		WHERE id=$1 AND deleted_at IS NULL
+		SET descricao=$3, membro_id=$4, mes_referencia=$5, ano_referencia=$6, valor=$7, data_recebimento=$8, updated_at=NOW()
+		WHERE id=$2 AND familia_id=$1 AND deleted_at IS NULL
 		RETURNING id, descricao, membro_id, mes_referencia, ano_referencia, valor, data_recebimento, created_at, updated_at
-	`, rv.ID, rv.Descricao, rv.MembroID, rv.MesReferencia, rv.AnoReferencia, rv.Valor, rv.DataRecebimento).StructScan(&row)
+	`, familiaID, rv.ID, rv.Descricao, rv.MembroID, rv.MesReferencia, rv.AnoReferencia, rv.Valor, rv.DataRecebimento).StructScan(&row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRendaVariavelNaoEncontrada
@@ -141,12 +142,12 @@ func (r *RendaVariavelRepository) Atualizar(rv *domain.RendaVariavel) (*domain.R
 
 // Excluir realiza o soft-delete de uma renda variável existente.
 // Retorna ErrRendaVariavelNaoEncontrada se não existir ou já estiver excluída.
-func (r *RendaVariavelRepository) Excluir(id string) error {
+func (r *RendaVariavelRepository) Excluir(familiaID, id string) error {
 	result, err := r.db.Exec(`
 		UPDATE rendas_variaveis
 		SET deleted_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id)
+		WHERE id = $2 AND familia_id = $1 AND deleted_at IS NULL
+	`, familiaID, id)
 	if err != nil {
 		return err
 	}

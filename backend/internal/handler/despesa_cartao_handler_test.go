@@ -17,36 +17,41 @@ import (
 
 // MockDespesaCartaoService implementa DespesaCartaoServiceInterface para testes.
 type MockDespesaCartaoService struct {
-	CriarFn           func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error)
-	ListarPorCartaoFn func(cartaoID string) ([]*domain.DespesaCartao, error)
-	ListarPorFaturaFn func(cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error)
-	BuscarPorIDFn     func(id string) (*domain.DespesaCartao, error)
-	ExcluirFn         func(id string) error
+	CriarFn           func(familiaID, cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error)
+	ListarPorCartaoFn func(familiaID, cartaoID string) ([]*domain.DespesaCartao, error)
+	ListarPorFaturaFn func(familiaID, cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error)
+	BuscarPorIDFn     func(familiaID, id string) (*domain.DespesaCartao, error)
+	ExcluirFn         func(familiaID, id string) error
 }
 
-func (m *MockDespesaCartaoService) Criar(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
-	return m.CriarFn(cartaoID, descricao, categoriaID, dataCompra, valorTotal, numeroParcelas)
+func (m *MockDespesaCartaoService) Criar(familiaID, cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
+	return m.CriarFn(familiaID, cartaoID, descricao, categoriaID, dataCompra, valorTotal, numeroParcelas)
 }
 
-func (m *MockDespesaCartaoService) ListarPorCartao(cartaoID string) ([]*domain.DespesaCartao, error) {
-	return m.ListarPorCartaoFn(cartaoID)
+func (m *MockDespesaCartaoService) ListarPorCartao(familiaID, cartaoID string) ([]*domain.DespesaCartao, error) {
+	return m.ListarPorCartaoFn(familiaID, cartaoID)
 }
 
-func (m *MockDespesaCartaoService) ListarPorFatura(cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error) {
-	return m.ListarPorFaturaFn(cartaoID, mes, ano)
+func (m *MockDespesaCartaoService) ListarPorFatura(familiaID, cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error) {
+	return m.ListarPorFaturaFn(familiaID, cartaoID, mes, ano)
 }
 
-func (m *MockDespesaCartaoService) BuscarPorID(id string) (*domain.DespesaCartao, error) {
-	return m.BuscarPorIDFn(id)
+func (m *MockDespesaCartaoService) BuscarPorID(familiaID, id string) (*domain.DespesaCartao, error) {
+	return m.BuscarPorIDFn(familiaID, id)
 }
 
-func (m *MockDespesaCartaoService) Excluir(id string) error {
-	return m.ExcluirFn(id)
+func (m *MockDespesaCartaoService) Excluir(familiaID, id string) error {
+	return m.ExcluirFn(familiaID, id)
 }
 
 func setupDespesaRouter(svc handler.DespesaCartaoServiceInterface) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("userID", "usuario-teste-uuid")
+		c.Set("familiaID", "familia-teste-uuid")
+		c.Next()
+	})
 	h := handler.NewDespesaCartaoHandler(svc)
 	v1 := r.Group("/api/v1")
 	{
@@ -79,7 +84,7 @@ func despesaFixa() *domain.DespesaCartao {
 func TestListarDespesasPorCartaoHandler_Sucesso(t *testing.T) {
 	despesas := []*domain.DespesaCartao{despesaFixa()}
 	svc := &MockDespesaCartaoService{
-		ListarPorCartaoFn: func(cartaoID string) ([]*domain.DespesaCartao, error) {
+		ListarPorCartaoFn: func(familiaID, cartaoID string) ([]*domain.DespesaCartao, error) {
 			return despesas, nil
 		},
 	}
@@ -104,7 +109,7 @@ func TestListarDespesasPorCartaoHandler_Sucesso(t *testing.T) {
 
 func TestListarDespesasPorCartaoHandler_ListaVazia(t *testing.T) {
 	svc := &MockDespesaCartaoService{
-		ListarPorCartaoFn: func(cartaoID string) ([]*domain.DespesaCartao, error) {
+		ListarPorCartaoFn: func(familiaID, cartaoID string) ([]*domain.DespesaCartao, error) {
 			return []*domain.DespesaCartao{}, nil
 		},
 	}
@@ -127,7 +132,7 @@ func TestListarDespesasPorCartaoHandler_ListaVazia(t *testing.T) {
 func TestListarDespesasPorFaturaHandler_Sucesso(t *testing.T) {
 	despesas := []*domain.DespesaCartao{despesaFixa()}
 	svc := &MockDespesaCartaoService{
-		ListarPorFaturaFn: func(cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error) {
+		ListarPorFaturaFn: func(familiaID, cartaoID string, mes, ano int) ([]*domain.DespesaCartao, error) {
 			return despesas, nil
 		},
 	}
@@ -172,7 +177,7 @@ func TestListarDespesasPorFaturaHandler_MesInvalido(t *testing.T) {
 
 func TestCriarDespesaCartaoHandler_Sucesso_AVista(t *testing.T) {
 	svc := &MockDespesaCartaoService{
-		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
+		CriarFn: func(familiaID, cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
 			return []*domain.DespesaCartao{
 				{
 					ID:             "d-novo",
@@ -218,7 +223,7 @@ func TestCriarDespesaCartaoHandler_Sucesso_AVista(t *testing.T) {
 func TestCriarDespesaCartaoHandler_3Parcelas_RetornaArray3Elementos(t *testing.T) {
 	var numeroParcelas int
 	svc := &MockDespesaCartaoService{
-		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, np int) ([]*domain.DespesaCartao, error) {
+		CriarFn: func(familiaID, cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, np int) ([]*domain.DespesaCartao, error) {
 			numeroParcelas = np
 			return []*domain.DespesaCartao{
 				{ID: "d-1", CompraID: "c-1", CartaoID: cartaoID, Descricao: descricao, DataCompra: dataCompra, ValorTotal: valorTotal, NumeroParcelas: 3, ParcelaNumero: 1, ValorParcela: 100.00, FaturaMes: 3, FaturaAno: 2026},
@@ -258,7 +263,7 @@ func TestCriarDespesaCartaoHandler_3Parcelas_RetornaArray3Elementos(t *testing.T
 func TestCriarDespesaCartaoHandler_NumeroParcelas0_DefaultsPara1(t *testing.T) {
 	var numeroParcelas int
 	svc := &MockDespesaCartaoService{
-		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, np int) ([]*domain.DespesaCartao, error) {
+		CriarFn: func(familiaID, cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, np int) ([]*domain.DespesaCartao, error) {
 			numeroParcelas = np
 			return []*domain.DespesaCartao{
 				{ID: "d-1", CompraID: "c-1", CartaoID: cartaoID, Descricao: descricao, DataCompra: dataCompra, ValorTotal: valorTotal, NumeroParcelas: 1, ParcelaNumero: 1, ValorParcela: valorTotal, FaturaMes: 3, FaturaAno: 2026},
@@ -284,7 +289,7 @@ func TestCriarDespesaCartaoHandler_NumeroParcelas0_DefaultsPara1(t *testing.T) {
 
 func TestCriarDespesaCartaoHandler_ErrNumeroParcelas_Returns400(t *testing.T) {
 	svc := &MockDespesaCartaoService{
-		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
+		CriarFn: func(familiaID, cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
 			return nil, domain.ErrNumeroParcelas
 		},
 	}
@@ -336,7 +341,7 @@ func TestCriarDespesaCartaoHandler_BodyInvalido(t *testing.T) {
 
 func TestCriarDespesaCartaoHandler_DescricaoVazia(t *testing.T) {
 	svc := &MockDespesaCartaoService{
-		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
+		CriarFn: func(familiaID, cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
 			return nil, domain.ErrDescricaoObrigatoria
 		},
 	}
@@ -362,7 +367,7 @@ func TestCriarDespesaCartaoHandler_DescricaoVazia(t *testing.T) {
 
 func TestCriarDespesaCartaoHandler_ValorInvalido(t *testing.T) {
 	svc := &MockDespesaCartaoService{
-		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
+		CriarFn: func(familiaID, cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
 			return nil, domain.ErrValorTotalInvalido
 		},
 	}
@@ -383,7 +388,7 @@ func TestCriarDespesaCartaoHandler_ValorInvalido(t *testing.T) {
 
 func TestCriarDespesaCartaoHandler_CartaoNaoEncontrado(t *testing.T) {
 	svc := &MockDespesaCartaoService{
-		CriarFn: func(cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
+		CriarFn: func(familiaID, cartaoID, descricao string, categoriaID *string, dataCompra time.Time, valorTotal float64, numeroParcelas int) ([]*domain.DespesaCartao, error) {
 			return nil, domain.ErrCartaoNaoEncontrado
 		},
 	}
@@ -406,7 +411,7 @@ func TestCriarDespesaCartaoHandler_CartaoNaoEncontrado(t *testing.T) {
 
 func TestExcluirDespesaCartaoHandler_Sucesso(t *testing.T) {
 	svc := &MockDespesaCartaoService{
-		ExcluirFn: func(id string) error { return nil },
+		ExcluirFn: func(familiaID, id string) error { return nil },
 	}
 	r := setupDespesaRouter(svc)
 
@@ -424,7 +429,7 @@ func TestExcluirDespesaCartaoHandler_Sucesso(t *testing.T) {
 
 func TestExcluirDespesaCartaoHandler_NaoEncontrada(t *testing.T) {
 	svc := &MockDespesaCartaoService{
-		ExcluirFn: func(id string) error { return domain.ErrDespesaCartaoNaoEncontrada },
+		ExcluirFn: func(familiaID, id string) error { return domain.ErrDespesaCartaoNaoEncontrada },
 	}
 	r := setupDespesaRouter(svc)
 

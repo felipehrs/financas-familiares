@@ -13,13 +13,13 @@ import (
 // RendaFixaServiceInterface define os métodos do service usados pelo handler.
 // Redeclarada aqui para desacoplar o pacote handler do service sem importação circular.
 type RendaFixaServiceInterface interface {
-	Criar(descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
-	BuscarPorID(id string) (*domain.RendaFixa, error)
-	Listar() ([]*domain.RendaFixa, error)
-	ListarAtivas() ([]*domain.RendaFixa, error)
-	ListarVigentesPorMes(mes, ano int) ([]*domain.RendaFixa, error)
-	Atualizar(id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
-	Inativar(id string) error
+	Criar(familiaID, descricao, membroID string, valor float64, diaRecebimento int, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
+	BuscarPorID(familiaID, id string) (*domain.RendaFixa, error)
+	Listar(familiaID string) ([]*domain.RendaFixa, error)
+	ListarAtivas(familiaID string) ([]*domain.RendaFixa, error)
+	ListarVigentesPorMes(familiaID string, mes, ano int) ([]*domain.RendaFixa, error)
+	Atualizar(familiaID, id, descricao, membroID string, valor float64, diaRecebimento int, ativa bool, dataInicio time.Time, dataFim *time.Time) (*domain.RendaFixa, error)
+	Inativar(familiaID, id string) error
 }
 
 // RendaFixaHandler contém os handlers HTTP para rendas fixas.
@@ -99,7 +99,12 @@ func (h *RendaFixaHandler) erroDominio(c *gin.Context, err error) bool {
 // Listar retorna todas as rendas fixas.
 // GET /api/v1/rendas-fixas
 func (h *RendaFixaHandler) Listar(c *gin.Context) {
-	rendas, err := h.svc.Listar()
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
+	rendas, err := h.svc.Listar(familiaID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
@@ -116,6 +121,11 @@ func (h *RendaFixaHandler) Listar(c *gin.Context) {
 // ListarVigentesPorMes retorna as rendas fixas vigentes no mês/ano informado.
 // GET /api/v1/rendas-fixas/vigentes?mes=3&ano=2026
 func (h *RendaFixaHandler) ListarVigentesPorMes(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	mesStr := c.Query("mes")
 	anoStr := c.Query("ano")
 
@@ -136,7 +146,7 @@ func (h *RendaFixaHandler) ListarVigentesPorMes(c *gin.Context) {
 		return
 	}
 
-	rendas, err := h.svc.ListarVigentesPorMes(mes, ano)
+	rendas, err := h.svc.ListarVigentesPorMes(familiaID, mes, ano)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro interno"})
 		return
@@ -153,6 +163,11 @@ func (h *RendaFixaHandler) ListarVigentesPorMes(c *gin.Context) {
 // Criar cria uma nova renda fixa.
 // POST /api/v1/rendas-fixas
 func (h *RendaFixaHandler) Criar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	var req criarRendaFixaRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "dados inválidos"})
@@ -180,7 +195,7 @@ func (h *RendaFixaHandler) Criar(c *gin.Context) {
 		dataFim = &df
 	}
 
-	renda, err := h.svc.Criar(req.Descricao, req.MembroID, req.Valor, req.DiaRecebimento, dataInicio, dataFim)
+	renda, err := h.svc.Criar(familiaID, req.Descricao, req.MembroID, req.Valor, req.DiaRecebimento, dataInicio, dataFim)
 	if err != nil {
 		if h.erroDominio(c, err) {
 			return
@@ -195,9 +210,14 @@ func (h *RendaFixaHandler) Criar(c *gin.Context) {
 // BuscarPorID retorna uma renda fixa pelo seu ID.
 // GET /api/v1/rendas-fixas/:id
 func (h *RendaFixaHandler) BuscarPorID(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	renda, err := h.svc.BuscarPorID(id)
+	renda, err := h.svc.BuscarPorID(familiaID, id)
 	if err != nil {
 		if h.erroDominio(c, err) {
 			return
@@ -212,6 +232,11 @@ func (h *RendaFixaHandler) BuscarPorID(c *gin.Context) {
 // Atualizar atualiza os dados de uma renda fixa existente.
 // PUT /api/v1/rendas-fixas/:id
 func (h *RendaFixaHandler) Atualizar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
 	var req atualizarRendaFixaRequest
@@ -241,7 +266,7 @@ func (h *RendaFixaHandler) Atualizar(c *gin.Context) {
 		dataFim = &df
 	}
 
-	renda, err := h.svc.Atualizar(id, req.Descricao, req.MembroID, req.Valor, req.DiaRecebimento, req.Ativa, dataInicio, dataFim)
+	renda, err := h.svc.Atualizar(familiaID, id, req.Descricao, req.MembroID, req.Valor, req.DiaRecebimento, req.Ativa, dataInicio, dataFim)
 	if err != nil {
 		if h.erroDominio(c, err) {
 			return
@@ -256,9 +281,14 @@ func (h *RendaFixaHandler) Atualizar(c *gin.Context) {
 // Inativar marca uma renda fixa como inativa.
 // PATCH /api/v1/rendas-fixas/:id/inativar
 func (h *RendaFixaHandler) Inativar(c *gin.Context) {
+	familiaID, ok := getFamiliaID(c)
+	if !ok {
+		return
+	}
+
 	id := c.Param("id")
 
-	if err := h.svc.Inativar(id); err != nil {
+	if err := h.svc.Inativar(familiaID, id); err != nil {
 		if h.erroDominio(c, err) {
 			return
 		}

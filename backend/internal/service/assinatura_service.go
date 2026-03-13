@@ -9,21 +9,21 @@ import (
 // AssinaturaRepository define as operações de persistência necessárias para assinaturas.
 // Declarada aqui para evitar import circular entre service e repository.
 type AssinaturaRepository interface {
-	Criar(a *domain.Assinatura) (*domain.Assinatura, error)
-	BuscarPorID(id string) (*domain.Assinatura, error)
-	Listar() ([]*domain.Assinatura, error)
-	Atualizar(a *domain.Assinatura) (*domain.Assinatura, error)
-	AlterarStatus(id, status string) (*domain.Assinatura, error)
+	Criar(familiaID string, a *domain.Assinatura) (*domain.Assinatura, error)
+	BuscarPorID(familiaID, id string) (*domain.Assinatura, error)
+	Listar(familiaID string) ([]*domain.Assinatura, error)
+	Atualizar(familiaID string, a *domain.Assinatura) (*domain.Assinatura, error)
+	AlterarStatus(familiaID, id, status string) (*domain.Assinatura, error)
 }
 
 // AssinaturaServiceInterface define os métodos públicos do serviço de assinaturas.
 // Redeclarada nos handlers para desacoplamento.
 type AssinaturaServiceInterface interface {
-	Criar(nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error)
-	BuscarPorID(id string) (*domain.Assinatura, error)
-	Listar() ([]*domain.Assinatura, error)
-	Atualizar(id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error)
-	AlterarStatus(id, status string) (*domain.Assinatura, error)
+	Criar(familiaID, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error)
+	BuscarPorID(familiaID, id string) (*domain.Assinatura, error)
+	Listar(familiaID string) ([]*domain.Assinatura, error)
+	Atualizar(familiaID, id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error)
+	AlterarStatus(familiaID, id, status string) (*domain.Assinatura, error)
 }
 
 // AssinaturaService implementa a lógica de negócio para assinaturas recorrentes.
@@ -38,7 +38,7 @@ func NewAssinaturaService(repo AssinaturaRepository) *AssinaturaService {
 
 // Criar cria uma nova assinatura recorrente.
 // Valida campos obrigatórios e define Status="ativa" por padrão.
-func (s *AssinaturaService) Criar(nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error) {
+func (s *AssinaturaService) Criar(familiaID, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento string) (*domain.Assinatura, error) {
 	if strings.TrimSpace(nome) == "" {
 		return nil, domain.ErrNomeAssinaturaObrigatorio
 	}
@@ -65,23 +65,23 @@ func (s *AssinaturaService) Criar(nome, membroID string, categoriaID *string, va
 		Status:         "ativa",
 	}
 
-	return s.repo.Criar(assinatura)
+	return s.repo.Criar(familiaID, assinatura)
 }
 
 // BuscarPorID retorna uma assinatura pelo seu ID.
 // Retorna ErrAssinaturaNaoEncontrada se não existir.
-func (s *AssinaturaService) BuscarPorID(id string) (*domain.Assinatura, error) {
-	return s.repo.BuscarPorID(id)
+func (s *AssinaturaService) BuscarPorID(familiaID, id string) (*domain.Assinatura, error) {
+	return s.repo.BuscarPorID(familiaID, id)
 }
 
 // Listar retorna todas as assinaturas não excluídas.
-func (s *AssinaturaService) Listar() ([]*domain.Assinatura, error) {
-	return s.repo.Listar()
+func (s *AssinaturaService) Listar(familiaID string) ([]*domain.Assinatura, error) {
+	return s.repo.Listar(familiaID)
 }
 
 // Atualizar atualiza os dados de uma assinatura existente.
 // Valida campos obrigatórios antes de buscar no repositório.
-func (s *AssinaturaService) Atualizar(id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error) {
+func (s *AssinaturaService) Atualizar(familiaID, id, nome, membroID string, categoriaID *string, valor float64, diaCobranca int, formaPagamento, status string) (*domain.Assinatura, error) {
 	if strings.TrimSpace(nome) == "" {
 		return nil, domain.ErrNomeAssinaturaObrigatorio
 	}
@@ -101,7 +101,7 @@ func (s *AssinaturaService) Atualizar(id, nome, membroID string, categoriaID *st
 		return nil, domain.ErrStatusInvalido
 	}
 
-	assinatura, err := s.repo.BuscarPorID(id)
+	assinatura, err := s.repo.BuscarPorID(familiaID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -114,20 +114,20 @@ func (s *AssinaturaService) Atualizar(id, nome, membroID string, categoriaID *st
 	assinatura.FormaPagamento = formaPagamento
 	assinatura.Status = status
 
-	return s.repo.Atualizar(assinatura)
+	return s.repo.Atualizar(familiaID, assinatura)
 }
 
 // AlterarStatus altera o status de uma assinatura existente.
 // Valida o status antes de buscar no repositório.
-func (s *AssinaturaService) AlterarStatus(id, status string) (*domain.Assinatura, error) {
+func (s *AssinaturaService) AlterarStatus(familiaID, id, status string) (*domain.Assinatura, error) {
 	if !domain.StatusAssinaturaValidos[status] {
 		return nil, domain.ErrStatusInvalido
 	}
 
-	_, err := s.repo.BuscarPorID(id)
+	_, err := s.repo.BuscarPorID(familiaID, id)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.repo.AlterarStatus(id, status)
+	return s.repo.AlterarStatus(familiaID, id, status)
 }
