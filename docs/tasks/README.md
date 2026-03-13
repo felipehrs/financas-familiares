@@ -15,7 +15,10 @@ docs/tasks/
 │   ├── 01-cors-restrito.md
 │   ├── 02-rate-limiting.md
 │   └── 03-testes-e-docs.md
-└── tt-09/              (Sprint 9 - TT-09: Índices — a criar)
+└── tt-09/              (Sprint 9 - TT-09: Índices de Performance)
+    ├── 01-criar-migration-indices.md
+    ├── 02-validar-indices-explain.md
+    └── 03-documentacao-e-finalizacao.md
 ```
 
 ---
@@ -35,6 +38,20 @@ docs/tasks/
 **Total estimado:** ~2h15min
 
 **Plano técnico:** [docs/tecnico/05-plano-tt08-cors-rate-limiting.md](../tecnico/05-plano-tt08-cors-rate-limiting.md)
+
+---
+
+#### TT-09: Índices de Performance
+
+| # | Tarefa | Estimativa | Abordagem |
+|---|--------|------------|-----------|
+| 1 | [Criar Migration de Índices](./tt-09/01-criar-migration-indices.md) | 60 min | Incremental (criar → validar → aplicar) |
+| 2 | [Validar Índices com EXPLAIN](./tt-09/02-validar-indices-explain.md) | 45 min | Validação empírica (EXPLAIN ANALYZE) |
+| 3 | [Documentação e Finalização](./tt-09/03-documentacao-e-finalizacao.md) | 30 min | Documentação + Rollback |
+
+**Total estimado:** ~2h15min
+
+**Plano técnico:** [docs/tecnico/06-plano-tt09-indices-performance.md](../tecnico/06-plano-tt09-indices-performance.md)
 
 ---
 
@@ -100,4 +117,4 @@ Cada tarefa documenta:
 
 ---
 
-**Última atualização:** 12/03/2026 (TT-08 criado com abordagem TDD)
+**Última atualização:** 12/03/2026 (TT-08 e TT-09 criados)

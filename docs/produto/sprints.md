@@ -173,7 +173,7 @@
 | 1 | ✅ | TT-07 | Infraestrutura Multi-Tenant: tabelas `familias`, colunas `familia_id`, alteração JWT e Middleware |
 | 2 | ✅ | TT-10 | Refatoração para Isolamento: filtrar 15+ repositórios e handlers por `familia_id` |
 | 3 | ✅ | TT-08 | Segurança: restringir CORS a origens específicas; rate limiting em `POST /auth/login` |
-| 4 | 🔲 | TT-09 | Índices de performance: `deleted_at` em todas as tabelas, `familia_id` em todas as tabelas, índice composto em `despesas_cartao` |
+| 4 | ✅ | TT-09 | Índices de performance: `deleted_at` em todas as tabelas, `familia_id` em todas as tabelas, índice composto em `despesas_cartao` |
 
 **Critério de conclusão:** TT-07 validado com teste de isolamento (usuário A não vê dados do B). CORS restrito a domínios específicos e rate limiting ativo no login com resposta 429. Índices criados e verificados em todas as tabelas afetadas.
 
